@@ -1,0 +1,2938 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-SDF: Jungle Tower Defense</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="skybox.js"></script>
+    <script src="translator.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #030a05;
+            overflow: hidden;
+            user-select: none;
+        }
+        .orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 12s linear infinite;
+        }
+        /* Custom scrollbar for instructions panel */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(16, 43, 23, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(34, 197, 94, 0.4);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(34, 197, 94, 0.7);
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+        .glow-text-green {
+            text-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+        }
+        .blur-panel {
+            background: rgba(10, 25, 14, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        /* Grid Canvas Overlays */
+        #radar-canvas {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative select-none">
+
+    <!-- Loading Screen -->
+    <div id="loader" class="absolute inset-0 z-50 flex flex-col justify-center items-center bg-[#020703] text-green-400">
+        <div class="orbitron text-3xl font-bold tracking-widest mb-4 glow-text-green animate-pulse">INITIATING JUNGLE BIOME</div>
+        <div class="w-64 h-2 bg-emerald-950 rounded-full overflow-hidden border border-emerald-500/30">
+            <div id="loader-progress" class="w-0 h-full bg-emerald-500 duration-300"></div>
+        </div>
+        <div class="mt-2 text-sm text-emerald-500/80 tracking-widest uppercase">Compiling Procedural Canopy & Pathfinding SDF</div>
+    </div>
+
+    <!-- UI Overlay container -->
+    <div id="ui-container" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6">
+        
+        <!-- Header: Stats Bar -->
+        <header class="flex justify-between items-start w-full pointer-events-auto">
+            <!-- Left Info Panel -->
+            <div class="blur-panel rounded-xl px-5 py-3 flex items-center gap-6 shadow-2xl">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold">Crystal Integrity</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-heart-pulse text-red-500 animate-pulse text-xl"></i>
+                        <span id="health-value" class="orbitron text-2xl font-black text-red-400 glow-text-green">20</span>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-emerald-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold">Biolum Credits</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-seedling text-yellow-400 text-xl"></i>
+                        <span id="gold-value" class="orbitron text-2xl font-black text-yellow-300">180</span>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-emerald-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold">Wave</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-biohazard text-emerald-400 text-xl"></i>
+                        <span id="wave-value" class="orbitron text-2xl font-black text-emerald-400">1</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right System Panel -->
+            <div class="flex flex-col items-end gap-2">
+                <div class="blur-panel rounded-xl px-4 py-2 flex items-center gap-4 shadow-2xl">
+                    <button id="sound-toggle" class="text-emerald-400 hover:text-emerald-200 transition-colors p-1" title="Toggle Sound">
+                        <i class="fa-solid fa-volume-high text-lg"></i>
+                    </button>
+                    <button id="info-toggle" class="text-emerald-400 hover:text-emerald-200 transition-colors p-1" title="Game Controls & Math Explainer">
+                        <i class="fa-solid fa-circle-info text-lg animate-bounce"></i>
+                    </button>
+                    <div class="h-6 w-[1px] bg-emerald-500/20"></div>
+                    <span class="text-xs orbitron font-bold text-emerald-500 uppercase tracking-wider">Score: <span id="score-value" class="text-white">00000</span></span>
+                </div>
+                <!-- Time controls -->
+                <div class="blur-panel rounded-lg p-1 flex gap-1 shadow-lg">
+                    <button id="speed-1x" class="px-2 py-1 text-xs font-bold rounded bg-emerald-500 text-black orbitron transition-all">1X</button>
+                    <button id="speed-2x" class="px-2 py-1 text-xs font-bold rounded text-emerald-400 hover:bg-emerald-500/20 orbitron transition-all">2X</button>
+                    <button id="speed-4x" class="px-2 py-1 text-xs font-bold rounded text-emerald-400 hover:bg-emerald-500/20 orbitron transition-all">4X</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace (Center Split) -->
+        <main class="flex justify-between items-center w-full h-[60%] my-auto">
+            
+            <!-- Left Panel: Real-time SDF Pathfinding Radar -->
+            <div id="sdf-panel" class="blur-panel rounded-2xl p-4 pointer-events-auto flex flex-col gap-3 max-w-[180px] shadow-2xl transition-all hover:border-emerald-500/40">
+                <div class="flex justify-between items-center border-b border-emerald-500/20 pb-2">
+                    <span class="text-xs font-bold tracking-widest text-emerald-400 uppercase orbitron"><i class="fa-solid fa-wave-square mr-1 text-[10px]"></i> Pathing SDF</span>
+                    <span class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                </div>
+                <div class="relative bg-emerald-950/40 border border-emerald-500/30 rounded-lg overflow-hidden flex justify-center items-center">
+                    <canvas id="radar-canvas" width="144" height="144" class="w-36 h-36 bg-[#010802]"></canvas>
+                </div>
+                <div class="text-[10px] text-emerald-400/70 leading-relaxed font-semibold">
+                    <span class="text-yellow-400">Heat map shows Distance-to-Base.</span> Arrows show flow field directions recalculating as you place towers.
+                </div>
+            </div>
+
+            <!-- Right Panel: Game Settings & Rules Panel (Collapsible) -->
+            <div id="info-panel" class="blur-panel rounded-2xl p-5 pointer-events-auto max-w-sm flex flex-col gap-4 shadow-2xl border-emerald-500/40 transition-all transform translate-x-[420px] absolute right-4 z-20">
+                <div class="flex justify-between items-center border-b border-emerald-500/30 pb-3">
+                    <h3 class="orbitron font-bold text-emerald-300 text-lg tracking-wide"><i class="fa-solid fa-microchip mr-2"></i>SDF & Flow Field Engine</h3>
+                    <button id="close-info" class="text-emerald-500 hover:text-red-400 transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="space-y-3 text-sm text-emerald-300/90 overflow-y-auto max-h-[350px] pr-2">
+                    <p class="font-bold text-white text-base">How SDF Pathfinding works:</p>
+                    <p>Unlike standard pathfinding (like A*) where each enemy calculates its path separately, this world utilizes an **SDF Dijkstra Flow Field Map** generated dynamically starting from the Base Temple at value <code>0.0</code>.</p>
+                    <p>The distance increments as we move outwards. Placing walls or towers changes the distance field, causing enemies to adjust their direction to follow the negative gradient of the field automatically.</p>
+                    
+                    <div class="bg-emerald-950/60 p-3 rounded-lg border border-emerald-500/20 space-y-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 block"><i class="fa-solid fa-gamepad mr-1"></i>Controls</span>
+                        <ul class="list-disc pl-4 space-y-1 text-xs">
+                            <li><strong class="text-white">Left Click</strong> on the grid to build a Spore Turret (Cost: <span class="text-yellow-400">50¢</span>)</li>
+                            <li><strong class="text-white">Click a Tower</strong> to Select, Upgrade or Sell it.</li>
+                            <li><strong class="text-white">Right Click + Drag</strong> to Rotate Camera.</li>
+                            <li><strong class="text-white">Esc Key</strong> to cancel build mode.</li>
+                            <li><strong class="text-white">Scroll</strong> to Zoom in/out.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-emerald-950/60 p-3 rounded-lg border border-emerald-500/20 space-y-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 block"><i class="fa-solid fa-shield mr-1"></i>Anti-Cheat Protocol</span>
+                        <p class="text-xs">You cannot completely block any spawn point from reaching the Base Temple. The system validates potential paths before finalizing tower builds!</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer UI: Build Deck / Active Selection Panel -->
+        <footer class="flex flex-col gap-4 items-center w-full pointer-events-auto">
+            
+            <!-- Context Menu (Appears when Tower is clicked) -->
+            <div id="selection-panel" class="blur-panel rounded-2xl px-6 py-4 flex items-center gap-6 shadow-2xl border-yellow-500/30 transition-all transform scale-0 duration-300 pointer-events-none opacity-0 h-20 max-w-xl">
+                <div class="flex flex-col">
+                    <span id="selected-title" class="orbitron font-black text-lg text-yellow-400 leading-none">SPORE TURRET LVL 1</span>
+                    <span id="selected-stats" class="text-xs text-emerald-300 tracking-wider">Dmg: 10 | Range: 6.0 | Speed: 1.0s</span>
+                </div>
+                <div class="h-10 w-[1px] bg-emerald-500/20"></div>
+                <div class="flex items-center gap-3">
+                    <button id="upgrade-btn" class="px-4 py-2 bg-yellow-500 text-black font-bold uppercase tracking-wider text-sm rounded-lg hover:bg-yellow-400 transition-all hover:scale-105 shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-up-short-wide"></i> Upgrade (<span id="upgrade-cost">75</span>¢)
+                    </button>
+                    <button id="sell-btn" class="px-4 py-2 bg-red-950 hover:bg-red-900 border border-red-500/50 text-red-200 font-bold uppercase tracking-wider text-sm rounded-lg transition-all hover:scale-105 shadow-md flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i> Sell (+<span id="sell-value">25</span>¢)
+                    </button>
+                    <button id="deselect-btn" class="p-2 text-emerald-500 hover:text-white transition-colors" title="Deselect">
+                        <i class="fa-solid fa-circle-xmark text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom Control Deck -->
+            <div class="flex justify-between items-center w-full max-w-5xl gap-4">
+                
+                <!-- Build Menu Button & Dropdown Container -->
+                <div class="relative flex-grow max-w-xs pointer-events-auto">
+                    <!-- Construct Trigger Button -->
+                    <button id="construct-btn" class="w-full h-14 bg-gradient-to-r from-emerald-950 to-green-950 border border-emerald-500/40 text-white font-black orbitron text-sm rounded-xl hover:border-emerald-400 hover:bg-emerald-900 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-compass-drafting text-emerald-400 text-base"></i> CONSTRUCT TOWER <i class="fa-solid fa-chevron-up text-xs text-emerald-500/60 ml-2 transition-transform duration-300"></i>
+                    </button>
+
+                    <!-- Dropdown Options Menu (initially hidden) -->
+                    <div id="construct-dropdown" class="absolute bottom-16 left-0 right-0 blur-panel rounded-xl border border-emerald-500/30 p-2 flex flex-col gap-1.5 shadow-2xl transition-all duration-300 transform scale-y-0 origin-bottom opacity-0 pointer-events-none z-40 bg-black/95">
+                        
+                        <!-- Option 1: Spore Cannon -->
+                        <div id="build-spore" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-emerald-500/40 hover:bg-emerald-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-emerald-950/80 border border-emerald-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-emerald-400">
+                                    <i class="fa-solid fa-seedling text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">SPORE CANNON</span>
+                                    <span class="text-[9px] text-emerald-400/70">Anti-Scarab Plasma Projectiles</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>50¢</span>
+                        </div>
+
+                        <!-- Option 2: Bio-Laser -->
+                        <div id="build-laser" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-red-500/40 hover:bg-red-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-red-950/80 border border-red-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-red-400">
+                                    <i class="fa-solid fa-bolt text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">BIO-LASER</span>
+                                    <span class="text-[9px] text-red-400/70">Rapid Heat Focus Beams</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>120¢</span>
+                        </div>
+
+                        <!-- Option 3: Frost Orchid -->
+                        <div id="build-frost" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-cyan-500/40 hover:bg-cyan-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-cyan-950/80 border border-cyan-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-cyan-400">
+                                    <i class="fa-solid fa-snowflake text-sm animate-spin-slow"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">FROST ORCHID</span>
+                                    <span class="text-[9px] text-cyan-400/70">Area Slowing Frost Projectiles</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>90¢</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Wave Controller -->
+                <div class="blur-panel rounded-2xl p-3 flex items-center gap-3 shadow-2xl border-emerald-500/40 min-w-[240px]">
+                    <div class="flex flex-col text-right">
+                        <span id="wave-desc" class="text-xs text-emerald-400/80 tracking-widest uppercase font-semibold">Ready to Engage</span>
+                        <span id="enemy-count" class="orbitron text-sm font-bold text-emerald-100">5 Biomechanical Scarabs</span>
+                    </div>
+                    <button id="wave-btn" class="h-14 px-6 bg-gradient-to-r from-emerald-600 to-green-500 text-black font-black orbitron text-base rounded-xl hover:from-emerald-500 hover:to-green-400 transition-all shadow-lg shadow-emerald-950 active:scale-95 flex items-center gap-2">
+                        <i class="fa-solid fa-play animate-pulse text-lg"></i> SPAWN WAVE
+                    </button>
+                </div>
+            </div>
+
+        </footer>
+
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toast-container" class="absolute top-24 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none flex flex-col gap-2 items-center">
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="game-canvas" class="absolute inset-0 w-full h-full z-0 block"></canvas>
+
+    <script src="error.js"></script>
+    <script>
+        // Global error visualization overlay
+        window.addEventListener('error', (e) => {
+            const errDiv = document.createElement('div');
+            errDiv.className = 'blur-panel px-4 py-2 rounded-lg font-bold border border-red-500/50 text-red-300 text-xs tracking-wider uppercase flex flex-col gap-1 shadow-2xl';
+            errDiv.style.position = 'absolute';
+            errDiv.style.top = '20px';
+            errDiv.style.left = '50%';
+            errDiv.style.transform = 'translateX(-50%)';
+            errDiv.style.zIndex = '9999';
+            errDiv.style.background = 'rgba(10, 25, 14, 0.95)';
+            errDiv.style.pointerEvents = 'auto';
+            errDiv.innerHTML = `<div class="flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-400"></i> <span>JS Error: ${e.message}</span></div><div class="text-[10px] text-red-400/70 font-mono">at ${e.filename ? e.filename.split('/').pop() : 'inline'}:${e.lineno}:${e.colno}</div>`;
+            document.body.appendChild(errDiv);
+            setTimeout(() => {
+                errDiv.style.transition = 'all 0.5s ease';
+                errDiv.style.opacity = '0';
+                errDiv.style.transform = 'translate(-50%, -20px)';
+                setTimeout(() => errDiv.remove(), 500);
+            }, 6000);
+        });
+
+        const GRID_SIZE = 40; // Expanded Open-World Grid
+        const CELL_SIZE = 2.0; // Three.js units per cell
+        const HALF_GRID = (GRID_SIZE * CELL_SIZE) / 2;
+
+        const CELL_TYPES = {
+            EMPTY: 0,
+            OBSTACLE: 1, // Trees, Rocks
+            TOWER: 2,
+            BASE: 3,
+            SPAWN: 4
+        };
+
+        const BASE_COORD = { x: 20, z: 20 };
+        const SPAWN_POINTS = [
+            { x: 20, z: 0, label: 'North Portal' },
+            { x: 20, z: 39, label: 'South Portal' },
+            { x: 0, z: 20, label: 'West Portal' },
+            { x: 39, z: 20, label: 'East Portal' },
+            { x: 0, z: 0, label: 'North-West Portal' },
+            { x: 39, z: 0, label: 'North-East Portal' },
+            { x: 0, z: 39, label: 'South-West Portal' },
+            { x: 39, z: 39, label: 'South-East Portal' }
+        ];
+
+        // System Settings
+        let gameState = {
+            gold: 250,
+            health: 20,
+            wave: 1,
+            score: 0,
+            gameSpeed: 1.0,
+            isWaveActive: false,
+            selectedTower: null,
+            soundEnabled: true,
+            isGameOver: false,
+            autoStartWave: false
+        };
+
+        // Initialize High Performance Translator Cache
+        if (typeof Translator !== 'undefined') {
+            Translator.init(GRID_SIZE, CELL_SIZE);
+        }
+
+        // Grid storage arrays
+        const grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(CELL_TYPES.EMPTY));
+        const sdfGrid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(Infinity));
+
+        // Mark Static Structures
+        grid[BASE_COORD.x][BASE_COORD.z] = CELL_TYPES.BASE;
+        SPAWN_POINTS.forEach(p => {
+            grid[p.x][p.z] = CELL_TYPES.SPAWN;
+        });
+
+        /* ==========================================
+           SYNTHESIZED BIO-AUDIO CONTROLLER
+           ========================================== */
+        class AudioSynthController {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (this.ctx) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            playBuild() {
+                if (!gameState.soundEnabled) return;
+                this.init();
+                let now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(330, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+            playShoot() {
+                if (!gameState.soundEnabled) return;
+                this.init();
+                let now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            }
+            playExplode() {
+                if (!gameState.soundEnabled) return;
+                this.init();
+                let now = this.ctx.currentTime;
+                // Low rumble oscillator
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+            playExplosion() {
+                this.playExplode();
+            }
+            playBaseDamage() {
+                if (!gameState.soundEnabled) return;
+                this.init();
+                let now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.setValueAtTime(90, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+            playDenied() {
+                if (!gameState.soundEnabled) return;
+                this.init();
+                let now = this.ctx.currentTime;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(130, now);
+                osc.frequency.setValueAtTime(80, now + 0.08);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+        const audio = new AudioSynthController();
+
+        /* ==========================================
+           REAL-TIME DIJKSTRA SDF PATHFINDING
+           ========================================== */
+        function computeSDF() {
+            // Step 1: Initialize all values to Infinity
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let z = 0; z < GRID_SIZE; z++) {
+                    sdfGrid[x][z] = Infinity;
+                }
+            }
+
+            // Step 2: Set the Destination (Base Crystal) to distance 0
+            sdfGrid[BASE_COORD.x][BASE_COORD.z] = 0;
+
+            // Step 3: Dijkstra BFS queue
+            let queue = [{ x: BASE_COORD.x, z: BASE_COORD.z }];
+
+            const neighbors = [
+                { dx: 1, dz: 0, cost: 1.0 },
+                { dx: -1, dz: 0, cost: 1.0 },
+                { dx: 0, dz: 1, cost: 1.0 },
+                { dx: 0, dz: -1, cost: 1.0 },
+                // Diagonal moves for smoother paths
+                { dx: 1, dz: 1, cost: 1.414 },
+                { dx: -1, dz: -1, cost: 1.414 },
+                { dx: 1, dz: -1, cost: 1.414 },
+                { dx: -1, dz: 1, cost: 1.414 }
+            ];
+
+            while (queue.length > 0) {
+                // Find node with minimum current distance in queue
+                let minIdx = 0;
+                for (let i = 1; i < queue.length; i++) {
+                    if (sdfGrid[queue[i].x][queue[i].z] < sdfGrid[queue[minIdx].x][queue[minIdx].z]) {
+                        minIdx = i;
+                    }
+                }
+                let curr = queue.splice(minIdx, 1)[0];
+
+                for (let n of neighbors) {
+                    let nx = curr.x + n.dx;
+                    let nz = curr.z + n.dz;
+
+                    // Bound checks
+                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                        // Avoid towers and obstacles
+                        if (grid[nx][nz] === CELL_TYPES.OBSTACLE || grid[nx][nz] === CELL_TYPES.TOWER) {
+                            continue;
+                        }
+
+                        let targetDist = sdfGrid[curr.x][curr.z] + n.cost;
+                        if (targetDist < sdfGrid[nx][nz]) {
+                            sdfGrid[nx][nz] = targetDist;
+                            queue.push({ x: nx, z: nz });
+                        }
+                    }
+                }
+            }
+            updateSDFRadar();
+        }
+
+        // Test if a temporary block would break the paths from Spawns to Base
+        function validatePathways(tempX, tempZ) {
+            // Save state
+            const orig = grid[tempX][tempZ];
+            grid[tempX][tempZ] = CELL_TYPES.TOWER;
+
+            // Run localized dry-run computation
+            computeSDF();
+
+            let viable = true;
+            for (let spawn of SPAWN_POINTS) {
+                if (sdfGrid[spawn.x][spawn.z] === Infinity) {
+                    viable = false;
+                    break;
+                }
+            }
+
+            // Restore state
+            grid[tempX][tempZ] = orig;
+            computeSDF(); // Recalculate original
+
+            return viable;
+        }
+
+        /* ==========================================
+           RADAR SDF CANVAS RENDERER
+           ========================================== */
+        const radarCanvas = document.getElementById('radar-canvas');
+        const rCtx = radarCanvas.getContext('2d');
+        const radarSize = 144;
+        const cellPixels = radarSize / GRID_SIZE;
+
+        function updateSDFRadar() {
+            rCtx.clearRect(0, 0, radarSize, radarSize);
+
+            // Draw cells based on distances/types
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let z = 0; z < GRID_SIZE; z++) {
+                    const type = grid[x][z];
+                    const dist = sdfGrid[x][z];
+
+                    let color = '#021808'; // Default empty
+                    if (type === CELL_TYPES.OBSTACLE) {
+                        color = '#3f311c'; // Tree/rock brown
+                    } else if (type === CELL_TYPES.TOWER) {
+                        color = '#f59e0b'; // Gold
+                    } else if (type === CELL_TYPES.BASE) {
+                        color = '#ec4899'; // Base magenta
+                    } else if (dist !== Infinity) {
+                        // Color ramp based on Distance (SDF Heat Map)
+                        let heat = Math.min(230, dist * 6);
+                        color = `rgb(${Math.floor(heat * 0.1)}, ${Math.floor(80 - heat * 0.3)}, ${Math.floor(10 + heat * 0.8)})`;
+                    } else {
+                        color = '#110202'; // Blocked off/unreachable
+                    }
+
+                    rCtx.fillStyle = color;
+                    rCtx.fillRect(x * cellPixels, z * cellPixels, cellPixels - 1, cellPixels - 1);
+
+                    // Draw flow direction arrows on walkable paths
+                    if (type === CELL_TYPES.EMPTY && dist !== Infinity && dist > 0) {
+                        // Find local gradient (neighbor pointing to smallest distance)
+                        let bestN = null;
+                        let bestVal = dist;
+                        const simpleDirs = [
+                            { dx: 1, dz: 0, arrow: '→' },
+                            { dx: -1, dz: 0, arrow: '←' },
+                            { dx: 0, dz: 1, arrow: '↓' },
+                            { dx: 0, dz: -1, arrow: '↑' }
+                        ];
+
+                        for (let d of simpleDirs) {
+                            let nx = x + d.dx;
+                            let nz = z + d.dz;
+                            if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                                if (sdfGrid[nx][nz] < bestVal) {
+                                    bestVal = sdfGrid[nx][nz];
+                                    bestN = d;
+                                }
+                            }
+                        }
+
+                        if (bestN) {
+                            rCtx.fillStyle = 'rgba(16, 185, 129, 0.4)';
+                            rCtx.font = '8px Arial';
+                            rCtx.textAlign = 'center';
+                            rCtx.textBaseline = 'middle';
+                            rCtx.fillText(
+                                bestN.arrow, 
+                                x * cellPixels + cellPixels/2, 
+                                z * cellPixels + cellPixels/2
+                            );
+                        }
+                    }
+                }
+            }
+
+            // Draw Spawn Points (Flashing)
+            rCtx.fillStyle = '#10b981';
+            SPAWN_POINTS.forEach(p => {
+                rCtx.beginPath();
+                rCtx.arc(p.x * cellPixels + cellPixels/2, p.z * cellPixels + cellPixels/2, 3, 0, Math.PI * 2);
+                rCtx.fill();
+            });
+
+            // Draw Base
+            rCtx.fillStyle = '#f472b6';
+            rCtx.beginPath();
+            rCtx.arc(BASE_COORD.x * cellPixels + cellPixels/2, BASE_COORD.z * cellPixels + cellPixels/2, 4, 0, Math.PI * 2);
+            rCtx.fill();
+        }
+
+        /* ==========================================
+           THREE.JS WORLD GENERATION & RENDERING
+           ========================================== */
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const scene = new THREE.Scene();
+        // Foggy Dark Jungle Atmosphere
+        scene.background = new THREE.Color(0x010803);
+        scene.fog = new THREE.FogExp2(0x010803, 0.02);
+
+        let skyboxController = null;
+        if (typeof initSkybox === 'function') {
+            skyboxController = initSkybox(scene);
+        }
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.set(0, 45, 55);
+
+        // Orbit Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.1; // Don't look under floor
+        controls.minDistance = 5;
+        controls.maxDistance = 120;
+        controls.target.set(0, 0, 0);
+
+        /* Lights Setup */
+        const ambientLight = new THREE.AmbientLight(0x0a2410, 1.2);
+        scene.add(ambientLight);
+
+        // Directional Sun lighting filtering through canopy
+        const dirLight = new THREE.DirectionalLight(0xaefcb1, 0.8);
+        dirLight.position.set(15, 30, 10);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 150;
+        const d = 45;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        scene.add(dirLight);
+
+        // Base Crystal Light source
+        const baseLight = new THREE.PointLight(0xec4899, 3, 15);
+        const baseWorld = gridToWorld(BASE_COORD.x, BASE_COORD.z);
+        baseLight.position.set(baseWorld.x, 3, baseWorld.z);
+        scene.add(baseLight);
+
+        /* Terrain & Safety Floor Grid */
+        const groundGeo = new THREE.PlaneGeometry(GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0x051b0a,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        Translator.optimizeMesh(ground);
+
+        // Safety Floor Grid Overlay
+        const gridHelper = new THREE.GridHelper(GRID_SIZE * CELL_SIZE, GRID_SIZE, 0x10b981, 0x11311b);
+        gridHelper.position.y = 0.02;
+        scene.add(gridHelper);
+        Translator.optimizeMesh(gridHelper);
+
+        // Coordinate converters mapped to high performance Translator cache
+        function gridToWorld(x, z) {
+            return Translator.gridToWorld(x, z);
+        }
+
+        const _worldToGridTarget = { x: 0, z: 0 };
+        function worldToGrid(worldX, worldZ) {
+            return Translator.worldToGrid(worldX, worldZ, _worldToGridTarget);
+        }
+
+        /* Procedural Jungle Object Synthesizers */
+        function createLowPolyTree() {
+            const tree = new THREE.Group();
+
+            // Trunk (Low poly cylinder)
+            const trunkGeo = new THREE.CylinderGeometry(0.15, 0.25, 1.5, 5);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.9 });
+            const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+            trunk.position.y = 0.75;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            // Foliage layers (stacked cones)
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.8, flatShading: true });
+            
+            const numLayers = 3;
+            for (let i = 0; i < numLayers; i++) {
+                const layerRadius = 0.9 - i * 0.2;
+                const layerHeight = 1.2 - i * 0.2;
+                const leavesGeo = new THREE.ConeGeometry(layerRadius, layerHeight, 5);
+                const leaves = new THREE.Mesh(leavesGeo, leavesMat);
+                leaves.position.y = 1.3 + (i * 0.7);
+                leaves.castShadow = true;
+                tree.add(leaves);
+            }
+
+            tree.scale.set(1.2 + Math.random()*0.4, 1.2 + Math.random()*0.4, 1.2 + Math.random()*0.4);
+            return tree;
+        }
+
+        function createLowPolyRock() {
+            const rockGeo = new THREE.DodecahedronGeometry(0.6 + Math.random()*0.4, 0);
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.85, flatShading: true });
+            const rock = new THREE.Mesh(rockGeo, rockMat);
+            rock.castShadow = true;
+            rock.position.y = 0.4;
+            rock.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, 0);
+            return rock;
+        }
+
+        // Bioluminescent Jungle Plant
+        function createBioPlant() {
+            const plant = new THREE.Group();
+            const stemGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.6, 4);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.3;
+            plant.add(stem);
+
+            const bulbGeo = new THREE.SphereGeometry(0.2, 5, 5);
+            const colors = [0xec4899, 0xa855f7, 0x10b981];
+            const randColor = colors[Math.floor(Math.random()*colors.length)];
+            const bulbMat = new THREE.MeshBasicMaterial({ color: randColor });
+            const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+            bulb.position.y = 0.6;
+            plant.add(bulb);
+
+            const light = new THREE.PointLight(randColor, 0.5, 2);
+            light.position.y = 0.6;
+            plant.add(light);
+
+            return plant;
+        }
+
+        // Fill Jungle Obstacles randomly with strict pathway routing checks
+        function populateJungle() {
+            let attempts = 0;
+            const maxAttempts = 50;
+            const forbiddenArea = 3; // Space to clear around the base crystal
+
+            while (attempts < maxAttempts) {
+                // Clear any layout leftovers
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        if (grid[x][z] === CELL_TYPES.OBSTACLE) {
+                            grid[x][z] = CELL_TYPES.EMPTY;
+                        }
+                    }
+                }
+
+                // Randomly generate candidate spots
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        if (grid[x][z] !== CELL_TYPES.EMPTY) continue;
+
+                        // Clear circle around central base
+                        if (Math.abs(x - BASE_COORD.x) < forbiddenArea && Math.abs(z - BASE_COORD.z) < forbiddenArea) continue;
+
+                        // Clear circle around spawn points
+                        let isSpawnZone = false;
+                        for (let s of SPAWN_POINTS) {
+                            if (Math.abs(x - s.x) < 2 && Math.abs(z - s.z) < 2) isSpawnZone = true;
+                        }
+                        if (isSpawnZone) continue;
+
+                        // Obstacle density probability (12%)
+                        if (Math.random() < 0.12) {
+                            grid[x][z] = CELL_TYPES.OBSTACLE;
+                        }
+                    }
+                }
+
+                // Validate the SDF: Can all spawn portals reach the base?
+                computeSDF();
+
+                let mapIsValid = true;
+                for (let s of SPAWN_POINTS) {
+                    if (sdfGrid[s.x][s.z] === Infinity) {
+                        mapIsValid = false;
+                        break;
+                    }
+                }
+
+                if (mapIsValid) {
+                    break; // Good layout acquired!
+                }
+                attempts++;
+            }
+
+            // Draw the validated 3D models into the scene
+            for (let x = 0; x < GRID_SIZE; x++) {
+                for (let z = 0; z < GRID_SIZE; z++) {
+                    if (grid[x][z] === CELL_TYPES.OBSTACLE) {
+                        const wPos = gridToWorld(x, z);
+                        if (Math.random() < 0.6) {
+                            const tree = createLowPolyTree();
+                            tree.position.set(wPos.x, 0, wPos.z);
+                            scene.add(tree);
+                            Translator.optimizeMesh(tree);
+                        } else if (Math.random() < 0.7) {
+                            const rock = createLowPolyRock();
+                            rock.position.set(wPos.x, 0, wPos.z);
+                            scene.add(rock);
+                            Translator.optimizeMesh(rock);
+                        } else {
+                            const plant = createBioPlant();
+                            plant.position.set(wPos.x, 0, wPos.z);
+                            scene.add(plant);
+                            Translator.optimizeMesh(plant);
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Base Portal / Crystal Construction */
+        let baseCrystal;
+        function spawnBaseCrystal() {
+            const baseGroup = new THREE.Group();
+            const pos = gridToWorld(BASE_COORD.x, BASE_COORD.z);
+            baseGroup.position.set(pos.x, 0, pos.z);
+
+            // Ring Base
+            const ringGeo = new THREE.CylinderGeometry(1.2, 1.4, 0.3, 10);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8, roughness: 0.2 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.y = 0.15;
+            baseGroup.add(ring);
+
+            // Main Octahedron Core
+            const coreGeo = new THREE.OctahedronGeometry(1.0, 0);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0xec4899,
+                emissive: 0xd946ef,
+                emissiveIntensity: 0.6,
+                roughness: 0.1,
+                metalness: 0.9,
+                flatShading: true
+            });
+            baseCrystal = new THREE.Mesh(coreGeo, coreMat);
+            baseCrystal.position.y = 1.8;
+            baseCrystal.castShadow = true;
+            baseGroup.add(baseCrystal);
+
+            // Shards floating around
+            const shardMat = new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, flatShading: true });
+            for (let i = 0; i < 4; i++) {
+                const shardGeo = new THREE.ConeGeometry(0.15, 0.5, 4);
+                const shard = new THREE.Mesh(shardGeo, shardMat);
+                const angle = (i / 4) * Math.PI * 2;
+                shard.position.set(Math.cos(angle) * 1.6, 1.5, Math.sin(angle) * 1.6);
+                shard.rotation.x = 0.5;
+                shard.rotation.z = angle;
+                baseGroup.add(shard);
+            }
+
+            scene.add(baseGroup);
+        }
+
+        // Initialize Procedural Elements
+        populateJungle();
+        spawnBaseCrystal();
+        computeSDF(); // Prime the pathfinder
+
+        /* ==========================================
+           TOWER IMPLEMENTATION
+           ========================================== */
+        const towers = [];
+        const TOWER_SPECS = {
+            spore: {
+                base: {
+                    cost: 50,
+                    damage: 15,
+                    range: 7.0,
+                    fireRate: 1.1, // Cooldown in seconds
+                    projectileSpeed: 12.0,
+                    upgradeCost: 75,
+                    color: 0x10b981,
+                    bulletColor: 0xec4899
+                },
+                upgraded: {
+                    damage: 32,
+                    range: 9.5,
+                    fireRate: 0.8,
+                    projectileSpeed: 16.0,
+                    color: 0xa855f7, // purple
+                    bulletColor: 0x38bdf8 // blue
+                }
+            },
+            laser: {
+                base: {
+                    cost: 120,
+                    damage: 4,
+                    range: 6.0,
+                    fireRate: 0.15,
+                    projectileSpeed: 30.0,
+                    upgradeCost: 100,
+                    color: 0xef4444, // red
+                    bulletColor: 0xfacc15 // gold/yellow
+                },
+                upgraded: {
+                    damage: 9,
+                    range: 8.0,
+                    fireRate: 0.1,
+                    projectileSpeed: 40.0,
+                    color: 0xf97316, // orange
+                    bulletColor: 0xffffff // white
+                }
+            },
+            frost: {
+                base: {
+                    cost: 90,
+                    damage: 8,
+                    range: 8.0,
+                    fireRate: 1.5,
+                    projectileSpeed: 10.0,
+                    upgradeCost: 80,
+                    color: 0x06b6d4, // cyan
+                    bulletColor: 0x38bdf8,
+                    slowFactor: 0.5,
+                    slowDuration: 2.0
+                },
+                upgraded: {
+                    damage: 18,
+                    range: 10.0,
+                    fireRate: 1.2,
+                    projectileSpeed: 14.0,
+                    color: 0x3b82f6, // blue
+                    bulletColor: 0x93c5fd,
+                    slowFactor: 0.3,
+                    slowDuration: 3.0
+                }
+            }
+        };
+    </script>
+    <script src="tower.js"></script>
+    <script>
+        // Fallback SporeTower implementation in case tower.js fails to load
+        if (typeof window.SporeTower === 'undefined') {
+            window.SporeTower = class SporeTower {
+                constructor(x, z, type = 'spore') {
+                    this.gridX = x;
+                    this.gridZ = z;
+                    this.level = 1;
+                    this.type = type;
+                    this.specs = { ...TOWER_SPECS[this.type].base };
+                    this.cooldown = 0;
+                    this.target = null;
+                    this.muzzleFlashTimer = 0;
+
+                    const worldPos = gridToWorld(x, z);
+                    this.position = new THREE.Vector3(worldPos.x, 0, worldPos.z);
+
+                    this.mesh = this.buildMesh();
+                    this.mesh.position.copy(this.position);
+                    scene.add(this.mesh);
+                }
+
+                buildMesh() {
+                    const group = new THREE.Group();
+                    group.userData = { isTower: true, towerInstance: this };
+
+                    if (this.type === 'laser') {
+                        // ==========================================
+                        // BIO-LASER TURRET MESH (Pyramid & Octahedron)
+                        // ==========================================
+                        // 1. Pyramid Base
+                        const baseGeo = new THREE.ConeGeometry(0.7, 0.5, 4);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.9, roughness: 0.1 });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.rotation.y = Math.PI / 4;
+                        base.position.y = 0.25;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // 2. Sleek Metallic Stem
+                        const stemGeo = new THREE.CylinderGeometry(0.12, 0.18, 1.2, 5);
+                        const stemMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.3 });
+                        const stem = new THREE.Mesh(stemGeo, stemMat);
+                        stem.position.y = 1.0;
+                        stem.castShadow = true;
+                        group.add(stem);
+
+                        // 3. Glowing Core Chest Light (Red)
+                        const coreGeo = new THREE.OctahedronGeometry(0.2, 0);
+                        const coreMat = new THREE.MeshBasicMaterial({ color: this.specs.color, transparent: true, opacity: 0.9 });
+                        this.pulseCore = new THREE.Mesh(coreGeo, coreMat);
+                        this.pulseCore.position.y = 1.0;
+                        group.add(this.pulseCore);
+
+                        this.chestLight = new THREE.PointLight(this.specs.color, 1.0, 4);
+                        this.chestLight.position.set(0, 1.0, 0);
+                        group.add(this.chestLight);
+
+                        // 4. Rotating Octahedron Head
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 1.6;
+
+                        const headGeo = new THREE.OctahedronGeometry(0.35, 0);
+                        const headMat = new THREE.MeshStandardMaterial({ color: this.specs.color, metalness: 0.8, flatShading: true });
+                        const head = new THREE.Mesh(headGeo, headMat);
+                        this.turretHead.add(head);
+
+                        // 5. Single Heavy Focal Barrel
+                        const barrelGeo = new THREE.CylinderGeometry(0.04, 0.08, 0.8, 5);
+                        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.95 });
+                        this.laserBarrel = new THREE.Mesh(barrelGeo, barrelMat);
+                        this.laserBarrel.rotation.x = Math.PI / 2;
+                        this.laserBarrel.position.set(0, 0, 0.35);
+                        this.turretHead.add(this.laserBarrel);
+
+                        // 6. Spinning Focusing Ring
+                        this.orbitalGroup = new THREE.Group();
+                        const ringGeo = new THREE.TorusGeometry(0.5, 0.04, 4, 12);
+                        const ringMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0.6 });
+                        this.focusRing = new THREE.Mesh(ringGeo, ringMat);
+                        this.focusRing.position.set(0, 0, 0.2);
+                        this.orbitalGroup.add(this.focusRing);
+                        this.turretHead.add(this.orbitalGroup);
+
+                        // 7. Muzzle Flash Light
+                        this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 3);
+                        this.muzzleFlash.position.set(0, 0, 0.8);
+                        this.turretHead.add(this.muzzleFlash);
+
+                        const flashGeo = new THREE.SphereGeometry(0.14, 5, 5);
+                        const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+                        this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                        this.muzzleFlashMesh.position.set(0, 0, 0.8);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+                    } else if (this.type === 'frost') {
+                        // ==========================================
+                        // FROST ORCHID TURRET MESH (Hexagonal & Flowers)
+                        // ==========================================
+                        // 1. Hexagonal Base
+                        const baseGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.4, 6);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.position.y = 0.2;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // 2. Cyan Glowing Stem
+                        const stemGeo = new THREE.CylinderGeometry(0.15, 0.22, 1.2, 6);
+                        const stemMat = new THREE.MeshStandardMaterial({ color: 0x0f766e, roughness: 0.4 });
+                        const stem = new THREE.Mesh(stemGeo, stemMat);
+                        stem.position.y = 1.0;
+                        stem.castShadow = true;
+                        group.add(stem);
+
+                        // 3. Glowing Core Chest Light (Cyan)
+                        const coreGeo = new THREE.SphereGeometry(0.24, 8, 8);
+                        const coreMat = new THREE.MeshBasicMaterial({ color: this.specs.color, transparent: true, opacity: 0.85 });
+                        this.pulseCore = new THREE.Mesh(coreGeo, coreMat);
+                        this.pulseCore.position.y = 1.0;
+                        group.add(this.pulseCore);
+
+                        this.chestLight = new THREE.PointLight(this.specs.color, 1.0, 4);
+                        this.chestLight.position.set(0, 1.0, 0);
+                        group.add(this.chestLight);
+
+                        // 4. Rotating Orchid Pod Head
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 1.6;
+
+                        const headGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.2, 8);
+                        const headMat = new THREE.MeshStandardMaterial({ color: this.specs.color, metalness: 0.2, roughness: 0.8 });
+                        const head = new THREE.Mesh(headGeo, headMat);
+                        head.rotation.x = Math.PI / 2;
+                        this.turretHead.add(head);
+
+                        // 5. Frost Orchid Petals (4 cones)
+                        const petalGeo = new THREE.ConeGeometry(0.12, 0.4, 4);
+                        const petalMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, flatShading: true });
+                        
+                        for (let i = 0; i < 4; i++) {
+                            const petal = new THREE.Mesh(petalGeo, petalMat);
+                            const angle = (i / 4) * Math.PI * 2;
+                            petal.position.set(Math.cos(angle) * 0.3, Math.sin(angle) * 0.3, 0.05);
+                            petal.rotation.z = angle + Math.PI / 2;
+                            petal.rotation.x = 0.2;
+                            this.turretHead.add(petal);
+                        }
+
+                        // 6. Central Freeze Core Emitter
+                        const emitterGeo = new THREE.SphereGeometry(0.16, 6, 6);
+                        const emitterMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor });
+                        const emitter = new THREE.Mesh(emitterGeo, emitterMat);
+                        emitter.position.set(0, 0, 0.15);
+                        this.turretHead.add(emitter);
+
+                        // 7. Spinning Frost Shards
+                        this.orbitalGroup = new THREE.Group();
+                        const shardGeo = new THREE.OctahedronGeometry(0.08, 0);
+                        const shardMat = new THREE.MeshBasicMaterial({ color: this.specs.color });
+                        this.shards = [];
+                        for (let i = 0; i < 3; i++) {
+                            const shard = new THREE.Mesh(shardGeo, shardMat);
+                            const angle = (i / 3) * Math.PI * 2;
+                            shard.position.set(Math.cos(angle) * 0.65, Math.sin(angle) * 0.65, 0);
+                            this.orbitalGroup.add(shard);
+                            this.shards.push(shard);
+                        }
+                        this.turretHead.add(this.orbitalGroup);
+
+                        // 8. Muzzle Flash Light
+                        this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 3);
+                        this.muzzleFlash.position.set(0, 0, 0.3);
+                        this.turretHead.add(this.muzzleFlash);
+
+                        const flashGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                        const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+                        this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                        this.muzzleFlashMesh.position.set(0, 0, 0.3);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+                    } else {
+                        // ==========================================
+                        // CLASSIC SPORE TURRET MESH
+                        // ==========================================
+                        // 1. Pedestal Base
+                        const baseGeo = new THREE.CylinderGeometry(0.5, 0.7, 0.5, 8);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.8, roughness: 0.2 });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.position.y = 0.25;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // 2. Bioluminescent Stem
+                        const stemGeo = new THREE.CylinderGeometry(0.18, 0.25, 1.2, 8);
+                        const stemMat = new THREE.MeshStandardMaterial({ color: 0x065f46, roughness: 0.5 });
+                        const stem = new THREE.Mesh(stemGeo, stemMat);
+                        stem.position.y = 1.0;
+                        stem.castShadow = true;
+                        group.add(stem);
+
+                        // 3. Glowing Core Chest Light
+                        const coreGeo = new THREE.SphereGeometry(0.25, 8, 8);
+                        const coreMat = new THREE.MeshBasicMaterial({ color: this.specs.color, transparent: true, opacity: 0.8 });
+                        this.pulseCore = new THREE.Mesh(coreGeo, coreMat);
+                        this.pulseCore.position.y = 1.0;
+                        group.add(this.pulseCore);
+
+                        this.chestLight = new THREE.PointLight(this.specs.color, 1.0, 4);
+                        this.chestLight.position.set(0, 1.0, 0);
+                        group.add(this.chestLight);
+
+                        // 4. Rotating Turret Head
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 1.6;
+
+                        const headGeo = new THREE.DodecahedronGeometry(0.4, 1);
+                        const headMat = new THREE.MeshStandardMaterial({ color: this.specs.color, roughness: 0.1, flatShading: true });
+                        const head = new THREE.Mesh(headGeo, headMat);
+                        this.turretHead.add(head);
+
+                        // 5. Double Barrels
+                        const barrelGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.7, 6);
+                        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.9, roughness: 0.1 });
+
+                        this.barrelL = new THREE.Mesh(barrelGeo, barrelMat);
+                        this.barrelL.rotation.x = Math.PI / 2;
+                        this.barrelL.position.set(-0.16, 0, 0.3);
+                        this.turretHead.add(this.barrelL);
+
+                        this.barrelR = new THREE.Mesh(barrelGeo, barrelMat);
+                        this.barrelR.rotation.x = Math.PI / 2;
+                        this.barrelR.position.set(0.16, 0, 0.3);
+                        this.turretHead.add(this.barrelR);
+
+                        // 6. Spinning Orbital Shards
+                        this.orbitalGroup = new THREE.Group();
+                        const shardGeo = new THREE.ConeGeometry(0.08, 0.25, 4);
+                        const shardMat = new THREE.MeshBasicMaterial({ color: this.specs.color });
+                        this.shards = [];
+                        for (let i = 0; i < 3; i++) {
+                            const shard = new THREE.Mesh(shardGeo, shardMat);
+                            const angle = (i / 3) * Math.PI * 2;
+                            shard.position.set(Math.cos(angle) * 0.7, 0, Math.sin(angle) * 0.7);
+                            shard.rotation.x = 0.5;
+                            shard.rotation.z = angle;
+                            this.orbitalGroup.add(shard);
+                            this.shards.push(shard);
+                        }
+                        this.turretHead.add(this.orbitalGroup);
+
+                        // 7. Muzzle Flash Light and Spark Visuals
+                        this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 3);
+                        this.muzzleFlash.position.set(0, 0, 0.7);
+                        this.turretHead.add(this.muzzleFlash);
+
+                        const flashGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                        const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+                        this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                        this.muzzleFlashMesh.position.set(0, 0, 0.7);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+                    }
+
+                    return group;
+                }
+
+                upgrade() {
+                    if (this.level >= 2) return;
+                    this.level = 2;
+                    this.specs = { ...TOWER_SPECS[this.type].upgraded };
+
+                    // Color updates
+                    this.turretHead.children[0].material.color.setHex(this.specs.color);
+                    this.pulseCore.material.color.setHex(this.specs.color);
+                    this.chestLight.color.setHex(this.specs.color);
+                    
+                    if (this.shards) {
+                        this.shards.forEach(shard => shard.material.color.setHex(this.specs.color));
+                    }
+
+                    if (this.focusRing) {
+                        this.focusRing.material.color.setHex(this.specs.bulletColor);
+                    }
+
+                    this.muzzleFlash.color.setHex(this.specs.bulletColor);
+                    this.muzzleFlashMesh.material.color.setHex(this.specs.bulletColor);
+
+                    // Visual feedback explosion
+                    particles.spawnExplosion(this.position, 0xa855f7, 20);
+                    audio.playBuild();
+                }
+
+                update(dt) {
+                    if (this.cooldown > 0) {
+                        this.cooldown -= dt;
+                    }
+
+                    // Animate orbital/focusing components
+                    if (this.orbitalGroup) {
+                        this.orbitalGroup.rotation.z += dt * 3;
+                        if (this.type === 'laser') {
+                            this.orbitalGroup.rotation.y += dt * 1.5;
+                        }
+                    }
+
+                    // Animate Chest Light Glow/Pulse
+                    const pulse = 0.7 + 0.3 * Math.sin(Date.now() * 0.005);
+                    this.pulseCore.scale.set(pulse, pulse, pulse);
+                    this.chestLight.intensity = pulse * 1.5;
+
+                    // Muzzle Flash Decay
+                    if (this.muzzleFlashTimer > 0) {
+                        this.muzzleFlashTimer -= dt;
+                        if (this.muzzleFlashTimer <= 0) {
+                            this.muzzleFlash.intensity = 0;
+                            this.muzzleFlashMesh.material.opacity = 0;
+                        } else {
+                            const ratio = this.muzzleFlashTimer / (this.type === 'laser' ? 0.08 : 0.15);
+                            this.muzzleFlash.intensity = ratio * 2.5;
+                            this.muzzleFlashMesh.material.opacity = ratio * 0.9;
+                        }
+                    }
+
+                    // Interpolate recoil scaling back to normal
+                    this.turretHead.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 10);
+
+                    // Scan and engage closest enemy in range
+                    this.target = this.findTarget();
+
+                    if (this.target) {
+                        // Turn turret head to target
+                        const lookTarget = new THREE.Vector3(this.target.position.x, this.turretHead.position.y + this.position.y, this.target.position.z);
+                        this.turretHead.lookAt(lookTarget);
+
+                        // Shoot Projectile on cooled down
+                        if (this.cooldown <= 0) {
+                            this.shoot();
+                        }
+                    }
+                }
+
+                findTarget() {
+                    let closest = null;
+                    let minDist = this.specs.range;
+
+                    for (let enemy of enemies) {
+                        if (enemy.isDead) continue;
+                        let dist = this.position.distanceTo(enemy.position);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = enemy;
+                        }
+                    }
+                    return closest;
+                }
+
+                shoot() {
+                    this.cooldown = this.specs.fireRate;
+
+                    if (this.type === 'laser') {
+                        // Draw continuous laser beam!
+                        const startPos = new THREE.Vector3(0, 0, 0.6).applyMatrix4(this.turretHead.matrixWorld);
+                        const endPos = this.target.position.clone();
+                        const distance = startPos.distanceTo(endPos);
+
+                        const laserGeo = new THREE.CylinderGeometry(0.03, 0.03, distance, 4);
+                        const laserMat = new THREE.MeshBasicMaterial({
+                            color: this.specs.bulletColor,
+                            transparent: true,
+                            opacity: 0.95
+                        });
+                        const laserMesh = new THREE.Mesh(laserGeo, laserMat);
+                        laserMesh.position.copy(startPos).add(endPos).multiplyScalar(0.5);
+                        laserMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), endPos.clone().sub(startPos).normalize());
+                        scene.add(laserMesh);
+
+                        // Fast flash decay
+                        setTimeout(() => scene.remove(laserMesh), 40);
+
+                        // Inflict instant damage
+                        this.target.takeDamage(this.specs.damage);
+                        particles.spawnHitBurst(this.target.position, this.specs.bulletColor);
+
+                        // Laser recoil scaling
+                        this.turretHead.scale.set(0.9, 0.9, 1.2);
+
+                        // Muzzle flash
+                        this.muzzleFlash.intensity = 2.0;
+                        this.muzzleFlashMesh.material.opacity = 0.8;
+                        this.muzzleFlashTimer = 0.08;
+
+                        audio.playShoot();
+                    } else if (this.type === 'frost') {
+                        // Launch frost projectile
+                        const startPos = new THREE.Vector3(0, 0, 0.2).applyMatrix4(this.turretHead.matrixWorld);
+                        projectiles.push(new BioSporeProjectile(
+                            startPos, 
+                            this.target, 
+                            this.specs.damage, 
+                            this.specs.projectileSpeed, 
+                            this.specs.bulletColor, 
+                            true, 
+                            this.specs.slowFactor, 
+                            this.specs.slowDuration
+                        ));
+
+                        // Petal pop recoil scale
+                        this.turretHead.scale.set(1.25, 1.25, 0.8);
+
+                        // Muzzle flash
+                        this.muzzleFlash.intensity = 2.2;
+                        this.muzzleFlashMesh.material.opacity = 0.85;
+                        this.muzzleFlashTimer = 0.12;
+
+                        audio.playShoot();
+                    } else {
+                        // Spore: Fire dual bullets
+                        const startPosLeft = new THREE.Vector3(-0.16, 0, 0.6).applyMatrix4(this.turretHead.matrixWorld);
+                        const startPosRight = new THREE.Vector3(0.16, 0, 0.6).applyMatrix4(this.turretHead.matrixWorld);
+
+                        projectiles.push(new BioSporeProjectile(startPosLeft, this.target, this.specs.damage, this.specs.projectileSpeed, this.specs.bulletColor, false));
+                        projectiles.push(new BioSporeProjectile(startPosRight, this.target, this.specs.damage, this.specs.projectileSpeed, this.specs.bulletColor, false));
+
+                        // Recoil scale animation
+                        this.turretHead.scale.set(1.2, 1.2, 0.75);
+
+                        // Activate muzzle flash
+                        this.muzzleFlash.intensity = 2.5;
+                        this.muzzleFlashMesh.material.opacity = 0.9;
+                        this.muzzleFlashTimer = 0.15;
+
+                        audio.playShoot();
+                    }
+                }
+
+                destroy() {
+                    scene.remove(this.mesh);
+                    particles.spawnExplosion(this.position, 0xef4444, 15);
+                }
+            };
+        }
+
+        /* ==========================================
+           PROJECTILE CONTROLLER
+           ========================================== */
+        const projectiles = [];
+
+        class BioSporeProjectile {
+            constructor(startPos, target, damage, speed, colorHex, isFrost = false, slowFactor = 1.0, slowDuration = 0) {
+                this.position = startPos.clone();
+                this.target = target;
+                this.damage = damage;
+                this.speed = speed;
+                this.color = colorHex;
+                this.isDead = false;
+                this.isFrost = isFrost;
+                this.slowFactor = slowFactor;
+                this.slowDuration = slowDuration;
+
+                // Simple glowing energy sphere geometry
+                const geo = new THREE.SphereGeometry(this.isFrost ? 0.16 : 0.12, 6, 6);
+                const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+                this.mesh = new THREE.Mesh(geo, mat);
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
+            }
+
+            update(dt) {
+                if (this.isDead) return;
+
+                // If target dies mid flight, head towards its last known position or self-destruct
+                if (!this.target || this.target.isDead) {
+                    this.isDead = true;
+                    this.cleanup();
+                    return;
+                }
+
+                // Track and slide towards enemy pivot
+                const dir = new THREE.Vector3().subVectors(this.target.position, this.position).normalize();
+                const distToMove = this.speed * dt;
+                const distToTarget = this.position.distanceTo(this.target.position);
+
+                if (distToMove >= distToTarget) {
+                    // Direct hit
+                    this.target.takeDamage(this.damage);
+                    if (this.isFrost && typeof this.target.applySlow === 'function') {
+                        this.target.applySlow(this.slowFactor, this.slowDuration);
+                    }
+                    particles.spawnHitBurst(this.target.position, this.color);
+                    this.isDead = true;
+                    this.cleanup();
+                } else {
+                    this.position.addScaledVector(dir, distToMove);
+                    this.mesh.position.copy(this.position);
+                }
+            }
+
+            cleanup() {
+                scene.remove(this.mesh);
+            }
+        }
+
+        /* ==========================================
+           ENEMY CONTROLLER (BIOMECHANICAL SCARABS)
+           ========================================== */
+        const enemies = [];
+        const ENEMY_SPECS = {
+            hp: 60,
+            speed: 2.8,
+            goldReward: 12,
+            damage: 1
+        };
+
+        class ScarabEnemy {
+            constructor(spawnPoint) {
+                this.gridX = spawnPoint.x;
+                this.gridZ = spawnPoint.z;
+                
+                // Track actual path step points for flow field
+                this.targetGridX = spawnPoint.x;
+                this.targetGridZ = spawnPoint.z;
+
+                const worldPos = gridToWorld(spawnPoint.x, spawnPoint.z);
+                this.position = new THREE.Vector3(worldPos.x, 0.25, worldPos.z);
+
+                this.levelScalar = 1.0 + (gameState.wave - 1) * 0.25; // 25% stats growth per wave
+                this.maxHp = Math.round(ENEMY_SPECS.hp * this.levelScalar);
+                this.hp = this.maxHp;
+                this.speed = ENEMY_SPECS.speed + (gameState.wave * 0.05); // slightly faster waves
+                this.isDead = false;
+                this.flashTimer = 0;
+                this.slowTimer = 0;
+                this.slowFactor = 1.0;
+
+                this.mesh = this.buildMesh();
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
+                
+                // Walk leg animation cycle
+                this.legCycle = Math.random() * 100;
+            }
+
+            buildMesh() {
+                const group = new THREE.Group();
+
+                // Scarab outer hard shell (Low Poly Capsule style)
+                const shellGeo = new THREE.DodecahedronGeometry(0.35, 1);
+                this.bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x0f172a,
+                    roughness: 0.1,
+                    metalness: 0.9,
+                    flatShading: true
+                });
+                const shell = new THREE.Mesh(shellGeo, this.bodyMat);
+                shell.scale.set(1.3, 0.8, 1);
+                shell.castShadow = true;
+                group.add(shell);
+
+                // Bioluminescent pattern under shell (glowing segment)
+                const neonGeo = new THREE.BoxGeometry(0.1, 0.38, 0.5);
+                this.neonMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
+                neonStrip.position.y = 0.1;
+                group.add(neonStrip);
+
+                // 6 segmented spider/insect legs
+                this.legs = [];
+                const legGeo = new THREE.BoxGeometry(0.08, 0.4, 0.08);
+                const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+                
+                for (let i = 0; i < 6; i++) {
+                    const leg = new THREE.Mesh(legGeo, legMat);
+                    const isLeft = i % 2 === 0;
+                    const side = isLeft ? -1 : 1;
+                    const row = Math.floor(i / 2); // 0 (front), 1 (mid), 2 (back)
+
+                    leg.position.set(0.35 * side, -0.25, (row - 1) * 0.25);
+                    leg.rotation.z = 0.5 * side;
+                    group.add(leg);
+                    this.legs.push({ mesh: leg, side: side, row: row });
+                }
+
+                // Add simple HP bar floating above
+                const barBackGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+                this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
+                this.hpBack.position.y = 1.0;
+                group.add(this.hpBack);
+
+                const barFillGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+                this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
+                this.hpFill.position.set(0, 1.0, 0.01);
+                group.add(this.hpFill);
+
+                return group;
+            }
+
+            applySlow(factor, duration) {
+                this.slowFactor = Math.min(this.slowFactor, factor);
+                this.slowTimer = Math.max(this.slowTimer, duration);
+            }
+
+            takeDamage(dmg) {
+                if (this.isDead) return;
+                this.hp -= dmg;
+                this.flashTimer = 0.12; // Flashes red
+
+                // Scale HP bar dynamically
+                const percent = Math.max(0, this.hp / this.maxHp);
+                this.hpFill.scale.x = percent;
+                this.hpFill.position.x = - (1 - percent) * 0.35; // adjust anchor pivot
+
+                if (this.hp <= 0) {
+                    this.isDead = true;
+                    this.die();
+                }
+            }
+
+            die() {
+                gameState.score += Math.round(15 * this.levelScalar);
+                gameState.gold += ENEMY_SPECS.goldReward;
+                updateStatsUI();
+                particles.spawnExplosion(this.position, 0x38bdf8, 25);
+                audio.playExplosion();
+                this.cleanup();
+            }
+
+            cleanup() {
+                scene.remove(this.mesh);
+            }
+
+            update(dt) {
+                if (this.isDead) return;
+
+                // Handle Hit Flash Color Timer
+                if (this.flashTimer > 0) {
+                    this.flashTimer -= dt;
+                    this.neonMat.color.setHex(0xef4444); // Flash bright red
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(this.slowTimer > 0 ? 0x06b6d4 : 0x38bdf8);
+                    }
+                }
+
+                // Slow Timer decay
+                let currentSpeed = this.speed;
+                if (this.slowTimer > 0) {
+                    this.slowTimer -= dt;
+                    currentSpeed *= this.slowFactor;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0x06b6d4); // Cyan indicator
+                    }
+                } else {
+                    this.slowFactor = 1.0;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0x38bdf8); // Standard cyan
+                    }
+                }
+
+                // Make the floating health bar always orient towards the camera view
+                this.hpBack.lookAt(camera.position);
+                this.hpFill.lookAt(camera.position);
+
+                // Step leg wiggling animation while walking
+                this.legCycle += dt * currentSpeed * 8;
+                this.legs.forEach(leg => {
+                    const phase = leg.row * 1.5 + (leg.side > 0 ? Math.PI : 0);
+                    leg.mesh.rotation.x = Math.sin(this.legCycle + phase) * 0.4;
+                    leg.mesh.rotation.z = (0.5 + Math.cos(this.legCycle + phase) * 0.25) * leg.side;
+                });
+
+                // Flow Field Nav Logic (SDF Gradient movement)
+                const currentWorldPos = gridToWorld(this.targetGridX, this.targetGridZ);
+                const targetPos = new THREE.Vector3(currentWorldPos.x, 0.25, currentWorldPos.z);
+
+                const distToStep = this.position.distanceTo(targetPos);
+                if (distToStep < 0.1) {
+                    // Snap position
+                    this.gridX = this.targetGridX;
+                    this.gridZ = this.targetGridZ;
+
+                    // Arrived at Base Crystal!
+                    if (this.gridX === BASE_COORD.x && this.gridZ === BASE_COORD.z) {
+                        this.isDead = true;
+                        gameState.health -= ENEMY_SPECS.damage;
+                        updateStatsUI();
+                        audio.playBaseDamage();
+                        showToast(`BASE BREACHED! -${ENEMY_SPECS.damage} HP`, "red");
+                        
+                        // Flash base color purple to red temporarily
+                        baseCrystal.material.color.setHex(0xef4444);
+                        setTimeout(() => baseCrystal.material.color.setHex(0xec4899), 300);
+
+                        this.cleanup();
+                        checkGameOver();
+                        return;
+                    }
+
+                    // Query SDF for next step coordinates
+                    const nextStep = this.findSDFStep(this.gridX, this.gridZ);
+                    this.targetGridX = nextStep.x;
+                    this.targetGridZ = nextStep.z;
+                } else {
+                    // Navigate towards current target coordinate center
+                    const dir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
+                    this.position.addScaledVector(dir, currentSpeed * dt);
+                    this.mesh.position.copy(this.position);
+
+                    // Smooth head turning
+                    const lookTarget = this.position.clone().add(dir);
+                    this.mesh.lookAt(lookTarget);
+                }
+            }
+
+            // Inspect 8-directional neighbors and walk towards the lowest SDF value
+            findSDFStep(cx, cz) {
+                const neighbors = [
+                    { dx: 1, dz: 0 },
+                    { dx: -1, dz: 0 },
+                    { dx: 0, dz: 1 },
+                    { dx: 0, dz: -1 },
+                    { dx: 1, dz: 1 },
+                    { dx: -1, dz: -1 },
+                    { dx: 1, dz: -1 },
+                    { dx: -1, dz: 1 }
+                ];
+
+                let bestStep = { x: cx, z: cz };
+                let bestDist = sdfGrid[cx][cz];
+
+                for (let n of neighbors) {
+                    let nx = cx + n.dx;
+                    let nz = cz + n.dz;
+                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                        if (sdfGrid[nx][nz] < bestDist) {
+                            bestDist = sdfGrid[nx][nz];
+                            bestStep = { x: nx, z: nz };
+                        }
+                    }
+                }
+                return bestStep;
+            }
+        }
+
+        class AntEnemy {
+            constructor(spawnPoint) {
+                this.gridX = spawnPoint.x;
+                this.gridZ = spawnPoint.z;
+                this.targetGridX = spawnPoint.x;
+                this.targetGridZ = spawnPoint.z;
+
+                const worldPos = gridToWorld(spawnPoint.x, spawnPoint.z);
+                this.position = new THREE.Vector3(worldPos.x, 0.2, worldPos.z);
+
+                this.levelScalar = 1.0 + (gameState.wave - 1) * 0.25;
+                this.maxHp = Math.round(ENEMY_SPECS.hp * this.levelScalar * 0.6); // Lower HP
+                this.hp = this.maxHp;
+                this.speed = (ENEMY_SPECS.speed + (gameState.wave * 0.05)) * 1.5; // Fast
+                this.isDead = false;
+                this.flashTimer = 0;
+                this.slowTimer = 0;
+                this.slowFactor = 1.0;
+
+                this.mesh = this.buildMesh();
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
+                
+                this.legCycle = Math.random() * 100;
+            }
+
+            buildMesh() {
+                const group = new THREE.Group();
+
+                // Segmented Ant body: Abdomen, Thorax, Head
+                this.bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x5a189a, // Deep violet
+                    roughness: 0.2,
+                    metalness: 0.8,
+                    flatShading: true
+                });
+
+                // 1. Abdomen
+                const abGeo = new THREE.SphereGeometry(0.24, 6, 6);
+                const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
+                abdomen.position.set(0, 0, -0.35);
+                abdomen.scale.set(1, 0.8, 1.4);
+                abdomen.castShadow = true;
+                group.add(abdomen);
+
+                // 2. Thorax
+                const thGeo = new THREE.SphereGeometry(0.16, 6, 6);
+                const thorax = new THREE.Mesh(thGeo, this.bodyMat);
+                thorax.position.set(0, 0.05, 0);
+                thorax.scale.set(0.9, 0.9, 1.1);
+                thorax.castShadow = true;
+                group.add(thorax);
+
+                // 3. Head
+                const hdGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                const head = new THREE.Mesh(hdGeo, this.bodyMat);
+                head.position.set(0, 0.08, 0.3);
+                head.castShadow = true;
+                group.add(head);
+
+                // Bioluminescent strip (thorax top)
+                const neonGeo = new THREE.BoxGeometry(0.06, 0.1, 0.25);
+                this.neonMat = new THREE.MeshBasicMaterial({ color: 0xf97316 }); // Orange neon
+                const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
+                neonStrip.position.set(0, 0.2, 0);
+                group.add(neonStrip);
+
+                // Ant legs (6 legs)
+                this.legs = [];
+                const legGeo = new THREE.BoxGeometry(0.05, 0.35, 0.05);
+                const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
+                
+                for (let i = 0; i < 6; i++) {
+                    const leg = new THREE.Mesh(legGeo, legMat);
+                    const isLeft = i % 2 === 0;
+                    const side = isLeft ? -1 : 1;
+                    const row = Math.floor(i / 2);
+
+                    leg.position.set(0.25 * side, -0.15, (row - 1) * 0.18);
+                    leg.rotation.z = 0.6 * side;
+                    group.add(leg);
+                    this.legs.push({ mesh: leg, side: side, row: row });
+                }
+
+                // HP Bar
+                const barBackGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+                this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
+                this.hpBack.position.y = 0.7;
+                group.add(this.hpBack);
+
+                const barFillGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xe11d48 }); // Red HP fill
+                this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
+                this.hpFill.position.set(0, 0.7, 0.01);
+                group.add(this.hpFill);
+
+                return group;
+            }
+
+            applySlow(factor, duration) {
+                this.slowFactor = Math.min(this.slowFactor, factor);
+                this.slowTimer = Math.max(this.slowTimer, duration);
+            }
+
+            takeDamage(dmg) {
+                if (this.isDead) return;
+                this.hp -= dmg;
+                this.flashTimer = 0.12;
+
+                const percent = Math.max(0, this.hp / this.maxHp);
+                this.hpFill.scale.x = percent;
+                this.hpFill.position.x = - (1 - percent) * 0.275;
+
+                if (this.hp <= 0) {
+                    this.isDead = true;
+                    this.die();
+                }
+            }
+
+            die() {
+                gameState.score += Math.round(10 * this.levelScalar);
+                gameState.gold += 8;
+                updateStatsUI();
+                particles.spawnExplosion(this.position, 0xf97316, 15);
+                audio.playExplosion();
+                this.cleanup();
+            }
+
+            cleanup() {
+                scene.remove(this.mesh);
+            }
+
+            update(dt) {
+                if (this.isDead) return;
+
+                if (this.flashTimer > 0) {
+                    this.flashTimer -= dt;
+                    this.neonMat.color.setHex(0xef4444);
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(this.slowTimer > 0 ? 0x06b6d4 : 0xf97316);
+                    }
+                }
+
+                let currentSpeed = this.speed;
+                if (this.slowTimer > 0) {
+                    this.slowTimer -= dt;
+                    currentSpeed *= this.slowFactor;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0x06b6d4);
+                    }
+                } else {
+                    this.slowFactor = 1.0;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0xf97316);
+                    }
+                }
+
+                this.hpBack.lookAt(camera.position);
+                this.hpFill.lookAt(camera.position);
+
+                this.legCycle += dt * currentSpeed * 12;
+                this.legs.forEach(leg => {
+                    const phase = leg.row * 1.5 + (leg.side > 0 ? Math.PI : 0);
+                    leg.mesh.rotation.x = Math.sin(this.legCycle + phase) * 0.45;
+                    leg.mesh.rotation.z = (0.6 + Math.cos(this.legCycle + phase) * 0.2) * leg.side;
+                });
+
+                const currentWorldPos = gridToWorld(this.targetGridX, this.targetGridZ);
+                const targetPos = new THREE.Vector3(currentWorldPos.x, 0.2, currentWorldPos.z);
+
+                const distToStep = this.position.distanceTo(targetPos);
+                if (distToStep < 0.15) {
+                    this.gridX = this.targetGridX;
+                    this.gridZ = this.targetGridZ;
+
+                    if (this.gridX === BASE_COORD.x && this.gridZ === BASE_COORD.z) {
+                        this.isDead = true;
+                        gameState.health -= 1;
+                        updateStatsUI();
+                        audio.playBaseDamage();
+                        showToast(`BASE BREACHED! -1 HP`, "red");
+                        baseCrystal.material.color.setHex(0xef4444);
+                        setTimeout(() => baseCrystal.material.color.setHex(0xec4899), 300);
+                        this.cleanup();
+                        checkGameOver();
+                        return;
+                    }
+
+                    const nextStep = this.findSDFStep(this.gridX, this.gridZ);
+                    this.targetGridX = nextStep.x;
+                    this.targetGridZ = nextStep.z;
+                } else {
+                    const dir = new THREE.Vector3().subVectors(targetPos, this.position).normalize();
+                    this.position.addScaledVector(dir, currentSpeed * dt);
+                    this.mesh.position.copy(this.position);
+
+                    const lookTarget = this.position.clone().add(dir);
+                    this.mesh.lookAt(lookTarget);
+                }
+            }
+
+            findSDFStep(cx, cz) {
+                const neighbors = [
+                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
+                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
+                ];
+                let bestStep = { x: cx, z: cz };
+                let bestDist = sdfGrid[cx][cz];
+                for (let n of neighbors) {
+                    let nx = cx + n.dx;
+                    let nz = cz + n.dz;
+                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                        if (sdfGrid[nx][nz] < bestDist) {
+                            bestDist = sdfGrid[nx][nz];
+                            bestStep = { x: nx, z: nz };
+                        }
+                    }
+                }
+                return bestStep;
+            }
+        }
+
+        class UfoEnemy {
+            constructor(spawnPoint) {
+                this.gridX = spawnPoint.x;
+                this.gridZ = spawnPoint.z;
+
+                const worldPos = gridToWorld(spawnPoint.x, spawnPoint.z);
+                this.position = new THREE.Vector3(worldPos.x, 1.8, worldPos.z);
+
+                const baseWorld = gridToWorld(BASE_COORD.x, BASE_COORD.z);
+                this.targetPos = new THREE.Vector3(baseWorld.x, 1.8, baseWorld.z);
+
+                this.levelScalar = 1.0 + (gameState.wave - 1) * 0.25;
+                this.maxHp = Math.round(ENEMY_SPECS.hp * this.levelScalar * 1.3);
+                this.hp = this.maxHp;
+                this.speed = (ENEMY_SPECS.speed + (gameState.wave * 0.05)) * 0.75;
+                this.isDead = false;
+                this.flashTimer = 0;
+                this.slowTimer = 0;
+                this.slowFactor = 1.0;
+
+                this.mesh = this.buildMesh();
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
+            }
+
+            buildMesh() {
+                const group = new THREE.Group();
+
+                // 1. Saucer body (Flattened Cylinder)
+                const bodyGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10);
+                this.bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x334155,
+                    roughness: 0.1,
+                    metalness: 0.95
+                });
+                const saucer = new THREE.Mesh(bodyGeo, this.bodyMat);
+                saucer.scale.set(1.4, 1.0, 1.4);
+                saucer.castShadow = true;
+                group.add(saucer);
+
+                // 2. Glass Dome
+                const domeGeo = new THREE.SphereGeometry(0.24, 8, 8, 0, Math.PI*2, 0, Math.PI/2);
+                const domeMat = new THREE.MeshStandardMaterial({
+                    color: 0x0284c7,
+                    transparent: true,
+                    opacity: 0.6,
+                    roughness: 0.05
+                });
+                const dome = new THREE.Mesh(domeGeo, domeMat);
+                dome.position.y = 0.06;
+                dome.scale.set(1.1, 1.1, 1.1);
+                group.add(dome);
+
+                // 3. Central Thruster
+                const thrustGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.1, 8);
+                this.neonMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+                const thruster = new THREE.Mesh(thrustGeo, this.neonMat);
+                thruster.position.y = -0.08;
+                group.add(thruster);
+
+                // 4. Downward glowing tractor beam visual (Translucent Cone)
+                const coneGeo = new THREE.ConeGeometry(0.35, 1.8, 8, 1, true);
+                const coneMat = new THREE.MeshBasicMaterial({
+                    color: 0xa855f7,
+                    transparent: true,
+                    opacity: 0.12,
+                    blending: THREE.AdditiveBlending,
+                    side: THREE.DoubleSide
+                });
+                const beam = new THREE.Mesh(coneGeo, coneMat);
+                beam.position.y = -0.9;
+                group.add(beam);
+
+                // HP Bar
+                const barBackGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+                this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
+                this.hpBack.position.y = 0.6;
+                group.add(this.hpBack);
+
+                const barFillGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+                this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
+                this.hpFill.position.set(0, 0.6, 0.01);
+                group.add(this.hpFill);
+
+                return group;
+            }
+
+            applySlow(factor, duration) {
+                this.slowFactor = Math.min(this.slowFactor, factor);
+                this.slowTimer = Math.max(this.slowTimer, duration);
+            }
+
+            takeDamage(dmg) {
+                if (this.isDead) return;
+                this.hp -= dmg;
+                this.flashTimer = 0.12;
+
+                const percent = Math.max(0, this.hp / this.maxHp);
+                this.hpFill.scale.x = percent;
+                this.hpFill.position.x = - (1 - percent) * 0.4;
+
+                if (this.hp <= 0) {
+                    this.isDead = true;
+                    this.die();
+                }
+            }
+
+            die() {
+                gameState.score += Math.round(20 * this.levelScalar);
+                gameState.gold += 18;
+                updateStatsUI();
+                particles.spawnExplosion(this.position, 0xa855f7, 30);
+                audio.playExplosion();
+                this.cleanup();
+            }
+
+            cleanup() {
+                scene.remove(this.mesh);
+            }
+
+            update(dt) {
+                if (this.isDead) return;
+
+                if (this.flashTimer > 0) {
+                    this.flashTimer -= dt;
+                    this.neonMat.color.setHex(0xef4444);
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(this.slowTimer > 0 ? 0x06b6d4 : 0xa855f7);
+                    }
+                }
+
+                let currentSpeed = this.speed;
+                if (this.slowTimer > 0) {
+                    this.slowTimer -= dt;
+                    currentSpeed *= this.slowFactor;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0x06b6d4);
+                    }
+                } else {
+                    this.slowFactor = 1.0;
+                    if (this.flashTimer <= 0) {
+                        this.neonMat.color.setHex(0xa855f7);
+                    }
+                }
+
+                this.hpBack.lookAt(camera.position);
+                this.hpFill.lookAt(camera.position);
+
+                // Saucer spin animation
+                this.mesh.rotation.y += dt * 2.0;
+
+                // Move directly toward target center in straight line (ignores SDF grid mapping)
+                const distToTarget = this.position.distanceTo(this.targetPos);
+                if (distToTarget < 0.25) {
+                    this.isDead = true;
+                    gameState.health -= 2; // Deals double damage
+                    updateStatsUI();
+                    audio.playBaseDamage();
+                    showToast(`NEXUS BREACHED by UFO! -2 HP`, "red");
+                    baseCrystal.material.color.setHex(0xef4444);
+                    setTimeout(() => baseCrystal.material.color.setHex(0xec4899), 300);
+                    this.cleanup();
+                    checkGameOver();
+                    return;
+                }
+
+                const dir = new THREE.Vector3().subVectors(this.targetPos, this.position).normalize();
+                this.position.addScaledVector(dir, currentSpeed * dt);
+                this.mesh.position.copy(this.position);
+            }
+        }
+
+        /* ==========================================
+           PARTICLE SYSTEMS ENGINE
+           ========================================== */
+        class ParticleSystem {
+            constructor() {
+                this.activeParticles = [];
+                
+                // Pooled mesh elements
+                this.geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+            }
+
+            spawnExplosion(pos, colorHex, count) {
+                const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+                for (let i = 0; i < count; i++) {
+                    const mesh = new THREE.Mesh(this.geo, mat);
+                    mesh.position.copy(pos);
+                    mesh.position.x += (Math.random() - 0.5) * 0.4;
+                    mesh.position.y += (Math.random() - 0.5) * 0.4;
+                    mesh.position.z += (Math.random() - 0.5) * 0.4;
+
+                    const velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 6,
+                        Math.random() * 5 + 1.5,
+                        (Math.random() - 0.5) * 6
+                    );
+
+                    scene.add(mesh);
+                    this.activeParticles.push({
+                        mesh: mesh,
+                        vel: velocity,
+                        life: 0.6 + Math.random()*0.4
+                    });
+                }
+            }
+
+            spawnHitBurst(pos, colorHex) {
+                this.spawnExplosion(pos, colorHex, 6);
+            }
+
+            update(dt) {
+                for (let i = this.activeParticles.length - 1; i >= 0; i--) {
+                    const p = this.activeParticles[i];
+                    p.life -= dt;
+                    if (p.life <= 0) {
+                        scene.remove(p.mesh);
+                        this.activeParticles.splice(i, 1);
+                    } else {
+                        // Gravity & Drag physics
+                        p.vel.y -= 9.8 * dt; // gravity
+                        p.mesh.position.addScaledVector(p.vel, dt);
+                        p.mesh.scale.multiplyScalar(0.96); // slowly shrink
+                    }
+                }
+            }
+        }
+        const particles = new ParticleSystem();
+
+        /* ==========================================
+           INTERACTIVE HOLOGRAPHIC BUILD PREVIEW
+           ========================================== */
+        let buildModeActive = false;
+        let holographicPreview = null;
+        let selectedTowerInstance = null;
+        let hoverGridCoord = { x: -1, z: -1 };
+
+        function initHologram() {
+            holographicPreview = new THREE.Group();
+            
+            // Neon glowing frame
+            const geo = new THREE.BoxGeometry(CELL_SIZE - 0.1, 0.1, CELL_SIZE - 0.1);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0x10b981,
+                transparent: true,
+                opacity: 0.4,
+                wireframe: true
+            });
+            const frame = new THREE.Mesh(geo, mat);
+            frame.position.y = 0.05;
+            holographicPreview.add(frame);
+
+            // Translucent Range Ring indicator Cylinder
+            const rangeGeo = new THREE.CylinderGeometry(TOWER_SPECS.spore.base.range, TOWER_SPECS.spore.base.range, 0.1, 24);
+            const rangeMat = new THREE.MeshBasicMaterial({
+                color: 0x10b981,
+                transparent: true,
+                opacity: 0.08,
+                side: THREE.DoubleSide
+            });
+            const rangeRing = new THREE.Mesh(rangeGeo, rangeMat);
+            rangeRing.position.y = 0.1;
+            holographicPreview.add(rangeRing);
+
+            // Micro range border outline
+            const ringOutlineGeo = new THREE.RingGeometry(TOWER_SPECS.spore.base.range - 0.05, TOWER_SPECS.spore.base.range, 24);
+            const ringOutlineMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+            const ringOutline = new THREE.Mesh(ringOutlineGeo, ringOutlineMat);
+            ringOutline.rotation.x = Math.PI / 2;
+            ringOutline.position.y = 0.12;
+            holographicPreview.add(ringOutline);
+
+            holographicPreview.visible = false;
+            scene.add(holographicPreview);
+        }
+        initHologram();
+
+        function setHologramColor(valid) {
+            const hex = valid ? 0x10b981 : 0xef4444; // Green vs Red
+            holographicPreview.children.forEach(mesh => {
+                mesh.material.color.setHex(hex);
+            });
+        }
+
+        /* ==========================================
+           SELECTION CYLINDER RANGE INDICATOR
+           ========================================== */
+        let selectionIndicator = null;
+        function initSelectionIndicator() {
+            selectionIndicator = new THREE.Group();
+            
+            // Range cylinder
+            const geo = new THREE.CylinderGeometry(1, 1, 0.08, 24);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xeab308, transparent: true, opacity: 0.1 });
+            const cylinder = new THREE.Mesh(geo, mat);
+            cylinder.position.y = 0.08;
+            selectionIndicator.add(cylinder);
+
+            // Ring Outline border
+            const edgeGeo = new THREE.RingGeometry(0.95, 1, 24);
+            const edgeMat = new THREE.MeshBasicMaterial({ color: 0xeab308, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+            const edge = new THREE.Mesh(edgeGeo, edgeMat);
+            edge.rotation.x = Math.PI / 2;
+            edge.position.y = 0.1;
+            selectionIndicator.add(edge);
+
+            selectionIndicator.visible = false;
+            scene.add(selectionIndicator);
+        }
+        initSelectionIndicator();
+
+        function showSelectionIndicator(tower) {
+            selectionIndicator.position.copy(tower.position);
+            // Re-scale circle to represent correct specs
+            const range = tower.specs.range;
+            selectionIndicator.scale.set(range, 1, range);
+            selectionIndicator.visible = true;
+        }
+
+        function hideSelectionIndicator() {
+            selectionIndicator.visible = false;
+        }
+
+        /* ==========================================
+           MOUSE INTERACTION & RAYCASTING (ISOLATED)
+           ========================================== */
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let wasDragging = false;
+        let isMouseDown = false;
+        let mdX = 0, mdY = 0;
+
+        window.addEventListener('mousedown', (e) => {
+            console.log(`[Global Mousedown] target=${e.target.tagName}#${e.target.id || ''}, classList=[${e.target.className}]`);
+        });
+
+        // Isolate camera and selection triggers to only work when target is strictly the game canvas
+        canvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            wasDragging = false;
+            mdX = e.clientX;
+            mdY = e.clientY;
+            console.log(`[Canvas Mousedown] triggered on canvas`);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            // Track globally so screen coordinates are valid
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            if (isMouseDown) {
+                if (Math.abs(e.clientX - mdX) > 5 || Math.abs(e.clientY - mdY) > 5) {
+                    wasDragging = true;
+                }
+            }
+
+            // Only run the holographic preview logic if hovering strictly over the 3D canvas
+            if (e.target !== canvas) {
+                holographicPreview.visible = false;
+                return;
+            }
+
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Check intersection with floor ground plane
+            const intersects = raycaster.intersectObject(ground);
+            if (intersects.length > 0) {
+                const intersectPoint = intersects[0].point;
+                const gridPos = worldToGrid(intersectPoint.x, intersectPoint.z);
+
+                // Handle changes in cell coordinate hovering
+                if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
+                    hoverGridCoord = gridPos;
+                    const wPos = gridToWorld(gridPos.x, gridPos.z);
+                    holographicPreview.position.set(wPos.x, 0, wPos.z);
+
+                    if (buildModeActive) {
+                        holographicPreview.visible = true;
+                        
+                        // Rule Check: Can we place a tower here?
+                        // Must be empty cell AND not completely wall pathways
+                        const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
+                        let validPath = false;
+                        if (cellEmpty) {
+                            validPath = validatePathways(gridPos.x, gridPos.z);
+                        }
+                        
+                        setHologramColor(cellEmpty && validPath);
+                    } else {
+                        holographicPreview.visible = false;
+                    }
+                } else {
+                    holographicPreview.visible = false;
+                }
+            } else {
+                holographicPreview.visible = false;
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            const preWasMouseDown = isMouseDown;
+            isMouseDown = false;
+            console.log(`[Global Mouseup] target=${e.target.tagName}#${e.target.id || ''}, wasDragging=${wasDragging}, preWasMouseDown=${preWasMouseDown}`);
+            if (wasDragging) return; 
+            if (!preWasMouseDown) return;
+
+            // CRITICAL FIX: Block action if user clicked a panel, card, or dashboard
+            if (e.target !== canvas) {
+                console.warn(`[Mouseup] ignored: target is not canvas (clicked ${e.target.tagName}#${e.target.id || ''})`);
+                return;
+            }
+
+            // Perform Click Raycast Actions
+            raycaster.setFromCamera(mouse, camera);
+
+            // 1. Raycast against existing placed Towers first
+            const towersGroupList = towers.map(t => t.mesh);
+            const towerIntersects = raycaster.intersectObjects(towersGroupList, true);
+
+            if (towerIntersects.length > 0) {
+                console.log(`[Raycast] hit existing tower`);
+                // Find associated tower object instance in parent hierarchy recursively
+                let topObj = towerIntersects[0].object;
+                while (topObj && !topObj.userData.isTower) {
+                    topObj = topObj.parent;
+                }
+
+                if (topObj && topObj.userData.towerInstance) {
+                    selectTower(topObj.userData.towerInstance);
+                    return;
+                }
+            }
+
+            // 2. Raycast against ground to place a tower or clear selection
+            const groundIntersects = raycaster.intersectObject(ground);
+            console.log(`[Raycast] ground intersects count=${groundIntersects.length}`);
+            if (groundIntersects.length > 0) {
+                const gridPos = worldToGrid(groundIntersects[0].point.x, groundIntersects[0].point.z);
+                console.log(`[Grid Click] gridPos=(${gridPos.x}, ${gridPos.z}), buildModeActive=${buildModeActive}`);
+
+                if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
+                    if (buildModeActive) {
+                        console.log(`[Build] buildModeActive is true, calling attemptBuildTower`);
+                        attemptBuildTower(gridPos.x, gridPos.z);
+                    } else {
+                        // Clicked empty ground: deselect any currently active selection
+                        console.log(`[Build] buildModeActive is false, deselecting tower`);
+                        deselectTower();
+                    }
+                } else {
+                    console.warn(`[Grid Click] out of bounds: (${gridPos.x}, ${gridPos.z})`);
+                }
+            }
+        });
+
+        // Add Escape key handler for intuitive control canceling, and 'O' key handler for hotkey build
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (buildModeActive) {
+                    cancelBuildMode();
+                    showToast("Build Mode Canceled", "yellow");
+                }
+                deselectTower();
+            } else if (e.key.toLowerCase() === 'o') {
+                console.log(`[Hotkey] 'O' pressed. hoverGridCoord=(${hoverGridCoord.x}, ${hoverGridCoord.z})`);
+                if (hoverGridCoord.x >= 0 && hoverGridCoord.x < GRID_SIZE && hoverGridCoord.z >= 0 && hoverGridCoord.z < GRID_SIZE) {
+                    attemptBuildTower(hoverGridCoord.x, hoverGridCoord.z);
+                } else {
+                    console.warn(`[Hotkey] 'O' pressed but hoverGridCoord is out of bounds or invalid`);
+                }
+            }
+        });
+
+        /* ==========================================
+           TOWER BUILDING, SELECTION & TRANSACTION WORKFLOW
+           ========================================== */
+        function attemptBuildTower(x, z) {
+            const cost = TOWER_SPECS[activeBuildType].base.cost;
+            console.log(`[Build] attemptBuildTower called for (${x}, ${z}). type=${activeBuildType}, cost=${cost}, gold=${gameState.gold}`);
+
+            if (grid[x][z] !== CELL_TYPES.EMPTY) {
+                console.error(`[Build] failed: cell occupied (type=${grid[x][z]})`);
+                showToast("Cell already occupied!", "red");
+                audio.playDenied();
+                return;
+            }
+
+            if (gameState.gold < cost) {
+                console.error(`[Build] failed: insufficient gold (have ${gameState.gold}, need ${cost})`);
+                showToast("Insufficient Biolum Credits!", "yellow");
+                audio.playDenied();
+                return;
+            }
+
+            // Pathfinder Check
+            const valid = validatePathways(x, z);
+            console.log(`[Build] validatePathways result=${valid}`);
+            if (!valid) {
+                console.error(`[Build] failed: path blocked`);
+                showToast("SDF Engine Alert: Path block denied!", "red");
+                audio.playDenied();
+                return;
+            }
+
+            // Place Tower
+            gameState.gold -= cost;
+            grid[x][z] = CELL_TYPES.TOWER;
+            
+            console.log(`[Build] instantiating SporeTower...`);
+            const newTower = new SporeTower(x, z, activeBuildType);
+            towers.push(newTower);
+
+            // Recompute real-time map distance field
+            computeSDF();
+            updateStatsUI();
+            audio.playBuild();
+            particles.spawnExplosion(newTower.position, TOWER_SPECS[activeBuildType].base.color, 15);
+            showToast(`${TOWER_SPECS[activeBuildType].base.cost === 50 ? 'Spore Cannon' : TOWER_SPECS[activeBuildType].base.cost === 120 ? 'Bio-Laser' : 'Frost Orchid'} Constructed`, "green");
+            console.log(`[Build] SporeTower successfully placed and initialized.`);
+        }
+
+        function selectTower(tower) {
+            selectedTowerInstance = tower;
+            gameState.selectedTower = tower;
+            
+            // Highlight selected tower range 3D visuals
+            showSelectionIndicator(tower);
+
+            // Update bottom detail context panel
+            const cost = TOWER_SPECS[tower.type].base.upgradeCost;
+            const nameMap = { spore: 'Spore Cannon', laser: 'Bio-Laser', frost: 'Frost Orchid' };
+            document.getElementById('selected-title').innerText = `${nameMap[tower.type].toUpperCase()} LVL ${tower.level}`;
+            document.getElementById('selected-stats').innerText = `Dmg: ${tower.specs.damage} | Range: ${tower.specs.range.toFixed(1)}m | Rate: ${tower.specs.fireRate}s`;
+            
+            const upgradeBtn = document.getElementById('upgrade-btn');
+            if (tower.level >= 2) {
+                upgradeBtn.classList.add('opacity-50', 'pointer-events-none');
+                upgradeBtn.innerHTML = `<i class="fa-solid fa-circle-check"></i> MAXED`;
+            } else {
+                upgradeBtn.classList.remove('opacity-50', 'pointer-events-none');
+                upgradeBtn.innerHTML = `<i class="fa-solid fa-arrow-up-short-wide"></i> Upgrade (<span id="upgrade-cost">${cost}</span>¢)`;
+            }
+
+            document.getElementById('sell-value').innerText = Math.round(tower.specs.cost * 0.5);
+
+            // Slide up selection panel UI
+            const panel = document.getElementById('selection-panel');
+            panel.classList.remove('scale-0', 'pointer-events-none', 'opacity-0');
+            panel.classList.add('scale-100', 'pointer-events-auto', 'opacity-100');
+        }
+
+        function deselectTower() {
+            selectedTowerInstance = null;
+            gameState.selectedTower = null;
+            hideSelectionIndicator();
+
+            // Slide away selection panel UI
+            const panel = document.getElementById('selection-panel');
+            panel.classList.remove('scale-100', 'pointer-events-auto', 'opacity-100');
+            panel.classList.add('scale-0', 'pointer-events-none', 'opacity-0');
+        }
+
+        function upgradeSelectedTower() {
+            if (!selectedTowerInstance) return;
+            const cost = TOWER_SPECS[selectedTowerInstance.type].base.upgradeCost;
+
+            if (gameState.gold < cost) {
+                showToast("Insufficient gold for upgrade!", "yellow");
+                audio.playDenied();
+                return;
+            }
+
+            gameState.gold -= cost;
+            selectedTowerInstance.upgrade();
+            selectTower(selectedTowerInstance); // refresh UI
+            updateStatsUI();
+        }
+
+        function sellSelectedTower() {
+            if (!selectedTowerInstance) return;
+            const refund = Math.round(selectedTowerInstance.specs.cost * 0.5);
+
+            gameState.gold += refund;
+            grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.EMPTY;
+
+            // Remove from JS storage list
+            const idx = towers.indexOf(selectedTowerInstance);
+            if (idx > -1) {
+                towers[idx].destroy();
+                towers.splice(idx, 1);
+            }
+
+            deselectTower();
+            computeSDF(); // Recompute pathing to occupy the freed space
+            updateStatsUI();
+            audio.playExplosion();
+        }
+
+        /* ==========================================
+           WAVE CONTROL & SPAWN MECHANICS
+           ========================================== */
+        let waveSpawnQueue = [];
+        let spawnIntervalTimer = 0;
+        const SPAWN_SPEED = 0.6; // spawning interval seconds
+
+        function startWave() {
+            if (gameState.isWaveActive) return;
+
+            gameState.isWaveActive = true;
+            document.getElementById('wave-btn').disabled = true;
+            document.getElementById('wave-btn').classList.add('opacity-50', 'pointer-events-none');
+
+            // Set up wave spawn list
+            const numEnemies = 4 + gameState.wave * 2;
+            waveSpawnQueue = [];
+
+            for (let i = 0; i < numEnemies; i++) {
+                // Choose a random Spawn Portal
+                const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
+                
+                // Determine enemy type based on wave progression
+                let type = 'scarab';
+                if (gameState.wave === 2) {
+                    type = Math.random() < 0.55 ? 'ant' : 'scarab';
+                } else if (gameState.wave >= 3) {
+                    const r = Math.random();
+                    if (r < 0.4) {
+                        type = 'scarab';
+                    } else if (r < 0.75) {
+                        type = 'ant';
+                    } else {
+                        type = 'ufo';
+                    }
+                }
+
+                waveSpawnQueue.push({
+                    x: spawn.x,
+                    z: spawn.z,
+                    type: type
+                });
+            }
+
+            showToast(`WAVE ${gameState.wave} DETECTED! BIOLOGICAL THREAT ON THE HORIZON.`, "green");
+            document.getElementById('wave-desc').innerText = `DEFENSE ENGAGED`;
+            document.getElementById('enemy-count').innerText = `${numEnemies} Swarm Hostiles inbound`;
+        }
+
+        function endWave() {
+            gameState.isWaveActive = false;
+            gameState.wave += 1;
+            gameState.gold += 30; // End-wave survival bonus
+            updateStatsUI();
+
+            document.getElementById('wave-btn').disabled = false;
+            document.getElementById('wave-btn').classList.remove('opacity-50', 'pointer-events-none');
+
+            document.getElementById('wave-desc').innerText = `Ready to Engage`;
+            document.getElementById('enemy-count').innerText = `${4 + gameState.wave * 2} Swarm Hostiles`;
+
+            showToast(`WAVE CLEARED! +30¢ Bonus Awarded`, "green");
+            
+            // Check auto wave triggers if enabled
+            if (gameState.autoStartWave) {
+                setTimeout(startWave, 2500);
+            }
+        }
+
+        /* ==========================================
+           GAME UI CONTROLLERS & EVENT LISTENERS
+           ========================================== */
+        function updateStatsUI() {
+            document.getElementById('health-value').innerText = gameState.health;
+            document.getElementById('gold-value').innerText = gameState.gold;
+            document.getElementById('wave-value').innerText = gameState.wave;
+            document.getElementById('score-value').innerText = String(gameState.score).padStart(5, '0');
+        }
+
+        function showToast(msg, color) {
+            const toast = document.createElement('div');
+            toast.className = `blur-panel px-4 py-2 rounded-lg font-bold border ${color === 'red' ? 'border-red-500/50 text-red-300' : color === 'yellow' ? 'border-yellow-500/50 text-yellow-300' : 'border-emerald-500/50 text-emerald-300'} text-xs tracking-wider uppercase flex items-center gap-2 shadow-2xl animate-bounce`;
+            toast.innerHTML = `<i class="fa-solid ${color === 'red' ? 'fa-triangle-exclamation text-red-400' : 'fa-biohazard text-emerald-400'}"></i> ${msg}`;
+            
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('transition-all', 'opacity-0', '-translate-y-4');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        // Build selection card handlers
+        let activeBuildType = 'spore';
+        const buildCards = {
+            spore: document.getElementById('build-spore'),
+            laser: document.getElementById('build-laser'),
+            frost: document.getElementById('build-frost')
+        };
+
+        const dropdown = document.getElementById('construct-dropdown');
+        const constructBtn = document.getElementById('construct-btn');
+
+        constructBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('scale-y-100');
+            if (isOpen) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        function openDropdown() {
+            dropdown.classList.remove('scale-y-0', 'opacity-0', 'pointer-events-none');
+            dropdown.classList.add('scale-y-100', 'opacity-100', 'pointer-events-auto');
+            constructBtn.querySelector('.fa-chevron-up').classList.add('rotate-180');
+        }
+
+        function closeDropdown() {
+            dropdown.classList.remove('scale-y-100', 'opacity-100', 'pointer-events-auto');
+            dropdown.classList.add('scale-y-0', 'opacity-0', 'pointer-events-none');
+            constructBtn.querySelector('.fa-chevron-up').classList.remove('rotate-180');
+        }
+
+        window.addEventListener('click', () => {
+            closeDropdown();
+        });
+
+        function selectBuildType(type) {
+            // If clicking the currently active build type, cancel build mode
+            if (buildModeActive && activeBuildType === type) {
+                cancelBuildMode();
+                closeDropdown();
+                return;
+            }
+
+            buildModeActive = true;
+            activeBuildType = type;
+            deselectTower();
+            closeDropdown();
+            console.log(`[Build Deck] Activated build mode for type: ${type}`);
+
+            // Update UI Card classes
+            Object.keys(buildCards).forEach(k => {
+                const card = buildCards[k];
+                if (k === type) {
+                    const activeColor = k === 'spore' ? 'border-emerald-500 bg-emerald-950/60' : k === 'laser' ? 'border-red-500 bg-red-950/60' : 'border-cyan-500 bg-cyan-950/60';
+                    card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border ${activeColor} scale-102 cursor-pointer transition-all active:scale-98`;
+                } else {
+                    const hoverBorder = k === 'spore' ? 'hover:border-emerald-500/40 hover:bg-emerald-950/40' : k === 'laser' ? 'hover:border-red-500/40 hover:bg-red-950/40' : 'hover:border-cyan-500/40 hover:bg-cyan-950/40';
+                    card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${hoverBorder} cursor-pointer transition-all active:scale-98`;
+                }
+            });
+
+            // Update hologram range dynamically
+            const range = TOWER_SPECS[type].base.range;
+            holographicPreview.children[1].geometry.dispose();
+            holographicPreview.children[1].geometry = new THREE.CylinderGeometry(range, range, 0.1, 24);
+            holographicPreview.children[2].geometry.dispose();
+            holographicPreview.children[2].geometry = new THREE.RingGeometry(range - 0.05, range, 24);
+            holographicPreview.visible = true;
+
+            // Reset hologram color to default (green)
+            setHologramColor(true);
+        }
+
+        function cancelBuildMode() {
+            buildModeActive = false;
+            console.log(`[Build Deck] Cancelled build mode`);
+            Object.keys(buildCards).forEach(k => {
+                const card = buildCards[k];
+                const hoverBorder = k === 'spore' ? 'hover:border-emerald-500/40 hover:bg-emerald-950/40' : k === 'laser' ? 'hover:border-red-500/40 hover:bg-red-950/40' : 'hover:border-cyan-500/40 hover:bg-cyan-950/40';
+                card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${hoverBorder} cursor-pointer transition-all active:scale-98`;
+            });
+            holographicPreview.visible = false;
+        }
+
+        // Bind clicks to each card inside the menu
+        Object.keys(buildCards).forEach(type => {
+            buildCards[type].addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectBuildType(type);
+            });
+        });
+
+        document.getElementById('upgrade-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            upgradeSelectedTower();
+        });
+        document.getElementById('sell-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            sellSelectedTower();
+        });
+        document.getElementById('deselect-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            deselectTower();
+        });
+        document.getElementById('wave-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            startWave();
+        });
+
+        // UI Collapsible Help Menu Panel
+        const infoPanel = document.getElementById('info-panel');
+        document.getElementById('info-toggle').addEventListener('click', (e) => {
+            e.stopPropagation();
+            infoPanel.classList.toggle('translate-x-[420px]');
+        });
+        document.getElementById('close-info').addEventListener('click', (e) => {
+            e.stopPropagation();
+            infoPanel.classList.add('translate-x-[420px]');
+        });
+
+        // Speed Adjustment Controls
+        const speeds = [
+            { id: 'speed-1x', val: 1.0 },
+            { id: 'speed-2x', val: 2.0 },
+            { id: 'speed-4x', val: 4.0 }
+        ];
+        speeds.forEach(s => {
+            document.getElementById(s.id).addEventListener('click', (e) => {
+                e.stopPropagation();
+                gameState.gameSpeed = s.val;
+                speeds.forEach(oth => {
+                    const btn = document.getElementById(oth.id);
+                    if (oth.id === s.id) {
+                        btn.className = "px-2 py-1 text-xs font-bold rounded bg-emerald-500 text-black orbitron transition-all";
+                    } else {
+                        btn.className = "px-2 py-1 text-xs font-bold rounded text-emerald-400 hover:bg-emerald-500/20 orbitron transition-all";
+                    }
+                });
+            });
+        });
+
+        // Sound Mutex control
+        const soundBtn = document.getElementById('sound-toggle');
+        soundBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            gameState.soundEnabled = !gameState.soundEnabled;
+            if (gameState.soundEnabled) {
+                soundBtn.innerHTML = `<i class="fa-solid fa-volume-high text-lg"></i>`;
+                soundBtn.classList.remove('text-red-400');
+                soundBtn.classList.add('text-emerald-400');
+            } else {
+                soundBtn.innerHTML = `<i class="fa-solid fa-volume-xmark text-lg"></i>`;
+                soundBtn.classList.remove('text-emerald-400');
+                soundBtn.classList.add('text-red-400');
+            }
+        });
+
+        function checkGameOver() {
+            if (gameState.health <= 0 && !gameState.isGameOver) {
+                gameState.isGameOver = true;
+                
+                // Show Game Over Overlay
+                const endDiv = document.createElement('div');
+                endDiv.className = "absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/90 text-red-500 pointer-events-auto p-4";
+                endDiv.innerHTML = `
+                    <div class="orbitron text-5xl font-black tracking-widest text-red-500 glow-text-green mb-2 animate-pulse">BIOSPHERE COLLAPSED</div>
+                    <div class="text-xl text-emerald-400 mb-8 font-semibold uppercase tracking-wider">The Ancient temple base crystal was breached.</div>
+                    <div class="blur-panel rounded-xl p-6 text-center max-w-sm space-y-4">
+                        <span class="text-xs uppercase tracking-widest text-emerald-500 font-bold block">Final Mission Stats</span>
+                        <div class="flex justify-around items-center gap-8 text-white">
+                            <div><span class="block text-2xl font-black orbitron text-yellow-400">${gameState.wave}</span><span class="text-[10px] text-emerald-500 font-bold uppercase">Waves Survived</span></div>
+                            <div class="h-8 w-[1px] bg-emerald-500/20"></div>
+                            <div><span class="block text-2xl font-black orbitron text-emerald-400">${gameState.score}</span><span class="text-[10px] text-emerald-500 font-bold uppercase">Final Score</span></div>
+                        </div>
+                        <button onclick="location.reload()" class="w-full py-3 bg-red-600 hover:bg-red-500 text-black font-black orbitron text-base rounded-xl transition-all shadow-lg active:scale-95">REPLAY CAMPAIGN</button>
+                    </div>
+                `;
+                document.body.appendChild(endDiv);
+            }
+        }
+
+        /* ==========================================
+           MAIN GAME CYCLE
+           ========================================== */
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Fetch Frame Delta scaled by selected Game Multiplier
+            let dt = clock.getDelta() * gameState.gameSpeed;
+            if (gameState.isGameOver) dt = 0; // Freeze actions
+
+            // Update skybox shader time
+            if (skyboxController) skyboxController.update(dt);
+
+            // 1. Core Rotating animations for Base Temple Core (Organic levitating)
+            if (baseCrystal) {
+                baseCrystal.rotation.y += dt * 0.8;
+                baseCrystal.rotation.x = Math.sin(clock.getElapsedTime()) * 0.3;
+                baseCrystal.position.y = 1.8 + Math.sin(clock.getElapsedTime() * 2.0) * 0.15;
+            }
+
+            // 2. Wave Spawning controller loop
+            if (gameState.isWaveActive && waveSpawnQueue.length > 0) {
+                spawnIntervalTimer += dt;
+                if (spawnIntervalTimer >= SPAWN_SPEED) {
+                    spawnIntervalTimer = 0;
+                    const nextSpawn = waveSpawnQueue.shift();
+                    if (nextSpawn.type === 'ant') {
+                        enemies.push(new AntEnemy(nextSpawn));
+                    } else if (nextSpawn.type === 'ufo') {
+                        enemies.push(new UfoEnemy(nextSpawn));
+                    } else {
+                        enemies.push(new ScarabEnemy(nextSpawn));
+                    }
+                }
+            }
+
+            // 3. Update active elements
+            // Update enemies (going backward to allow safe splicing)
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+                enemy.update(dt);
+                if (enemy.isDead) {
+                    enemies.splice(i, 1);
+                }
+            }
+
+            // Update towers
+            towers.forEach(tower => tower.update(dt));
+
+            // Update active bullets
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const bullet = projectiles[i];
+                bullet.update(dt);
+                if (bullet.isDead) {
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            // Update particle explosions
+            particles.update(dt);
+
+            // 4. Wave End Check
+            if (gameState.isWaveActive && waveSpawnQueue.length === 0 && enemies.length === 0) {
+                endWave();
+            }
+
+            // 5. Update controls & Three camera renderer
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Window size adjustment adapter
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Simulated loader visual timeout on start
+        window.onload = function() {
+            let progress = 0;
+            const progressEl = document.getElementById('loader-progress');
+            const interval = setInterval(() => {
+                progress += 20;
+                progressEl.style.width = `${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('loader').classList.add('transition-all', 'opacity-0', 'pointer-events-none');
+                        updateStatsUI();
+                        // Run animation loops
+                        animate();
+                    }, 400);
+                }
+            }, 100);
+        };
+
+    </script>
+</body>
+</html>
