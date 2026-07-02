@@ -65,6 +65,9 @@
         .glow-text-green {
             text-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
         }
+        .glow-text-cyan {
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+        }
         .blur-panel {
             background: rgba(10, 25, 14, 0.75);
             backdrop-filter: blur(12px);
@@ -87,6 +90,53 @@
         <div class="mt-2 text-sm text-emerald-500/80 tracking-widest uppercase">Compiling Procedural Canopy & Pathfinding SDF</div>
     </div>
 
+    <!-- Space Flight Mode HUD (initially hidden) -->
+    <div id="space-flight-hud" class="hidden absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6 bg-black/30">
+        <!-- Top bar: Stats -->
+        <div class="flex justify-between items-center w-full pointer-events-auto">
+            <div class="blur-panel rounded-xl px-5 py-3 flex items-center gap-6 shadow-2xl">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-cyan-400 uppercase tracking-widest block font-semibold">Shield Integrity</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-shield text-cyan-400 animate-pulse text-xl"></i>
+                        <span id="flight-shield-val" class="orbitron text-2xl font-black text-cyan-300">100%</span>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-cyan-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-yellow-400 uppercase tracking-widest block font-semibold">Bounty Gold</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-coins text-yellow-400 text-xl"></i>
+                        <span id="flight-gold-val" class="orbitron text-2xl font-black text-yellow-300">0</span>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-cyan-500/20"></div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-purple-400 uppercase tracking-widest block font-semibold">Crystals Harvested</span>
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-gem text-purple-400 text-xl"></i>
+                        <span id="flight-shards-val" class="orbitron text-2xl font-black text-purple-300">0</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Exit button -->
+            <button id="exit-flight-btn" class="bg-red-950/80 hover:bg-red-900 border border-red-500/40 rounded-xl px-5 py-3 text-sm font-black text-white orbitron cursor-pointer transition-all active:scale-95 shadow-2xl">RETREAT TO COLONY</button>
+        </div>
+
+        <!-- Center message hint -->
+        <div id="flight-toast-container" class="flex flex-col items-center gap-2 max-w-md mx-auto pointer-events-none"></div>
+
+        <!-- Bottom bar: Controls Tooltip -->
+        <div class="blur-panel rounded-xl px-6 py-3 max-w-xl mx-auto shadow-2xl border-cyan-500/30 flex items-center gap-4 text-xs text-cyan-300 pointer-events-auto">
+            <span class="font-bold orbitron uppercase text-cyan-400 tracking-wider"><i class="fa-solid fa-shuttle-space mr-1.5"></i>ODYSSEY FIGHTER FLIGHT CONTROLS:</span>
+            <div class="flex gap-3 font-semibold">
+                <span><strong class="text-white">W / S</strong>: Thrust/Decel</span>
+                <span><strong class="text-white">A / D</strong>: Yaw (Turn)</span>
+                <span><strong class="text-white">Space</strong>: Fire Lasers</span>
+            </div>
+        </div>
+    </div>
+
     <!-- UI Overlay container -->
     <div id="ui-container" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6">
         
@@ -107,7 +157,7 @@
                         <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold">Biolum Credits</span>
                         <div class="flex items-center gap-3">
                             <i class="fa-solid fa-seedling text-yellow-400 text-xl"></i>
-                            <span id="gold-value" class="orbitron text-2xl font-black text-yellow-300">180</span>
+                            <span id="gold-value" class="orbitron text-2xl font-black text-yellow-300">1000</span>
                         </div>
                     </div>
                     <div class="h-8 w-[1px] bg-emerald-500/20"></div>
@@ -174,9 +224,15 @@
             </div>
 
             <!-- Campaign Selector Panel -->
-            <div id="campaign-container" class="blur-panel rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl mr-auto ml-2 transition-all duration-300">
+            <div id="campaign-container" class="blur-panel rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl ml-2 transition-all duration-300">
                 <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold"><i class="fa-solid fa-rocket mr-1 text-[10px]"></i> Campaign</span>
                 <button id="campaign-select-btn" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded px-2.5 py-1 text-xs font-bold text-white orbitron cursor-pointer transition-all active:scale-95">SELECT MISSION</button>
+            </div>
+
+            <!-- Space Flight Mode Panel -->
+            <div id="space-flight-container" class="blur-panel rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl mr-auto ml-2 transition-all duration-300">
+                <span class="text-xs text-cyan-400 uppercase tracking-widest block font-semibold"><i class="fa-solid fa-shuttle-space mr-1 text-[10px]"></i> Orbit</span>
+                <button id="launch-space-btn" class="bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 rounded px-2.5 py-1 text-xs font-bold text-white orbitron cursor-pointer transition-all active:scale-95 glow-text-cyan">LAUNCH SPACE SHIP</button>
             </div>
 
             <!-- Right System Panel -->
@@ -506,7 +562,7 @@
 
         // System Settings
         let gameState = {
-            gold: 250,
+            gold: 1000,
             health: 20,
             wave: 1,
             score: 0,
@@ -6468,11 +6524,16 @@
             Object.keys(buildCards).forEach(k => {
                 const card = buildCards[k];
                 const c = towerColors[k] || towerColors.spore;
+                let classStr = "";
                 if (k === type) {
-                    card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border ${c.active} scale-102 cursor-pointer transition-all active:scale-98`;
+                    classStr = `build-card rounded-lg px-3 py-2 flex items-center justify-between border ${c.active} scale-102 cursor-pointer transition-all active:scale-98`;
                 } else {
-                    card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${c.hover} cursor-pointer transition-all active:scale-98`;
+                    classStr = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${c.hover} cursor-pointer transition-all active:scale-98`;
                 }
+                if (k === 'stackfarm') {
+                    classStr += ' relative overflow-hidden';
+                }
+                card.className = classStr;
             });
 
             // Update hologram range dynamically
@@ -6501,7 +6562,11 @@
             Object.keys(buildCards).forEach(k => {
                 const card = buildCards[k];
                 const c = towerColors[k] || towerColors.spore;
-                card.className = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${c.hover} cursor-pointer transition-all active:scale-98`;
+                let classStr = `build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent ${c.hover} cursor-pointer transition-all active:scale-98`;
+                if (k === 'stackfarm') {
+                    classStr += ' relative overflow-hidden';
+                }
+                card.className = classStr;
             });
             holographicPreview.visible = false;
         }
@@ -6650,9 +6715,14 @@
         function animate() {
             requestAnimationFrame(animate);
 
-            // Fetch Frame Delta scaled by selected Game Multiplier
             let dt = clock.getDelta() * gameState.gameSpeed;
-            if (gameState.isGameOver) dt = 0; // Freeze actions
+            if (gameState.isGameOver) dt = 0;
+
+            if (window.inSpaceFlightMode) {
+                updateSpaceFlight(dt);
+                renderer.render(scene, camera);
+                return;
+            }
 
             // Update skybox shader time
             if (skyboxController) skyboxController.update(dt);
@@ -6921,6 +6991,583 @@
                 frame++;
             }, 100);
         }
+
+        /* ==========================================
+           OPEN WORLD SPACE EXPLORATION MODE
+           ========================================== */
+        window.inSpaceFlightMode = false;
+        window.spaceFlightGroup = null;
+        window.spacePlayerShip = null;
+        window.spaceShards = [];
+        window.spacePirates = [];
+        window.playerLasers = [];
+        window.pirateProjectiles = [];
+        window.keysPressed = {};
+
+        window.harvestedShardsCount = 0;
+        window.harvestedBountyGold = 0;
+        window.playerShield = 100;
+        let lastLaserFireTime = 0;
+        let spaceFlightPrevCamPos = new THREE.Vector3();
+
+        // Starfield texture generator
+        function generateSpaceTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#010103';
+            ctx.fillRect(0, 0, 1024, 1024);
+            
+            for (let i = 0; i < 8; i++) {
+                const x = Math.random() * 1024;
+                const y = Math.random() * 1024;
+                const radius = 250 + Math.random() * 250;
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+                const hue = Math.random() > 0.5 ? '280' : '200';
+                grad.addColorStop(0, `hsla(${hue}, 90%, 35%, 0.18)`);
+                grad.addColorStop(0.5, `hsla(${hue}, 80%, 20%, 0.08)`);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 450; i++) {
+                const x = Math.random() * 1024;
+                const y = Math.random() * 1024;
+                const size = Math.random() * 2.2;
+                ctx.globalAlpha = 0.2 + Math.random() * 0.8;
+                ctx.fillRect(x, y, size, size);
+            }
+            ctx.globalAlpha = 1.0;
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function initSpaceExploration() {
+            if (window.spaceFlightGroup) return;
+
+            window.spaceFlightGroup = new THREE.Group();
+            scene.add(window.spaceFlightGroup);
+
+            const spacePlaneGeo = new THREE.PlaneGeometry(1500, 1500);
+            const spacePlaneMat = new THREE.MeshBasicMaterial({
+                map: generateSpaceTexture(),
+                side: THREE.DoubleSide
+            });
+            const spacePlane = new THREE.Mesh(spacePlaneGeo, spacePlaneMat);
+            spacePlane.rotation.x = -Math.PI / 2;
+            spacePlane.position.y = -8;
+            window.spaceFlightGroup.add(spacePlane);
+
+            const starLight = new THREE.DirectionalLight(0x06b6d4, 1.2);
+            starLight.position.set(50, 100, 50);
+            window.spaceFlightGroup.add(starLight);
+
+            const starLight2 = new THREE.DirectionalLight(0xd946ef, 0.8);
+            starLight2.position.set(-50, 100, -50);
+            window.spaceFlightGroup.add(starLight2);
+
+            window.addEventListener('keydown', (e) => {
+                if (!window.inSpaceFlightMode) return;
+                window.keysPressed[e.key.toLowerCase()] = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                if (!window.inSpaceFlightMode) return;
+                window.keysPressed[e.key.toLowerCase()] = false;
+            });
+        }
+
+        window.enterSpaceFlightMode = function() {
+            if (window.inSpaceFlightMode) return;
+
+            audio.playBuild();
+            gameState.isPaused = true;
+            
+            window.tdVisibilityMap = new Map();
+            scene.children.forEach(child => {
+                if (child === window.spaceFlightGroup) return;
+                window.tdVisibilityMap.set(child, child.visible);
+                if (child.isLight && (child.type === 'AmbientLight' || child.type === 'DirectionalLight')) {
+                    // Stay visible
+                } else {
+                    child.visible = false;
+                }
+            });
+
+            document.getElementById('ui-container').classList.add('hidden');
+            document.getElementById('space-flight-hud').classList.remove('hidden');
+
+            spaceFlightPrevCamPos.copy(camera.position);
+            controls.enabled = false;
+
+            initSpaceExploration();
+            window.spaceFlightGroup.visible = true;
+
+            window.harvestedShardsCount = 0;
+            window.harvestedBountyGold = 0;
+            window.playerShield = 100;
+            updateSpaceHUD();
+
+            if (window.spacePlayerShip) {
+                window.spaceFlightGroup.remove(window.spacePlayerShip.mesh);
+            }
+
+            let shipMesh;
+            if (window.odyseeModelTemplate) {
+                shipMesh = window.odyseeModelTemplate.clone();
+            } else {
+                shipMesh = new THREE.Group();
+                const bodyGeo = new THREE.ConeGeometry(0.6, 2.5, 5);
+                bodyGeo.rotateX(Math.PI / 2);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.1 });
+                const body = new THREE.Mesh(bodyGeo, bodyMat);
+                shipMesh.add(body);
+
+                const wingGeo = new THREE.BoxGeometry(2.0, 0.08, 0.6);
+                const wingMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, metalness: 0.8, roughness: 0.2 });
+                const wings = new THREE.Mesh(wingGeo, wingMat);
+                wings.position.set(0, -0.1, -0.4);
+                shipMesh.add(wings);
+            }
+
+            const thrusterLight = new THREE.PointLight(0x06b6d4, 2.0, 5.0);
+            thrusterLight.position.set(0, 0, -1.5);
+            shipMesh.add(thrusterLight);
+
+            shipMesh.position.set(0, 0, 0);
+            window.spaceFlightGroup.add(shipMesh);
+
+            window.spacePlayerShip = {
+                mesh: shipMesh,
+                yaw: 0,
+                speed: 0,
+                maxSpeed: 45,
+                thrustPower: 55,
+                turnSpeed: 2.8,
+                drag: 0.98
+            };
+
+            window.spaceShards.forEach(s => window.spaceFlightGroup.remove(s.mesh));
+            window.spaceShards = [];
+
+            window.spacePirates.forEach(p => window.spaceFlightGroup.remove(p.mesh));
+            window.spacePirates = [];
+
+            window.playerLasers.forEach(l => window.spaceFlightGroup.remove(l.mesh));
+            window.playerLasers = [];
+
+            window.pirateProjectiles.forEach(p => window.spaceFlightGroup.remove(p.mesh));
+            window.pirateProjectiles = [];
+
+            const shardGeo = new THREE.OctahedronGeometry(0.7);
+            const shardMat = new THREE.MeshStandardMaterial({
+                color: 0xd946ef,
+                emissive: 0xa855f7,
+                emissiveIntensity: 1.5,
+                roughness: 0.1,
+                metalness: 0.9
+            });
+
+            for (let i = 0; i < 22; i++) {
+                const sMesh = new THREE.Mesh(shardGeo, shardMat);
+                const sx = (Math.random() - 0.5) * 500;
+                const sz = (Math.random() - 0.5) * 500;
+                sMesh.position.set(sx, 0, sz);
+                window.spaceFlightGroup.add(sMesh);
+                
+                const sLight = new THREE.PointLight(0xd946ef, 0.8, 3);
+                sMesh.add(sLight);
+
+                window.spaceShards.push({
+                    mesh: sMesh,
+                    position: sMesh.position
+                });
+            }
+
+            for (let i = 0; i < 6; i++) {
+                spawnSpacePirate();
+            }
+
+            camera.position.set(0, 5, -15);
+            camera.lookAt(0, 0, 0);
+
+            window.inSpaceFlightMode = true;
+            window.keysPressed = {};
+            showFlightToast("ORBIT SECTOR REACHED: ENGINE SYSTEMS ONLINE", "cyan");
+        };
+
+        function spawnSpacePirate() {
+            if (!window.spaceFlightGroup) return;
+            const pirateGroup = new THREE.Group();
+            
+            const coneGeo = new THREE.ConeGeometry(0.5, 2.0, 4);
+            coneGeo.rotateX(Math.PI / 2);
+            const cone = new THREE.Mesh(coneGeo, new THREE.MeshStandardMaterial({
+                color: 0xe11d48,
+                metalness: 0.8,
+                roughness: 0.2
+            }));
+            pirateGroup.add(cone);
+
+            const wings = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.5), new THREE.MeshStandardMaterial({ color: 0xf97316 }));
+            wings.position.set(0, -0.1, -0.3);
+            pirateGroup.add(wings);
+
+            const engineGlow = new THREE.PointLight(0xef4444, 1.5, 4);
+            engineGlow.position.set(0, 0, -1.2);
+            pirateGroup.add(engineGlow);
+
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 75 + Math.random() * 150;
+            const px = Math.sin(angle) * dist;
+            const pz = Math.cos(angle) * dist;
+            pirateGroup.position.set(px, 0, pz);
+
+            window.spaceFlightGroup.add(pirateGroup);
+            window.spacePirates.push({
+                mesh: pirateGroup,
+                position: pirateGroup.position,
+                health: 100,
+                shootCooldown: 1.5 + Math.random() * 2.0
+            });
+        }
+
+        window.exitSpaceFlightMode = function() {
+            if (!window.inSpaceFlightMode) return;
+
+            window.inSpaceFlightMode = false;
+            audio.playBuild();
+
+            const recoveredGold = window.harvestedBountyGold + (window.harvestedShardsCount * 25);
+            gameState.gold += recoveredGold;
+
+            document.getElementById('space-flight-hud').classList.add('hidden');
+            document.getElementById('ui-container').classList.remove('hidden');
+
+            if (window.spaceFlightGroup) {
+                window.spaceFlightGroup.visible = false;
+            }
+
+            window.tdVisibilityMap.forEach((v, child) => {
+                child.visible = v;
+            });
+
+            camera.position.copy(spaceFlightPrevCamPos);
+            controls.enabled = true;
+            controls.target.set(GRID_SIZE * CELL_SIZE / 2, 0, GRID_SIZE * CELL_SIZE / 2);
+            controls.update();
+
+            gameState.isPaused = false;
+            updateStatsUI();
+
+            showToast(`WARPED HOME! +${recoveredGold}¢ Credits Transferred`, "green");
+        };
+
+        function showFlightToast(msg, color) {
+            const container = document.getElementById('flight-toast-container');
+            if (!container) return;
+
+            const el = document.createElement('div');
+            el.className = `blur-panel px-4 py-2 rounded-lg font-bold border ${color === 'red' ? 'border-red-500/50 text-red-300' : 'border-cyan-500/50 text-cyan-300'} text-xs uppercase shadow-2xl transition-all duration-300 mb-2`;
+            el.innerText = msg;
+            container.appendChild(el);
+
+            setTimeout(() => {
+                el.classList.add('opacity-0', 'scale-90');
+                setTimeout(() => el.remove(), 400);
+            }, 2500);
+        }
+
+        function updateSpaceHUD() {
+            const shieldEl = document.getElementById('flight-shield-val');
+            const goldEl = document.getElementById('flight-gold-val');
+            const shardsEl = document.getElementById('flight-shards-val');
+
+            if (shieldEl) shieldEl.innerText = `${Math.round(window.playerShield)}%`;
+            if (goldEl) goldEl.innerText = `${window.harvestedBountyGold}¢`;
+            if (shardsEl) shardsEl.innerText = window.harvestedShardsCount;
+        }
+
+        function updateSpaceFlight(dt) {
+            if (!window.spacePlayerShip) return;
+
+            const ship = window.spacePlayerShip;
+
+            if (window.keysPressed['a']) {
+                ship.yaw += ship.turnSpeed * dt;
+            }
+            if (window.keysPressed['d']) {
+                ship.yaw -= ship.turnSpeed * dt;
+            }
+
+            const rollTarget = window.keysPressed['a'] ? 0.35 : (window.keysPressed['d'] ? -0.35 : 0);
+            ship.mesh.rotation.z = THREE.MathUtils.lerp(ship.mesh.rotation.z, rollTarget, 10 * dt);
+            ship.mesh.rotation.y = ship.yaw;
+
+            if (window.keysPressed['w']) {
+                ship.speed = Math.min(ship.maxSpeed, ship.speed + ship.thrustPower * dt);
+            } else if (window.keysPressed['s']) {
+                ship.speed = Math.max(-10, ship.speed - ship.thrustPower * dt);
+            } else {
+                ship.speed *= ship.drag;
+            }
+
+            const moveX = Math.sin(ship.yaw) * ship.speed * dt;
+            const moveZ = Math.cos(ship.yaw) * ship.speed * dt;
+            ship.mesh.position.x += moveX;
+            ship.mesh.position.z += moveZ;
+
+            if (Math.abs(ship.mesh.position.x) > 600) ship.mesh.position.x *= -0.98;
+            if (Math.abs(ship.mesh.position.z) > 600) ship.mesh.position.z *= -0.98;
+
+            const now = Date.now();
+            if (window.keysPressed[' '] && now - lastLaserFireTime > 260) {
+                lastLaserFireTime = now;
+                audio.playLaserShoot();
+
+                const offsetLeft = new THREE.Vector3(-0.5, 0, 0.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), ship.yaw);
+                const offsetRight = new THREE.Vector3(0.5, 0, 0.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), ship.yaw);
+
+                [offsetLeft, offsetRight].forEach(offset => {
+                    const laserPos = ship.mesh.position.clone().add(offset);
+                    const laserGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.9, 4);
+                    laserGeo.rotateX(Math.PI / 2);
+                    const laserMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+                    const laserMesh = new THREE.Mesh(laserGeo, laserMat);
+                    
+                    laserMesh.position.copy(laserPos);
+                    laserMesh.rotation.y = ship.yaw;
+                    window.spaceFlightGroup.add(laserMesh);
+
+                    window.playerLasers.push({
+                        mesh: laserMesh,
+                        position: laserMesh.position,
+                        direction: new THREE.Vector3(Math.sin(ship.yaw), 0, Math.cos(ship.yaw)).normalize(),
+                        speed: 130.0,
+                        life: 2.0
+                    });
+                });
+            }
+
+            for (let i = window.playerLasers.length - 1; i >= 0; i--) {
+                const laser = window.playerLasers[i];
+                laser.position.addScaledVector(laser.direction, laser.speed * dt);
+                laser.life -= dt;
+
+                let hit = false;
+                for (let k = window.spacePirates.length - 1; k >= 0; k--) {
+                    const pirate = window.spacePirates[k];
+                    const dist = laser.position.distanceTo(pirate.position);
+                    if (dist < 3.8) {
+                        hit = true;
+                        pirate.health -= 34;
+                        particles.spawnHitBurst(pirate.position, 0xef4444);
+
+                        if (pirate.health <= 0) {
+                            window.harvestedBountyGold += 50;
+                            audio.playExplode();
+                            particles.spawnExplosion(pirate.position, 0xf97316, 25);
+                            window.spaceFlightGroup.remove(pirate.mesh);
+                            window.spacePirates.splice(k, 1);
+                            
+                            showFlightToast("BOUNTY SECURED: PIRATE FIGHTER DOWN +50¢", "cyan");
+                            updateSpaceHUD();
+                            
+                            setTimeout(spawnSpacePirate, 4000);
+                        }
+                        break;
+                    }
+                }
+
+                if (hit || laser.life <= 0) {
+                    window.spaceFlightGroup.remove(laser.mesh);
+                    window.playerLasers.splice(i, 1);
+                }
+            }
+
+            const playerPos = ship.mesh.position;
+            window.spacePirates.forEach(pirate => {
+                const distToPlayer = pirate.position.distanceTo(playerPos);
+                
+                const angle = Math.atan2(playerPos.x - pirate.position.x, playerPos.z - pirate.position.z);
+                pirate.mesh.rotation.y = THREE.MathUtils.lerp(pirate.mesh.rotation.y, angle, 4.0 * dt);
+
+                if (distToPlayer > 18) {
+                    pirate.position.x += Math.sin(pirate.mesh.rotation.y) * 12.0 * dt;
+                    pirate.position.z += Math.cos(pirate.mesh.rotation.y) * 12.0 * dt;
+                }
+
+                pirate.shootCooldown -= dt;
+                if (distToPlayer < 75 && pirate.shootCooldown <= 0) {
+                    pirate.shootCooldown = 2.0 + Math.random() * 1.5;
+
+                    const ballGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                    const ballMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                    const ball = new THREE.Mesh(ballGeo, ballMat);
+                    ball.position.copy(pirate.position);
+                    window.spaceFlightGroup.add(ball);
+
+                    const dir = new THREE.Vector3().subVectors(playerPos, pirate.position).normalize();
+                    window.pirateProjectiles.push({
+                        mesh: ball,
+                        position: ball.position,
+                        direction: dir,
+                        speed: 55.0,
+                        life: 3.5
+                    });
+                }
+            });
+
+            for (let i = window.pirateProjectiles.length - 1; i >= 0; i--) {
+                const proj = window.pirateProjectiles[i];
+                proj.position.addScaledVector(proj.direction, proj.speed * dt);
+                proj.life -= dt;
+
+                const dist = proj.position.distanceTo(playerPos);
+                if (dist < 2.5) {
+                    window.playerShield = Math.max(0, window.playerShield - 15);
+                    audio.playBaseDamage();
+                    particles.spawnHitBurst(playerPos, 0xef4444);
+                    updateSpaceHUD();
+
+                    window.spaceFlightGroup.remove(proj.mesh);
+                    window.pirateProjectiles.splice(i, 1);
+
+                    if (window.playerShield <= 0) {
+                        showFlightToast("SHIELD FAILURE! SHUTTING DOWN WARP...", "red");
+                        window.playerShield = 100;
+                        ship.mesh.position.set(0, 0, 0);
+                        ship.speed = 0;
+                        updateSpaceHUD();
+                    }
+                    continue;
+                }
+
+                if (proj.life <= 0) {
+                    window.spaceFlightGroup.remove(proj.mesh);
+                    window.pirateProjectiles.splice(i, 1);
+                }
+            }
+
+            window.spaceShards.forEach(shard => {
+                if (shard.collected) return;
+
+                const dist = playerPos.distanceTo(shard.position);
+                if (dist < 5.5) {
+                    shard.collected = true;
+                    window.spaceFlightGroup.remove(shard.mesh);
+
+                    window.harvestedShardsCount++;
+                    audio.playBuild();
+                    
+                    showFlightToast("BIOLUM SHARD HARVESTED! +25¢ Value Added", "cyan");
+                    updateSpaceHUD();
+
+                    setTimeout(() => {
+                        shard.collected = false;
+                        const rx = (Math.random() - 0.5) * 500;
+                        const rz = (Math.random() - 0.5) * 500;
+                        shard.mesh.position.set(rx, 0, rz);
+                        window.spaceFlightGroup.add(shard.mesh);
+                    }, 5000);
+                }
+            });
+
+            window.spaceShards.forEach(s => {
+                s.mesh.rotation.y += dt * 1.5;
+                s.mesh.rotation.x += dt * 0.5;
+            });
+
+            const targetCamX = ship.mesh.position.x - Math.sin(ship.yaw) * 12.5;
+            const targetCamZ = ship.mesh.position.z - Math.cos(ship.yaw) * 12.5;
+            const targetCamY = ship.mesh.position.y + 4.2;
+
+            camera.position.x = THREE.MathUtils.lerp(camera.position.x, targetCamX, 6.0 * dt);
+            camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCamZ, 6.0 * dt);
+            camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCamY, 6.0 * dt);
+            camera.lookAt(ship.mesh.position.x, ship.mesh.position.y + 0.6, ship.mesh.position.z);
+        }
+
+        // Bind clicks to buttons
+        setTimeout(() => {
+            const launchSpaceBtn = document.getElementById('launch-space-btn');
+            if (launchSpaceBtn) {
+                launchSpaceBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.enterSpaceFlightMode();
+                });
+            }
+            const exitFlightBtn = document.getElementById('exit-flight-btn');
+            if (exitFlightBtn) {
+                exitFlightBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.exitSpaceFlightMode();
+                });
+            }
+        }, 1000);
+
+        // Easter Egg for Sav
+        function triggerSavEasterEgg() {
+            audio.playBuild();
+            
+            const modal = document.createElement('div');
+            modal.id = 'sav-easter-egg-modal';
+            modal.className = 'absolute inset-0 z-50 flex flex-col justify-center items-center bg-black/85 pointer-events-auto p-4 transition-all duration-500';
+            modal.innerHTML = `
+                <div class="blur-panel rounded-2xl p-8 max-w-sm w-full border border-pink-500/50 shadow-2xl text-center space-y-5 animate-bounce">
+                    <div class="flex justify-center items-center gap-2 text-pink-400 text-3xl">
+                        <i class="fa-solid fa-heart animate-pulse"></i>
+                        <span class="orbitron font-black tracking-widest uppercase">SAV</span>
+                        <i class="fa-solid fa-heart animate-pulse"></i>
+                    </div>
+                    
+                    <p class="orbitron text-xl font-bold text-white leading-relaxed tracking-wide glow-text-pink">
+                        you are the best always
+                    </p>
+                    
+                    <div class="h-[1px] bg-pink-500/20 my-4"></div>
+                    
+                    <button id="close-sav-modal" class="px-6 py-2.5 bg-gradient-to-r from-pink-600 to-rose-500 text-white font-black orbitron text-xs rounded-xl hover:from-pink-500 hover:to-rose-400 transition-all active:scale-95 cursor-pointer shadow-lg">
+                        CLOSE MESSAGE
+                    </button>
+                </div>
+            `;
+            
+            const style = document.createElement('style');
+            style.id = 'sav-egg-style';
+            style.innerHTML = `
+                .glow-text-pink {
+                    text-shadow: 0 0 10px rgba(236, 72, 153, 0.9);
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(modal);
+
+            document.getElementById('close-sav-modal').addEventListener('click', () => {
+                modal.classList.add('opacity-0', 'scale-95');
+                setTimeout(() => {
+                    modal.remove();
+                    style.remove();
+                }, 500);
+            });
+        }
+
+        let easterEggBuffer = "";
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key.length === 1 && /[a-z]/.test(key)) {
+                easterEggBuffer = (easterEggBuffer + key).slice(-3);
+                if (easterEggBuffer === "lol") {
+                    const hasGatling = towers.some(t => t.type === 'spore');
+                    if (hasGatling) {
+                        triggerSavEasterEgg();
+                    }
+                }
+            }
+        });
 
         // Simulated loader visual timeout on start
         window.onload = function() {
