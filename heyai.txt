@@ -1,0 +1,112 @@
+# Hey AI! Developer & Editor Guide for Bio-SDF: Jungle Tower Defense
+
+Welcome to the codebase! This guide is designed to help you quickly understand, navigate, and edit this project.
+
+---
+
+## 0. Important Global Facts
+* The sky is blue.
+
+---
+
+## 1. Project Overview & Tech Stack
+This is a high-performance, browser-based 3D Tower Defense game themed around a bioluminescent jungle biome. It runs entirely client-side.
+* **Core**: HTML5, Vanilla JavaScript, CSS3.
+* **Graphics**: Three.js (r128) + OrbitControls.js.
+* **Styling**: Tailwind CSS (loaded via CDN) for layout and HUD UI overlays, custom CSS in `<style>` tags for special effects (glassmorphism, glow-effects, custom scrollbars, animations).
+* **Assets**: No external heavy assets (images/models) are required. All models (towers, enemies, trees, rocks) are dynamically generated using Three.js low-poly primitive shapes, colors, and materials.
+* **Audio**: Synthesized programmatically on-the-fly using the browser's Web Audio API.
+
+---
+
+## 2. File Architecture
+The codebase is structured into the following files:
+
+1. **[index.html](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/index.html)**
+   * The entry point containing the game canvas, styling, HUD overlay, and the main gameplay state/loops.
+   * Houses the game loop (`animate`), coordinates, map generation (`populateJungle`), Dijkstra pathfinding algorithm (`computeSDF`), and UI state management.
+   * Defines classes for enemies (`ScarabEnemy`, `AntEnemy`, `UfoEnemy`, `GolemEnemy`, `WaspEnemy`, `CarrierEnemy`), projectiles (`BioSporeProjectile`), particles (`ParticleSystem`), and sound effects (`AudioSynthController`).
+   * Contains a duplicate fallback implementation of the `SporeTower` class (mirroring `tower.js`) to guarantee functionality if file loading order or constraints fail.
+
+2. **[tower.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/tower.js)**
+   * Defines the primary `SporeTower` class loaded by the window object.
+   * Implements custom low-poly mesh builders for each tower type (`spore`, `laser`, `frost`).
+   * Handles target scanning, muzzle flash/chest light animations, recoil scaling recovery, shooting mechanics, and upgrades.
+
+3. **[skybox.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/skybox.js)**
+   * Implements a custom shader-based skybox dome using a sphere geometry and `THREE.ShaderMaterial`.
+   * Integrates a vertical height gradient shader and an animated grid shader that ripples outward from the zenith. Exposes its uniforms (`topColor`, `bottomColor`, `skyCloudColor`) to allow dynamic, biome-specific updates.
+
+4. **[translator.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/translator.js)**
+   * The performance optimization engine of the game.
+   * Caches coordinate translation mapping (`gridToWorld` / `worldToGrid`) to reduce float math.
+   * Maintains a reusable `Vector3` pool (capacity 200–500 vectors) to prevent Garbage Collection (GC) stutters during projectile/particle spawns.
+   * Disables auto-updating matrices (`optimizeMesh`) and forces manual matrix updates on static meshes to save CPU rendering cycles.
+
+5. **[error.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/error.js)**
+   * Diagnostics script that catches runtime/promise exceptions, formats them, and prints them with stylized color themes in the developer console. (Note: `index.html` also has an error listener overlay to draw exceptions directly on the UI).
+
+6. **[flora.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/flora.js)**
+   * Handles procedural generation of biome-specific ground vegetation (glowing mushrooms, volcanic crystals, snow pines, desert golden shards) along the boundaries and corners of the map. Keeps track of swaying wind animations.
+
+7. **[fauna.js](file:///home/damion/Desktop/ORDINARY-DEFENSE-TWO/fauna.js)**
+   * Manages ambient atmospheric wildlife and particle systems (Jungle fireflies, Volcanic embers, Glacial snowflakes, Desert sand bugs). Drifts particles and animates crawlers.
+
+---
+
+## 3. Core Engine Systems
+
+### A. Dijkstra SDF Pathing Flow Field
+* Unlike individual A* routing, the game uses a global flow field calculated outward from the Base Temple (`20, 20` which acts as the `0.0` distance seed).
+* `computeSDF()` runs a localized Dijkstra/BFS to update the distance field (`sdfGrid`) across the 40x40 grid. Diagonal cells cost `1.414` units, while standard neighbors cost `1.0` unit.
+* When enemies navigate, they look at their neighbors, evaluate the negative gradient (the direction where the distance value decreases the fastest), and move in that direction.
+* **Anti-Cheat Validation**: `validatePathways(x, z)` runs a temporary SDF calculation test before allowing the placement of a new tower. If building the tower would block any spawn portal from reaching the base crystal (giving it an `Infinity` distance), building is blocked and the user is warned.
+
+### B. Radar Map Minimap
+* Renders a 144x144 pixels canvas (`radar-canvas`) to represent the grid status.
+* Displays a color gradient corresponding to the SDF distance (heatmap) and overlays directional arrows (`↑`, `↓`, `←`, `→`) representing flow field directions.
+
+### C. Particle, Audio & Favicon Systems
+* **Particles**: Handled by the `ParticleSystem` class inside `index.html`. It creates pre-allocated groups of meshes (like small octahedrons/spheres) and spawns hit bursts or upgrade explosions that decay smoothly over time.
+* **Audio**: The `AudioSynthController` initializes a browser `AudioContext` and triggers synth nodes (`sine`, `triangle`, or `sawtooth` oscillators with exponential gain decay envelopes) for building, shooting, base damage, and blocked build alerts.
+* **Animated Favicon**: `initAnimatedFavicon()` (inside `index.html`) dynamically draws a miniature, retro 32x32 tower defense gameplay loop (base crystal, pathing red enemy, rotating grey turret, shooting yellow lasers, and explosions) onto an in-memory canvas and updates the tab favicon link every 100ms.
+
+### D. Base Fortifications, Bug Evolution & Tower Disabling
+* **Base Fortifications**: Clicking the Base Crystal allows player selection and upgrades: Tier 1 (Base Crystal), Tier 2 (Ancient Fort: stone walls, 2 auto-lasers), and Tier 3 (Bio-Fortress: stone walls, pulsing shield dome, 4 auto-lasers).
+* **Bug Evolution**: Enemy stats and visual scales evolve based on the current wave number. Tier 1 (waves 1-4: normal), Tier 2 (waves 5-8: +25% HP/speed, 1.2x scale, green carapace spikes), and Tier 3 (waves 9+: +55% HP/speed, 1.4x scale, magenta carapace spikes, neon trails).
+* **Tower Disabling**: The `UfoEnemy` fires EMP beams at the closest tower within a range of 12. Stuns the tower, entering a glitched disabled warning state (grey mesh with flickering red core light) that blocks firing and targeting for 3.0 seconds.
+
+---
+
+## 4. How to Edit and Extend the Game
+
+### A. Modifying/Adding Tower Types
+Towers are defined inside the `TOWER_SPECS` object in `index.html` (line ~922) and their visual models/shooting logic are configured in `tower.js`.
+1. **Define Specs**: Add your new tower type key (e.g., `plasma`) to `TOWER_SPECS` inside `index.html` with its `base` and `upgraded` configurations (`cost`, `damage`, `range`, `fireRate`, `color`, `bulletColor`, etc.).
+2. **Build Mesh**: In `tower.js` inside `buildMesh()`, add an `else if (this.type === 'your_type')` branch. Assemble low-poly shapes (cones, cylinders, boxes) using standard materials.
+3. **Handle Shooting**: In `tower.js` inside `shoot()`, define your custom projectile spawning or instant damage laser beam mechanics.
+4. **Create Fallbacks**: Ensure any mesh or logic modifications are also ported to the fallback `window.SporeTower` class defined in `index.html` (lines ~993–1434) to preserve consistency.
+5. **Update HUD Build Deck**: In `index.html`'s footer, add an option block in `#construct-dropdown` representing your new tower, bind its click event, and register it inside the `buildCards` object.
+
+### B. Modifying/Adding Enemies
+Enemies are spawned by waves and walk toward the base crystal along the SDF flow.
+1. **Create Enemy Class**: Implement your new enemy by extending or mimicking the structural pattern of `ScarabEnemy`, `AntEnemy`, `UfoEnemy`, `GolemEnemy`, `WaspEnemy`, or `CarrierEnemy`.
+2. **Design Model**: Inside your class's `buildMesh()`, define its shapes and attach its floating health bar meshes (`hpBack` / `hpFill`).
+3. **Register Spawning**: Update `startWave()` in `index.html` (lines ~2568–2608) to push your new enemy type to `waveSpawnQueue`.
+4. **Handle Update/Move Logic**: Ensure the class `update(dt)` method reads the local flow directions using `worldToGrid`, queries the neighboring coordinates of `sdfGrid`, and translates the model position with `Translator.updateMeshTransform`.
+
+### C. Altering Terrain & Visual Aesthetics
+* **Biomes Configuration**: The game features 4 distinct biomes (`jungle`, `volcanic`, `glacial`, `desert`) defined inside the global `BIOMES` configuration dictionary in `index.html`. This dictates colors for the ground, lights, fog, skybox, base crystal, and grid overlay.
+* **Adding/Modifying Biomes**: Add a configuration dictionary under a new key in `BIOMES` (e.g. `savanna`). Update the select element options in the HTML HUD. Implement your custom obstacle synthesizers (e.g. `createSavannaTree()`) and add a corresponding selection branch inside `populateJungle()`.
+* **Skybox Shader**: Open `skybox.js` and modify colors dynamically by modifying the uniforms exposed on `skyboxController.uniforms` (e.g. `topColor`, `bottomColor`, `skyCloudColor`).
+* **Obstacle Density**: Change the threshold probability (currently `0.12` / 12%) in `populateJungle()` inside `index.html`.
+
+---
+
+## 5. Performance Tips for Editors
+* Avoid allocating new `THREE.Vector3` instances inside update or animation loops. Always use `Translator.acquireVector(x, y, z)` and release them with `Translator.releaseVector(v)`.
+* When creating static components that do not animate individually, run `Translator.optimizeMesh(mesh)` to disable auto-matrix updates on them.
+* Try to keep wave sizes and active particle limits balanced to maintain 60 FPS on lower-end devices.
+
+---
+Happy Coding!
