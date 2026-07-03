@@ -693,6 +693,77 @@ window.SporeTower = class SporeTower {
             this.growLight.position.set(0, 0.8, 0);
             group.add(this.growLight);
 
+        } else if (this.type === 'drone_factory') {
+            // ==========================================
+            // DRONE FACTORY: SLEEK SCI-FI LAUNCH PAD
+            // ==========================================
+            const factoryMat  = new THREE.MeshStandardMaterial({ color: 0x312e81, metalness: 0.95, roughness: 0.1 });
+            const accentMat   = new THREE.MeshStandardMaterial({ color: 0x6366f1, metalness: 0.8, roughness: 0.2, emissive: 0x4f46e5, emissiveIntensity: 0.6 });
+            const glassPaneMat = new THREE.MeshStandardMaterial({ color: 0xa78bfa, transparent: true, opacity: 0.18, roughness: 0.05 });
+
+            // Octagonal base platform
+            const baseGeo = new THREE.CylinderGeometry(0.9, 1.0, 0.22, 8);
+            const base = new THREE.Mesh(baseGeo, metalSlate);
+            base.position.y = 0.11;
+            base.castShadow = true;
+            group.add(base);
+
+            // Raised central hub
+            const hubGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.35, 8);
+            const hub = new THREE.Mesh(hubGeo, factoryMat);
+            hub.position.y = 0.39;
+            group.add(hub);
+
+            // Glowing antenna spire
+            const spireGeo = new THREE.CylinderGeometry(0.025, 0.05, 1.1, 6);
+            const spire = new THREE.Mesh(spireGeo, metalDark);
+            spire.position.y = 1.0;
+            group.add(spire);
+
+            // Pulsing tip beacon
+            this.beaconTip = new THREE.Mesh(
+                new THREE.SphereGeometry(0.07, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0xa78bfa })
+            );
+            this.beaconTip.position.y = 1.6;
+            group.add(this.beaconTip);
+
+            // 4 launch arm rails
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2;
+                const armGeo = new THREE.BoxGeometry(0.06, 0.06, 0.5);
+                const arm = new THREE.Mesh(armGeo, accentMat);
+                arm.position.set(Math.cos(angle) * 0.62, 0.56, Math.sin(angle) * 0.62);
+                arm.rotation.y = -angle;
+                group.add(arm);
+            }
+
+            // Glass dome shell
+            const domeGeo = new THREE.SphereGeometry(0.48, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+            const dome = new THREE.Mesh(domeGeo, glassPaneMat);
+            dome.position.y = 0.56;
+            group.add(dome);
+
+            // Accent ring
+            const ringGeo = new THREE.TorusGeometry(0.82, 0.035, 6, 24);
+            const ring = new THREE.Mesh(ringGeo, accentMat);
+            ring.position.y = 0.28;
+            ring.rotation.x = Math.PI / 2;
+            group.add(ring);
+
+            // Factory glow light
+            this.factoryLight = new THREE.PointLight(0x6366f1, 1.6, 4.5);
+            this.factoryLight.position.set(0, 0.8, 0);
+            group.add(this.factoryLight);
+
+            // Spawn drones
+            this.drones = [];
+            const droneCount = this.specs.droneCount || 2;
+            for (let i = 0; i < droneCount; i++) {
+                const drone = new CombatDrone(this, i, droneCount);
+                this.drones.push(drone);
+            }
+
         } else {
             // ==========================================
             // GATLING GUN / HEAVY MACHINE GUN (Realism)
@@ -831,6 +902,21 @@ window.SporeTower = class SporeTower {
     }
 
     update(dt) {
+        if (this.type === 'drone_factory') {
+            // Pulse beacon and glow
+            if (this.beaconTip) {
+                const p = 0.6 + 0.4 * Math.sin(Date.now() * 0.007);
+                this.beaconTip.material.color.setHSL(0.73, 1.0, p * 0.7);
+            }
+            if (this.factoryLight) {
+                this.factoryLight.intensity = 1.2 + 0.6 * Math.sin(Date.now() * 0.005);
+            }
+            // Update each drone
+            if (this.drones) {
+                this.drones.forEach(d => d.update(dt));
+            }
+            return;
+        }
         if (this.type === 'stackfarm') {
             if (!this.healTimer) {
                 this.healTimer = 30.0;
@@ -1268,7 +1354,162 @@ window.SporeTower = class SporeTower {
             this.scarab.destroy();
             this.scarab = null;
         }
+        if (this.drones) {
+            this.drones.forEach(d => d.destroy());
+            this.drones = [];
+        }
         scene.remove(this.mesh);
         particles.spawnExplosion(this.position, 0xef4444, 15);
+    }
+}
+
+// =============================================================
+// COMBAT DRONE - autonomous AI unit spawned by the Drone Factory
+// =============================================================
+class CombatDrone {
+    constructor(factory, index, total) {
+        this.factory = factory;
+        this.index   = index;
+        this.total   = total;
+        this.orbitAngle = (index / total) * Math.PI * 2;
+        this.orbitRadius = 1.1;
+        this.orbitHeight = 1.2 + index * 0.25;
+        this.state  = 'orbit';  // 'orbit' | 'attack' | 'return'
+        this.target = null;
+        this.cooldown = 0;
+        this.position = new THREE.Vector3();
+
+        // ── Drone mesh ──────────────────────────────────────────
+        this.mesh = new THREE.Group();
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x312e81, metalness: 0.95, roughness: 0.08, emissive: 0x4f46e5, emissiveIntensity: 0.4 });
+        const wingMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, metalness: 0.9,  roughness: 0.15 });
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xa78bfa });
+
+        // Central fuselage
+        const bodyGeo = new THREE.BoxGeometry(0.18, 0.07, 0.28);
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        this.mesh.add(body);
+
+        // 4 swept wing arms
+        const wingGeo = new THREE.BoxGeometry(0.32, 0.03, 0.1);
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
+            const wing = new THREE.Mesh(wingGeo, wingMat);
+            wing.position.set(sx * 0.18, 0, sz * 0.1);
+            wing.rotation.y = Math.atan2(sz, sx) * 0.3;
+            this.mesh.add(wing);
+        });
+
+        // Engine glow orbs at wingtips
+        const thrusterGeo = new THREE.SphereGeometry(0.045, 5, 5);
+        [[-0.32, 0, -0.2], [0.32, 0, -0.2], [-0.32, 0, 0.1], [0.32, 0, 0.1]].forEach(([x, y, z]) => {
+            const orb = new THREE.Mesh(thrusterGeo, glowMat);
+            orb.position.set(x, y, z);
+            this.mesh.add(orb);
+        });
+
+        // Eye sensor
+        const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
+        this.eyeMesh = new THREE.Mesh(eyeGeo, new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
+        this.eyeMesh.position.set(0, 0, 0.15);
+        this.mesh.add(this.eyeMesh);
+
+        // Drone point light
+        this.droneLight = new THREE.PointLight(0x7c3aed, 0.9, 2.5);
+        this.mesh.add(this.droneLight);
+
+        scene.add(this.mesh);
+
+        // Initial position
+        const fp = factory.position;
+        this.position.set(fp.x + Math.cos(this.orbitAngle) * this.orbitRadius, fp.y + this.orbitHeight, fp.z + Math.sin(this.orbitAngle) * this.orbitRadius);
+        this.mesh.position.copy(this.position);
+    }
+
+    update(dt) {
+        const fp = this.factory.position;
+        const specs = this.factory.specs;
+        const range   = specs.droneRange  || 9.0;
+        const firerate = specs.droneFireRate || 1.4;
+        const damage   = specs.droneDamage  || 12;
+        const speed    = specs.droneSpeed   || 6.0;
+
+        if (this.cooldown > 0) this.cooldown -= dt;
+
+        // Pulse eye color
+        const p = 0.5 + 0.5 * Math.sin(Date.now() * 0.01 + this.index);
+        this.eyeMesh.material.color.setHSL(0.73, 1.0, 0.45 + p * 0.3);
+        this.droneLight.intensity = 0.6 + p * 0.6;
+
+        // ── State machine ──────────────────────────────────────
+        if (this.state === 'orbit') {
+            // Rotate around factory
+            this.orbitAngle += dt * (0.8 + this.index * 0.2);
+            const tx = fp.x + Math.cos(this.orbitAngle) * this.orbitRadius;
+            const ty = fp.y + this.orbitHeight + Math.sin(Date.now() * 0.002 + this.index) * 0.12;
+            const tz = fp.z + Math.sin(this.orbitAngle) * this.orbitRadius;
+            this.position.lerp(new THREE.Vector3(tx, ty, tz), dt * 6);
+
+            // Scan for target
+            let closest = null;
+            let minDist = range;
+            for (const enemy of window.enemies || []) {
+                if (enemy.isDead) continue;
+                const d = fp.distanceTo(enemy.position);
+                if (d < minDist) { minDist = d; closest = enemy; }
+            }
+            if (closest) { this.target = closest; this.state = 'attack'; }
+
+        } else if (this.state === 'attack') {
+            if (!this.target || this.target.isDead) {
+                this.target = null;
+                this.state = 'return';
+                return;
+            }
+            // Check still in range
+            if (fp.distanceTo(this.target.position) > range + 2) {
+                this.state = 'return';
+                return;
+            }
+            // Fly toward target
+            const dir = this.target.position.clone().sub(this.position).normalize();
+            const desired = this.target.position.clone().add(dir.clone().multiplyScalar(-1.8)).setY(this.target.position.y + 1.0);
+            this.position.lerp(desired, dt * speed * 0.18);
+
+            // Shoot
+            if (this.cooldown <= 0) {
+                this.cooldown = firerate;
+                // Spawn plasma bolt projectile
+                const boltStart = this.position.clone();
+                projectiles.push(new BioSporeProjectile(boltStart, this.target, damage, 14, 0xa78bfa, false));
+                particles.spawnHitBurst(this.position, 0xa78bfa);
+                if (window.audio) audio.playShoot();
+            }
+
+        } else if (this.state === 'return') {
+            // Fly back to orbit
+            const tx = fp.x + Math.cos(this.orbitAngle) * this.orbitRadius;
+            const ty = fp.y + this.orbitHeight;
+            const tz = fp.z + Math.sin(this.orbitAngle) * this.orbitRadius;
+            const home = new THREE.Vector3(tx, ty, tz);
+            this.position.lerp(home, dt * speed * 0.15);
+            if (this.position.distanceTo(home) < 0.4) this.state = 'orbit';
+        }
+
+        // Apply position + face direction of travel
+        this.mesh.position.copy(this.position);
+        const vel = this.position.clone().sub(this.mesh.position).normalize();
+        if (vel.lengthSq() > 0.001) {
+            this.mesh.lookAt(this.position.clone().add(vel));
+        }
+        // Tilt for motion feel
+        this.mesh.rotation.z = Math.sin(Date.now() * 0.003 + this.index) * 0.15;
+    }
+
+    destroy() {
+        if (this.mesh) {
+            scene.remove(this.mesh);
+            if (window.particles) particles.spawnExplosion(this.position, 0x7c3aed, 8);
+        }
     }
 }
