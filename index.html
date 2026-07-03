@@ -19,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="skybox.js"></script>
     <script src="translator.js"></script>
+    <script src="musicplayer.js"></script>
     <script src="flora.js"></script>
     <script src="fauna.js"></script>
     <script src="campaign.js"></script>
@@ -6352,6 +6353,12 @@
             document.getElementById('wave-desc').innerText = `DEFENSE ENGAGED`;
             document.getElementById('enemy-count').innerText = `${numEnemies} Swarm Hostiles inbound`;
         }
+        
+        document.getElementById('wave-btn').addEventListener('click', () => {
+            if (typeof window.playNewMusicTrack === 'function') {
+                window.playNewMusicTrack();
+            }
+        });
 
         function endWave() {
             gameState.isWaveActive = false;

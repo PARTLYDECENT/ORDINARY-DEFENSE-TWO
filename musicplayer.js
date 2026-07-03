@@ -19,6 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Expose the function to the global scope so it can be called from other scripts
+    window.playNewMusicTrack = playRandomSong;
+
     audio.addEventListener('ended', playRandomSong);
 
     window.toggleMusicMute = () => {
