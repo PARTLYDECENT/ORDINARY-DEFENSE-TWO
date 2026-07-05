@@ -501,7 +501,34 @@
                             <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>500¢</span>
                         </div>
 
-                    </div>
+                        <!-- Option 12: Super Tower -->
+                        <div id="build-supertower" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-yellow-500/40 hover:bg-yellow-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-yellow-950/80 border border-yellow-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-yellow-400">
+                                    <i class="fa-solid fa-building text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">SUPER TOWER</span>
+                                    <span class="text-[9px] text-yellow-400/70">Extremely tall and powerful.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>1000¢</span>
+                        </div>
+                        
+                        <!-- Option 13: Argon Harvester -->
+                        <div id="build-argon_harvester" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-cyan-500/40 hover:bg-cyan-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-cyan-950/80 border border-cyan-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-cyan-400">
+                                    <i class="fa-solid fa-soap text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">ARGON HARVESTER</span>
+                                    <span class="text-[9px] text-cyan-400/70">Place on bubbling water. Generates power.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>250¢</span>
+                        </div>
+                        </div>
                 </div>
 
                 <!-- Wave Controller -->
@@ -1762,19 +1789,19 @@
                 } else if (grid[x][z] === CELL_TYPES.LAKE) {
                     const wPos = gridToWorld(x, z);
 
-                    // Create blue bioluminescent water plate
-                    const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 0.1, CELL_SIZE);
+                    // Create blue bioluminescent water block (solid 5 blocks deep)
+                    const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 5.0, CELL_SIZE);
                     const waterMat = new THREE.MeshStandardMaterial({
                         color: 0x0284c7, // sky-blue
                         roughness: 0.12,
                         metalness: 0.75,
                         transparent: true,
-                        opacity: 0.7,
+                        opacity: 0.75,
                         emissive: 0x0369a1,
                         emissiveIntensity: 0.4
                     });
                     const water = new THREE.Mesh(waterGeo, waterMat);
-                    water.position.set(wPos.x, 0.01, wPos.z);
+                    water.position.set(wPos.x, -2.4, wPos.z);
                     water.userData = { isLake: true, gridX: x, gridZ: z };
                     scene.add(water);
                     lakeMeshes.push(water);
@@ -2090,6 +2117,7 @@
 
             sequencer.enqueue("5/5 ENERGIZING BIOME VEGETATION AND VEINS", () => {
                 if (window.spawnBiomeFlora) window.spawnBiomeFlora(scene, biomeName, GRID_SIZE, CELL_SIZE);
+                if (window.initArgonBubbles) window.initArgonBubbles(scene, grid, GRID_SIZE, CELL_SIZE);
                 return true;
             });
 
@@ -2470,6 +2498,7 @@
         computeSDF(); // Prime the pathfinder
         if (window.spawnBiomeFlora) window.spawnBiomeFlora(scene, 'jungle', GRID_SIZE, CELL_SIZE);
         if (window.spawnBiomeFauna) window.spawnBiomeFauna(scene, 'jungle', GRID_SIZE, CELL_SIZE);
+        if (window.initArgonBubbles) window.initArgonBubbles(scene, grid, GRID_SIZE, CELL_SIZE);
 
         /* ==========================================
            TOWER IMPLEMENTATION
@@ -2680,38 +2709,22 @@
                 }
             },
             drone_factory: {
-                base: {
-                    cost: 500,
-                    damage: 0,
-                    range: 0,
-                    fireRate: 0,
-                    projectileSpeed: 0,
-                    upgradeCost: 300,
-                    droneCount: 2,
-                    droneDamage: 12,
-                    droneRange: 9.0,
-                    droneFireRate: 1.4,
-                    droneSpeed: 6.0,
-                    color: 0x6366f1,
-                    bulletColor: 0xa78bfa
-                },
-                upgraded: {
-                    damage: 0,
-                    range: 0,
-                    fireRate: 0,
-                    projectileSpeed: 0,
-                    droneCount: 4,
-                    droneDamage: 25,
-                    droneRange: 12.0,
-                    droneFireRate: 0.9,
-                    droneSpeed: 8.5,
-                    color: 0x4f46e5,
-                    bulletColor: 0xc4b5fd
-                }
+                base: { cost: 500, upgradeCost: 400, sell: 250, range: 12.0, droneDamage: 12, droneSpeed: 6, droneRange: 9.0, droneFireRate: 1.4, color: 0x8b5cf6 },
+                upgraded: { cost: 400, sell: 450, range: 12.0, droneDamage: 22, droneSpeed: 7, droneRange: 10.0, droneFireRate: 1.1, color: 0x8b5cf6 }
+            },
+            supertower: {
+                base: { cost: 1000, upgradeCost: 1000, sell: 500, range: 15.0, damage: 200, fireRate: 5.0, color: 0xffffff },
+                upgraded: { cost: 1000, sell: 1000, range: 20.0, damage: 400, fireRate: 4.0, color: 0xffffff }
+            },
+            argon_harvester: {
+                base: { cost: 250, upgradeCost: 200, sell: 125, range: 0.0, damage: 0, fireRate: 0.0, color: 0x0ea5e9 },
+                upgraded: { cost: 200, sell: 225, range: 0.0, damage: 0, fireRate: 0.0, color: 0x38bdf8 }
             }
         };
     </script>
     <script src="tower.js"></script>
+    <script src="supertower.js"></script>
+    <script src="argon.js"></script>
     <script>
         // Fallback SporeTower implementation in case tower.js fails to load
         if (typeof window.SporeTower === 'undefined') {
@@ -5925,31 +5938,34 @@
                     if (buildModeActive) {
                         holographicPreview.visible = true;
                         
-                        // Rule Check: Can we place a tower here?
-                        // Must be empty cell AND not completely wall pathways
-                        const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
-                        let validPath = false;
-                        if (cellEmpty) {
-                            validPath = validatePathways(gridPos.x, gridPos.z);
-                        }
+                        let allowed = false;
+                        if (activeBuildType === 'argon_harvester') {
+                            allowed = grid[gridPos.x][gridPos.z] === CELL_TYPES.LAKE;
+                        } else {
+                            const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
+                            let validPath = false;
+                            if (cellEmpty) {
+                                validPath = validatePathways(gridPos.x, gridPos.z);
+                            }
 
-                        let nearLake = true;
-                        if (activeBuildType === 'water_pump') {
-                            nearLake = false;
-                            const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
-                            for (let d of checkDirs) {
-                                let nx = gridPos.x + d.dx;
-                                let nz = gridPos.z + d.dz;
-                                if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                                    if (grid[nx][nz] === CELL_TYPES.LAKE) {
-                                        nearLake = true;
-                                        break;
+                            let nearLake = true;
+                            if (activeBuildType === 'water_pump') {
+                                nearLake = false;
+                                const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
+                                for (let d of checkDirs) {
+                                    let nx = gridPos.x + d.dx;
+                                    let nz = gridPos.z + d.dz;
+                                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                                        if (grid[nx][nz] === CELL_TYPES.LAKE) {
+                                            nearLake = true;
+                                            break;
+                                        }
                                     }
                                 }
                             }
+                            allowed = cellEmpty && validPath && nearLake;
                         }
-                        
-                        setHologramColor(cellEmpty && validPath && nearLake);
+                        setHologramColor(allowed);
                     } else {
                         holographicPreview.visible = false;
                     }
@@ -6013,17 +6029,25 @@
                             return;
                         }
                     } else if (topObj.userData.isLake) {
-                        const now = Date.now();
-                        if (now - (window.lastDrinkTime || 0) > 1500) {
-                            window.lastDrinkTime = now;
-                            gameState.water = Math.min(100, gameState.water + 15);
-                            window.updateSurvivalHUD();
-                            audio.playBuild(); // Sound feedback
-                            showToast("Drank from lake! (+15% Water)", "sky");
-                            return;
+                        if (buildModeActive && activeBuildType === 'argon_harvester') {
+                            const gridPos = worldToGrid(interactiveHits[0].point.x, interactiveHits[0].point.z);
+                            if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
+                                attemptBuildTower(gridPos.x, gridPos.z);
+                                return;
+                            }
                         } else {
-                            showToast("Not thirsty yet...", "yellow");
-                            return;
+                            const now = Date.now();
+                            if (now - (window.lastDrinkTime || 0) > 1500) {
+                                window.lastDrinkTime = now;
+                                gameState.water = Math.min(100, gameState.water + 15);
+                                window.updateSurvivalHUD();
+                                audio.playBuild(); // Sound feedback
+                                showToast("Drank from lake! (+15% Water)", "sky");
+                                return;
+                            } else {
+                                showToast("Not thirsty yet...", "yellow");
+                                return;
+                            }
                         }
                     }
                 }
@@ -6145,11 +6169,19 @@
             const cost = TOWER_SPECS[activeBuildType].base.cost;
             console.log(`[Build] attemptBuildTower called for (${x}, ${z}). type=${activeBuildType}, cost=${cost}, gold=${gameState.gold}`);
 
-            if (grid[x][z] !== CELL_TYPES.EMPTY) {
-                console.error(`[Build] failed: cell occupied (type=${grid[x][z]})`);
-                showToast("Cell already occupied!", "red");
-                audio.playDenied();
-                return;
+            if (activeBuildType === 'argon_harvester') {
+                if (grid[x][z] !== CELL_TYPES.LAKE) {
+                    showToast("Argon Harvester must be placed on water!", "yellow");
+                    audio.playDenied();
+                    return;
+                }
+            } else {
+                if (grid[x][z] !== CELL_TYPES.EMPTY) {
+                    console.error(`[Build] failed: cell occupied (type=${grid[x][z]})`);
+                    showToast("Cell already occupied!", "red");
+                    audio.playDenied();
+                    return;
+                }
             }
 
             if (activeBuildType === 'water_pump') {
@@ -6194,7 +6226,14 @@
             grid[x][z] = CELL_TYPES.TOWER;
             
             console.log(`[Build] instantiating SporeTower...`);
-            const newTower = new SporeTower(x, z, activeBuildType);
+            let newTower;
+            if (activeBuildType === 'supertower') {
+                newTower = new SuperTower(x, z);
+            } else if (activeBuildType === 'argon_harvester') {
+                newTower = new ArgonHarvester(x, z);
+            } else {
+                newTower = new SporeTower(x, z, activeBuildType);
+            }
             towers.push(newTower);
 
             // Recompute real-time map distance field
@@ -6202,8 +6241,22 @@
             updateStatsUI();
             audio.playBuild();
             particles.spawnExplosion(newTower.position, TOWER_SPECS[activeBuildType].base.color, 15);
-            const nameMap = { spore: 'Gatling Turret', laser: 'Railgun Cannon', frost: 'Missile Battery' };
-            showToast(`${nameMap[activeBuildType]} Constructed`, "green");
+            const nameMap = { 
+                spore: 'Gatling Turret', 
+                laser: 'Railgun Cannon', 
+                frost: 'Missile Battery', 
+                tesla: 'Tesla Pylon', 
+                artillery: 'Plasma Artillery', 
+                thermal: 'Thermal Melter', 
+                harvester: 'Scarab Harvester', 
+                water_pump: 'Water Pump', 
+                generator: 'Power Generator', 
+                stackfarm: 'Vertical Stackfarm', 
+                drone_factory: 'Drone Factory', 
+                supertower: 'Super Tower',
+                argon_harvester: 'Argon Harvester'
+            };
+            showToast(`${nameMap[activeBuildType] || 'Tower'} Constructed`, "green");
             console.log(`[Build] SporeTower successfully placed and initialized.`);
         }
 
@@ -6347,7 +6400,11 @@
             const refund = Math.round(selectedTowerInstance.specs.cost * 0.5);
 
             gameState.gold += refund;
-            grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.EMPTY;
+            if (selectedTowerInstance.type === 'argon_harvester') {
+                grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.LAKE;
+            } else {
+                grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.EMPTY;
+            }
 
             // Remove from JS storage list
             const idx = towers.indexOf(selectedTowerInstance);
@@ -6518,7 +6575,9 @@
             water_pump: document.getElementById('build-water_pump'),
             generator: document.getElementById('build-generator'),
             stackfarm: document.getElementById('build-stackfarm'),
-            drone_factory: document.getElementById('build-drone_factory')
+            drone_factory: document.getElementById('build-drone_factory'),
+            supertower: document.getElementById('build-supertower'),
+            argon_harvester: document.getElementById('build-argon_harvester')
         };
 
         const dropdown = document.getElementById('construct-dropdown');
@@ -6654,7 +6713,9 @@
                 tesla: { active: 'border-indigo-500 bg-indigo-950/60', hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
                 artillery: { active: 'border-green-500 bg-green-950/60', hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
                 thermal: { active: 'border-rose-500 bg-rose-950/60', hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
-                drone_factory: { active: 'border-violet-500 bg-violet-950/60', hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' }
+                drone_factory: { active: 'border-violet-500 bg-violet-950/60', hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
+                supertower: { active: 'border-yellow-500 bg-yellow-950/60', hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
+                argon_harvester: { active: 'border-cyan-500 bg-cyan-950/60', hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
             };
 
             // Update UI Card classes
@@ -6695,7 +6756,9 @@
                 tesla: { hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
                 artillery: { hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
                 thermal: { hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
-                drone_factory: { hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' }
+                drone_factory: { hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
+                supertower: { hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
+                argon_harvester: { hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
             };
             Object.keys(buildCards).forEach(k => {
                 const card = buildCards[k];
@@ -6928,6 +6991,7 @@
             // Update flora swaying & fauna ambient loops
             if (window.updateFlora) window.updateFlora(dt);
             if (window.updateFauna) window.updateFauna(dt, GRID_SIZE, CELL_SIZE);
+            if (window.updateArgonBubbles) window.updateArgonBubbles(dt);
 
             // Update Polyplants and Scarab Harvesters
             if (window.updatePolyplants) window.updatePolyplants(dt);
@@ -6959,6 +7023,8 @@
                         gameState.water = Math.min(100, gameState.water + 0.5 * dt);
                     } else if (t.type === 'generator') {
                         gameState.power = Math.min(100, gameState.power + 0.6 * dt);
+                    } else if (t.type === 'argon_harvester') {
+                        gameState.power = Math.min(100, gameState.power + 1.2 * dt);
                     }
                 });
 

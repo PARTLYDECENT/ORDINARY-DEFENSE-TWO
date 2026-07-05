@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARES-1 Procedural Martian Architecture</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Orbit Controls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #08080c;
+            overflow: hidden;
+        }
+        .header-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Custom scrollbar for control panel */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .glass-panel {
+            background: rgba(10, 11, 18, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.57);
+        }
+        .hud-glow {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        .mars-glow {
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+        /* Loading overlay transition */
+        #loader {
+            transition: opacity 0.8s ease-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen text-gray-100 select-none">
+
+    <!-- Loading Screen -->
+    <div id="loader" class="fixed inset-0 bg-[#08080c] z-50 flex flex-col items-center justify-center">
+        <div class="relative flex items-center justify-center mb-6">
+            <div class="w-24 h-24 border-t-2 border-b-2 border-red-500 rounded-full animate-spin"></div>
+            <div class="w-16 h-16 border-r-2 border-l-2 border-white rounded-full animate-spin absolute" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+            <span class="absolute text-white font-bold header-font text-xs tracking-widest">ARES-1</span>
+        </div>
+        <h2 class="header-font text-xl font-bold tracking-[0.25em] text-white">CONSTRUCTING PROVINCE...</h2>
+        <p class="text-sm text-gray-500 mt-2 tracking-wider uppercase" id="load-status">Synthesizing lunar crust & structural beams</p>
+    </div>
+
+    <!-- Main Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- Core Scripting Logic -->
+    <script>
+        // Setup state object
+        const state = {
+            setting: 'mars',
+            blueprint: 'futuristic',
+            floors: 16,
+            width: 10,
+            time: 17.5,
+            hazard: false,
+            solar: true,
+            cameraTrackingDrone: false,
+        };
+
+        // DOM Elements
+        const elContainer = document.getElementById('canvas-container');
+        const elLoader = document.getElementById('loader');
+        const elLoadStatus = document.getElementById('load-status');
+
+        // Three.js Global Variables
+        let scene, camera, renderer, controls;
+        let ambientLight, directionalLight, directionalLightTarget;
+        let ground, skyBox, buildingGroup, drone, droneTrail, dustStorm, celestialBodies;
+        let animatedElements = []; // Store elements requiring dynamic rotation/blinking
+        let spaceAtmosphereColor = new THREE.Color('#1f0d07');
+
+        // Configuration map for Environments
+        const ENVIRONMENT_PRESETS = {
+            mars: {
+                name: 'Mars Red Moon (Phobos-like)',
+                gravity: '0.379g',
+                atmosphere: 'CO₂ / THIN',
+                solarConstant: 120, // max kW base
+                skyColor: '#120502',
+                fogColor: '#451608',
+                dustColor: '#aa4d2d',
+                terrainColor: '#c1440e',
+                ambientColor: '#2b1008',
+                sunColor: '#fff3ea',
+                planetColor: '#15315b', // Earth glowing in background
+                planetScale: 1.5
+            },
+            moon: {
+                name: "Earth's Lunar Highlands",
+                gravity: '0.166g',
+                atmosphere: 'VACUUM',
+                solarConstant: 180,
+                skyColor: '#010103',
+                fogColor: '#050508',
+                dustColor: '#888899',
+                terrainColor: '#5c5c63',
+                ambientColor: '#0b0b10',
+                sunColor: '#ffffff',
+                planetColor: '#2b508f', // Earth big in moon sky
+                planetScale: 2.8
+            },
+            ice: {
+                name: "Europa Tectonic Ice Sheet",
+                gravity: '0.134g',
+                atmosphere: 'O₂ / EXTREME THIN',
+                solarConstant: 45,
+                skyColor: '#02040a',
+                fogColor: '#0a1224',
+                dustColor: '#96b6d6',
+                terrainColor: '#d6e5f3',
+                ambientColor: '#060d1a',
+                sunColor: '#e0f0ff',
+                planetColor: '#cf9e3a', // Giant Jupiter
+                planetScale: 5.5
+            }
+        };
+
+        // Window load starting sequence
+        window.onload = function() {
+            initThree();
+            setupInteractiveListeners();
+            buildWorld();
+            
+            // Artificial tiny delay to feel luxurious loader
+            setTimeout(() => {
+                elLoader.style.opacity = '0';
+                setTimeout(() => elLoader.style.display = 'none', 800);
+            }, 1200);
+
+            animate();
+        };
+
+        // Initialize ThreeJS Boilerplate
+        function initThree() {
+            scene = new THREE.Scene();
+
+            // Set up Fog
+            scene.fog = new THREE.FogExp2(ENVIRONMENT_PRESETS[state.setting].fogColor, 0.007);
+
+            // Camera Config
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(-35, 25, 45);
+
+            // WebGL Renderer with Shadows & Anti-aliasing
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.05;
+            elContainer.appendChild(renderer.domElement);
+
+            // Orbit Controls setup
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2 - 0.02; // Restrict camera below terrain line
+            controls.minDistance = 15;
+            controls.maxDistance = 180;
+            controls.target.set(0, 15, 0);
+
+            // Lights Creation
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+            scene.add(ambientLight);
+
+            directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            directionalLight.castShadow = true;
+            // High quality shadows
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 150;
+            const d = 50;
+            directionalLight.shadow.camera.left = -d;
+            directionalLight.shadow.camera.right = d;
+            directionalLight.shadow.camera.top = d;
+            directionalLight.shadow.camera.bottom = -d;
+            directionalLight.shadow.bias = -0.0005;
+            scene.add(directionalLight);
+
+            // Invisible light target to point at base building
+            directionalLightTarget = new THREE.Object3D();
+            directionalLightTarget.position.set(0, 5, 0);
+            scene.add(directionalLightTarget);
+            directionalLight.target = directionalLightTarget;
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Generate procedural textures via Canvas so we don't load external images
+        function createNoiseTexture(colorBase, colorVariation, size = 512, bump = false) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = colorBase;
+            ctx.fillRect(0, 0, size, size);
+
+            // Simple noise generation
+            for (let i = 0; i < size * size * 0.15; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const r = Math.random() * 2 + 1;
+                ctx.fillStyle = bump ? `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, 0.1)` : colorVariation;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Create canvas texture
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 4);
+            return texture;
+        }
+
+        // Procedural skybox stars map
+        function createStarField() {
+            const particleCount = 1200;
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount; i++) {
+                // Sphere projection
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 250 + Math.random() * 100; // Far range
+
+                const x = r * Math.sin(phi) * Math.cos(theta);
+                const y = Math.abs(r * Math.sin(phi) * Math.sin(theta)); // Keep above ground
+                const z = r * Math.cos(phi);
+
+                positions[i * 3] = x;
+                positions[i * 3 + 1] = y;
+                positions[i * 3 + 2] = z;
+
+                // Alternate pale yellow, white, and cosmic blue star colors
+                const randColor = Math.random();
+                if (randColor > 0.8) {
+                    colors[i * 3] = 0.9; colors[i * 3 + 1] = 0.9; colors[i * 3 + 2] = 1.0;
+                } else if (randColor > 0.6) {
+                    colors[i * 3] = 1.0; colors[i * 3 + 1] = 0.95; colors[i * 3 + 2] = 0.8;
+                } else {
+                    colors[i * 3] = 1.0; colors[i * 3 + 1] = 1.0; colors[i * 3 + 2] = 1.0;
+                }
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.8,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+
+            return new THREE.Points(geometry, material);
+        }
+
+        // Assemble all terrain, background, and lighting conditions
+        function buildWorld() {
+            elLoadStatus.innerText = "Generating Planetary Crust & Skybox...";
+            
+            // Clear prior generated assets
+            while(scene.children.length > 0){ 
+                const child = scene.children[0];
+                if (child.type === 'Group') {
+                    // Dispose deep elements recursively
+                    child.traverse(obj => {
+                        if (obj.geometry) obj.geometry.dispose();
+                        if (obj.material) {
+                            if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                            else obj.material.dispose();
+                        }
+                    });
+                } else {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                }
+                scene.remove(child); 
+            }
+
+            // Restore light base fixtures
+            scene.add(ambientLight);
+            scene.add(directionalLight);
+            scene.add(directionalLightTarget);
+
+            // Fetch active Environment parameters
+            const env = ENVIRONMENT_PRESETS[state.setting];
+
+            // 1. Terrain generation - displaced plane
+            const terrainGeo = new THREE.PlaneGeometry(350, 350, 64, 64);
+            terrainGeo.rotateX(-Math.PI / 2);
+
+            // Procedurally shape craters and ridges via math waves
+            const posAttr = terrainGeo.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                const x = posAttr.getX(i);
+                const z = posAttr.getZ(i);
+                
+                // Exclude core building site at (0,0) from extreme spikes
+                const distToCore = Math.sqrt(x*x + z*z);
+                let heightFactor = Math.min(1.0, distToCore / 45.0);
+
+                // Multiple levels of math noise to create craters & mountains
+                let y = 0;
+                y += Math.sin(x * 0.05) * Math.cos(z * 0.05) * 4.0;
+                y += Math.cos(x * 0.12) * Math.sin(z * 0.12) * 1.5;
+
+                // Large crater dynamic simulation
+                const craterRadius = 50.0;
+                const distToCrater = Math.sqrt((x - 80)*(x - 80) + (z + 60)*(z + 60));
+                if (distToCrater < craterRadius) {
+                    const normDist = distToCrater / craterRadius;
+                    // Crater profile formula
+                    y -= (1.0 - Math.pow(normDist, 2)) * 8.0; 
+                    // Lip edge profile
+                    y += Math.sin(normDist * Math.PI) * 2.5;
+                }
+
+                // Apply height constraint
+                posAttr.setY(i, y * heightFactor);
+            }
+            terrainGeo.computeVertexNormals();
+
+            // Ground standard physical material
+            const groundTex = createNoiseTexture(env.terrainColor, 'rgba(0,0,0,0.15)', 512, false);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: env.terrainColor,
+                roughness: 0.9,
+                metalness: 0.1,
+                map: groundTex,
+                bumpMap: createNoiseTexture('#808080', 'rgba(255,255,255,0.2)', 256, true),
+                bumpScale: 0.15,
+            });
+
+            ground = new THREE.Mesh(terrainGeo, groundMaterial);
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // 2. Stars
+            celestialBodies = new THREE.Group();
+            celestialBodies.add(createStarField());
+
+            // 3. Sky-high parent planet representation
+            const planetGeo = new THREE.SphereGeometry(12 * env.planetScale, 32, 32);
+            // Procedural planet map - swirl canvas texture
+            const canvasP = document.createElement('canvas');
+            canvasP.width = 256; canvasP.height = 128;
+            const ctxP = canvasP.getContext('2d');
+            const grad = ctxP.createLinearGradient(0,0,256,0);
+            grad.addColorStop(0, env.planetColor);
+            grad.addColorStop(0.5, '#435e9c');
+            grad.addColorStop(1, '#0e1830');
+            ctxP.fillStyle = grad;
+            ctxP.fillRect(0,0,256,128);
+            // Ring belts & storms on planet
+            ctxP.fillStyle = 'rgba(255,255,255,0.08)';
+            ctxP.fillRect(0, 30, 256, 12);
+            ctxP.fillRect(0, 80, 256, 6);
+
+            const planetTex = new THREE.CanvasTexture(canvasP);
+            const planetMat = new THREE.MeshBasicMaterial({
+                map: planetTex,
+                color: 0xcccccc
+            });
+            const mainPlanet = new THREE.Mesh(planetGeo, planetMat);
+            mainPlanet.position.set(-140, 60, -110);
+            celestialBodies.add(mainPlanet);
+            scene.add(celestialBodies);
+
+            // Update Fog settings
+            scene.fog.color.set(env.fogColor);
+
+            // 4. Create procedural Building
+            elLoadStatus.innerText = "Constructing Skyscraper Modular Framing...";
+            buildingGroup = new THREE.Group();
+            buildProceduralBuilding();
+            scene.add(buildingGroup);
+
+            // 5. Generate Drone
+            buildDrone();
+
+            // 6. Generate Dust Storm if active
+            buildDustStorm();
+
+            // Update UI Telemetry & Controls
+            updateUI();
+        }
+
+        // Procedural construction mechanism for the White Skyscraper
+        function buildProceduralBuilding() {
+            animatedElements = []; // Reset blinking/rotating index
+
+            const numFloors = parseInt(state.floors);
+            const towerWidth = parseFloat(state.width);
+            const style = state.blueprint;
+
+            // Generate clean white core concrete materials & glowing glass
+            const whiteConcreteMat = new THREE.MeshStandardMaterial({
+                color: 0xfafafa,
+                roughness: 0.45,
+                metalness: 0.1,
+                bumpMap: createNoiseTexture('#808080', 'rgba(0,0,0,0.05)', 256, true),
+                bumpScale: 0.04
+            });
+
+            const metallicDetailMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8,
+                roughness: 0.2,
+                metalness: 0.8
+            });
+
+            // Night Glowing window matrix
+            const glowingGlassMat = new THREE.MeshStandardMaterial({
+                color: 0x0c1e30,
+                roughness: 0.1,
+                metalness: 0.9,
+                emissive: 0xffd880,
+                emissiveIntensity: getEmissiveIntensityByTime(state.time)
+            });
+
+            // Dark reflective non-glowing glass
+            const darkGlassMat = new THREE.MeshStandardMaterial({
+                color: 0x111827,
+                roughness: 0.05,
+                metalness: 0.95
+            });
+
+            // High scale structural foundation plate
+            const foundationGeo = new THREE.BoxGeometry(towerWidth + 6, 2, towerWidth + 6);
+            const foundation = new THREE.Mesh(foundationGeo, whiteConcreteMat);
+            foundation.position.y = 1;
+            foundation.castShadow = true;
+            foundation.receiveShadow = true;
+            buildingGroup.add(foundation);
+
+            // Base Entrance Grand Pillar Floor
+            const baseFloorHeight = 4.5;
+            const entranceBaseGeo = new THREE.BoxGeometry(towerWidth + 2, baseFloorHeight, towerWidth + 2);
+            const entranceBase = new THREE.Mesh(entranceBaseGeo, whiteConcreteMat);
+            entranceBase.position.y = 1 + (baseFloorHeight / 2);
+            entranceBase.castShadow = true;
+            entranceBase.receiveShadow = true;
+            buildingGroup.add(entranceBase);
+
+            // Large main entrance arches (black insets simulating giant glass entry)
+            const entranceDoorGeo = new THREE.BoxGeometry(towerWidth - 2, baseFloorHeight - 1, 1.2);
+            const mainDoor = new THREE.Mesh(entranceDoorGeo, darkGlassMat);
+            mainDoor.position.set(0, baseFloorHeight/2 + 0.5, towerWidth/2 + 1);
+            buildingGroup.add(mainDoor);
+
+            let currentHeight = 1 + baseFloorHeight;
+
+            // Architectural procedural loop floor by floor
+            for (let f = 0; f < numFloors; f++) {
+                const isTopFloor = (f === numFloors - 1);
+                
+                // Progressive architectural parameters based on style
+                let floorWidth = towerWidth;
+                let floorHeight = 3.2;
+                
+                if (style === 'futuristic') {
+                    // Tapestry tapering design upward
+                    const taperRatio = 1.0 - (f / numFloors) * 0.45;
+                    floorWidth = towerWidth * taperRatio;
+                    floorHeight = 3.5 - (f / numFloors) * 0.5;
+                } else if (style === 'modular') {
+                    // Alternating blocks projecting out slightly
+                    floorWidth = towerWidth + (f % 2 === 0 ? 0.8 : -0.8);
+                }
+
+                const floorGroup = new THREE.Group();
+                floorGroup.position.y = currentHeight + (floorHeight / 2);
+
+                // Main Floor core body (recessed dark glass box)
+                const coreWidth = floorWidth - 0.8;
+                const coreGeo = new THREE.BoxGeometry(coreWidth, floorHeight - 0.02, coreWidth);
+                const coreMesh = new THREE.Mesh(coreGeo, darkGlassMat);
+                coreMesh.castShadow = true;
+                floorGroup.add(coreMesh);
+
+                // Windows - modular split grids
+                // We add procedural vertical white mullions/pillars
+                const pillarCount = Math.floor(floorWidth / 1.5) + 1;
+                const pillarSpacing = floorWidth / (pillarCount - 1);
+                const halfWidth = floorWidth / 2;
+
+                // Let some windows be glowing and others dark
+                const numWindows = 8; 
+                for (let side = 0; side < 4; side++) {
+                    const sideRotation = (Math.PI / 2) * side;
+                    
+                    // Create modular window blocks along the side faces
+                    for (let p = 0; p < pillarCount - 1; p++) {
+                        const startX = -halfWidth + (p * pillarSpacing) + 0.1;
+                        const wWidth = pillarSpacing - 0.2;
+                        
+                        // Decide if this specific window segment is lit
+                        const isWindowLit = Math.random() > 0.45;
+                        
+                        const winGeo = new THREE.PlaneGeometry(wWidth, floorHeight - 0.4);
+                        const winMesh = new THREE.Mesh(winGeo, isWindowLit ? glowingGlassMat : darkGlassMat);
+                        
+                        // Position precisely aligned on perimeter
+                        winMesh.position.set(startX + wWidth/2, 0, halfWidth + 0.03);
+                        winMesh.rotation.y = 0;
+                        
+                        // Parent rot group to direct to correct side
+                        const windowSideGroup = new THREE.Group();
+                        windowSideGroup.rotation.y = sideRotation;
+                        windowSideGroup.add(winMesh);
+                        floorGroup.add(windowSideGroup);
+                    }
+                }
+
+                // Concrete Exterior Structural Shell
+                // Corner Structural Columns (Sturdy white concrete pillars)
+                const colSize = 0.8;
+                const cornerPositions = [
+                    [-halfWidth + colSize/2, -halfWidth + colSize/2],
+                    [halfWidth - colSize/2, -halfWidth + colSize/2],
+                    [halfWidth - colSize/2, halfWidth - colSize/2],
+                    [-halfWidth + colSize/2, halfWidth - colSize/2]
+                ];
+
+                cornerPositions.forEach(pos => {
+                    const colGeo = new THREE.BoxGeometry(colSize, floorHeight, colSize);
+                    const colMesh = new THREE.Mesh(colGeo, whiteConcreteMat);
+                    colMesh.position.set(pos[0], 0, pos[1]);
+                    colMesh.castShadow = true;
+                    colMesh.receiveShadow = true;
+                    floorGroup.add(colMesh);
+                });
+
+                // Spandrel horizontal beam divider layers
+                const spandrelGeoNorthSouth = new THREE.BoxGeometry(floorWidth + 0.1, 0.4, colSize);
+                const spandrelN = new THREE.Mesh(spandrelGeoNorthSouth, whiteConcreteMat);
+                spandrelN.position.set(0, floorHeight/2 - 0.2, halfWidth - colSize/2);
+                spandrelN.castShadow = true;
+                floorGroup.add(spandrelN);
+
+                const spandrelS = spandrelN.clone();
+                spandrelS.position.z = -halfWidth + colSize/2;
+                floorGroup.add(spandrelS);
+
+                // Add modular diagonal exterior beams to make it look structurally reinforced for space!
+                if (style === 'brutalist' && f % 3 === 0) {
+                    const braceGeo = new THREE.BoxGeometry(0.3, floorHeight * 1.3, colSize + 0.1);
+                    const brace1 = new THREE.Mesh(braceGeo, whiteConcreteMat);
+                    brace1.rotation.z = Math.PI / 6;
+                    brace1.position.set(0, 0, halfWidth - colSize/2);
+                    brace1.castShadow = true;
+                    floorGroup.add(brace1);
+
+                    const brace2 = brace1.clone();
+                    brace2.rotation.z = -Math.PI / 6;
+                    floorGroup.add(brace2);
+                }
+
+                // Sidemounted Solar Wings if enabled (only mid floors)
+                if (state.solar && f > 2 && f < numFloors - 2 && f % 4 === 1) {
+                    const wingGroup = new THREE.Group();
+                    // Struct connection arm
+                    const armGeo = new THREE.BoxGeometry(3, 0.2, 0.2);
+                    const armMesh = new THREE.Mesh(armGeo, metallicDetailMat);
+                    armMesh.position.set(halfWidth + 1.5, 0, 0);
+                    wingGroup.add(armMesh);
+
+                    // Large Solar Panel array
+                    const panelGeo = new THREE.BoxGeometry(1.5, 0.08, 6);
+                    const panelMat = new THREE.MeshStandardMaterial({
+                        color: 0x0d1a3a,
+                        roughness: 0.15,
+                        metalness: 0.9,
+                        emissive: 0x052a6b,
+                        emissiveIntensity: 0.5
+                    });
+                    const panelMesh = new THREE.Mesh(panelGeo, panelMat);
+                    panelMesh.position.set(halfWidth + 3.5, 0, 0);
+                    panelMesh.castShadow = true;
+                    wingGroup.add(panelMesh);
+
+                    // Attach to both Left and Right sides of tower
+                    floorGroup.add(wingGroup);
+
+                    const oppositeWing = wingGroup.clone();
+                    oppositeWing.rotation.y = Math.PI; // Flip across axis
+                    floorGroup.add(oppositeWing);
+                }
+
+                // Add structural floor element to core building group
+                buildingGroup.add(floorGroup);
+                currentHeight += floorHeight;
+            }
+
+            // --- The Crown & Rooftop Assembly ---
+            const crownGroup = new THREE.Group();
+            crownGroup.position.y = currentHeight;
+
+            // Maintenance Penthouse Block (recseed center base on top)
+            const pentSize = towerWidth * 0.7;
+            const pentGeo = new THREE.BoxGeometry(pentSize, 2.5, pentSize);
+            const pentMesh = new THREE.Mesh(pentGeo, whiteConcreteMat);
+            pentMesh.position.y = 1.25;
+            pentMesh.castShadow = true;
+            crownGroup.add(pentMesh);
+
+            // Helipad / Observation Deck on top of penthouse
+            const padGeo = new THREE.CylinderGeometry(pentSize * 0.55, pentSize * 0.55, 0.2, 16);
+            const padMat = new THREE.MeshStandardMaterial({
+                color: 0x1f2937, // dark gray pad
+                roughness: 0.8
+            });
+            const padMesh = new THREE.Mesh(padGeo, padMat);
+            padMesh.position.y = 2.6;
+            padMesh.receiveShadow = true;
+            crownGroup.add(padMesh);
+
+            // Communication / Sat Dish Array
+            const mastGeo = new THREE.CylinderGeometry(0.12, 0.12, 6, 8);
+            const mastMesh = new THREE.Mesh(mastGeo, metallicDetailMat);
+            mastMesh.position.set(-pentSize/3, 5, -pentSize/3);
+            mastMesh.castShadow = true;
+            crownGroup.add(mastMesh);
+
+            // Rotating Radar Dish on top of mast
+            const dishGeo = new THREE.CylinderGeometry(1.8, 0.2, 0.8, 16, 1, true); // Open cone
+            const dishMesh = new THREE.Mesh(dishGeo, metallicDetailMat);
+            dishMesh.position.set(-pentSize/3, 8, -pentSize/3);
+            dishMesh.rotation.x = Math.PI / 4;
+            crownGroup.add(dishMesh);
+
+            // Register radar dish for animation loop rotation
+            animatedElements.push({
+                obj: dishMesh,
+                type: 'rotation',
+                axis: 'y',
+                speed: 0.015
+            });
+
+            // Secondary tall telemetry antenna spire
+            const spireGeo = new THREE.CylinderGeometry(0.05, 0.18, 9, 8);
+            const spireMesh = new THREE.Mesh(spireGeo, metallicDetailMat);
+            spireMesh.position.set(pentSize/3, 6, pentSize/3);
+            spireMesh.castShadow = true;
+            crownGroup.add(spireMesh);
+
+            // Blinking Warning Beacon Spheres at peak of spires
+            const beaconGeo = new THREE.SphereGeometry(0.25, 8, 8);
+            const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            beacon.position.set(pentSize/3, 10.5, pentSize/3);
+            crownGroup.add(beacon);
+
+            animatedElements.push({
+                obj: beacon,
+                type: 'blink',
+                baseColor: new THREE.Color(0xff0000),
+                speed: 4.0
+            });
+
+            const beacon2 = beacon.clone();
+            beacon2.position.set(-pentSize/3, 8.2, -pentSize/3);
+            crownGroup.add(beacon2);
+            animatedElements.push({
+                obj: beacon2,
+                type: 'blink',
+                baseColor: new THREE.Color(0xff0000),
+                speed: 3.5 // slightly out of sync for realism
+            });
+
+            buildingGroup.add(crownGroup);
+        }
+
+        // Generate glowing drone scout orbiting the structure
+        function buildDrone() {
+            if (drone) scene.remove(drone);
+            if (droneTrail) scene.remove(droneTrail);
+
+            drone = new THREE.Group();
+
+            const bodyGeo = new THREE.SphereGeometry(0.4, 8, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            const droneBody = new THREE.Mesh(bodyGeo, bodyMat);
+            drone.add(droneBody);
+
+            // Glowing blue lens/scanner
+            const lensGeo = new THREE.SphereGeometry(0.18, 8, 8);
+            const lensMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const droneLens = new THREE.Mesh(lensGeo, lensMat);
+            droneLens.position.set(0.3, 0, 0);
+            drone.add(droneLens);
+
+            // Hover ring
+            const ringGeo = new THREE.TorusGeometry(0.6, 0.05, 6, 24);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.8 });
+            const droneRing = new THREE.Mesh(ringGeo, ringMat);
+            droneRing.rotation.x = Math.PI / 2;
+            drone.add(droneRing);
+
+            drone.position.set(18, 25, 0);
+            scene.add(drone);
+
+            // Create drone trail effect with particle line
+            const trailGeometry = new THREE.BufferGeometry();
+            const trailPoints = 80;
+            const trailPositions = new Float32Array(trailPoints * 3);
+            trailGeometry.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+
+            const trailMaterial = new THREE.LineBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.5,
+                linewidth: 2
+            });
+            droneTrail = new THREE.Line(trailGeometry, trailMaterial);
+            scene.add(droneTrail);
+
+            // Store trail buffer points
+            drone.userData = {
+                angle: 0,
+                radius: 18,
+                height: 25,
+                trailPoints: Array(trailPoints).fill(null).map(() => new THREE.Vector3()),
+                index: 0
+            };
+        }
+
+        // Procedural sand dust storm weather particle simulation
+        function buildDustStorm() {
+            if (dustStorm) scene.remove(dustStorm);
+
+            const env = ENVIRONMENT_PRESETS[state.setting];
+            const active = state.hazard;
+            
+            // Allocate particles
+            const count = active ? 4000 : 800; // heavier if storm active
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const velocities = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 200;
+                positions[i * 3 + 1] = Math.random() * 80;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+
+                velocities[i * 3] = -0.5 - Math.random() * 1.5; // Wind direction
+                velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.1;
+                velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const material = new THREE.PointsMaterial({
+                color: new THREE.Color(env.dustColor),
+                size: active ? 0.9 : 0.4,
+                transparent: true,
+                opacity: active ? 0.5 : 0.2,
+                sizeAttenuation: true
+            });
+
+            dustStorm = new THREE.Points(geometry, material);
+            dustStorm.userData = { velocities, count };
+            scene.add(dustStorm);
+        }
+
+        // Helper to adjust tower window glows depending on selected time of day (Sunset/Night = bright)
+        function getEmissiveIntensityByTime(hour) {
+            // Dark night between 20h and 5h
+            if (hour >= 20 || hour <= 5) {
+                return 1.4;
+            }
+            // Twilight/Dawn transitions
+            if (hour > 17 && hour < 20) {
+                const ratio = (hour - 17) / 3;
+                return 0.1 + ratio * 1.3;
+            }
+            if (hour > 5 && hour < 8) {
+                const ratio = (8 - hour) / 3;
+                return 0.1 + ratio * 1.3;
+            }
+            return 0.05; // daytime minimal glow
+        }
+
+        // Compute solar power dynamically depending on layout & sun angle
+        function calculateSolarPower() {
+            if (!state.solar) return "0.00 kW";
+            const env = ENVIRONMENT_PRESETS[state.setting];
+            const numPanels = Math.floor(state.floors / 4) * 2; // derived from loops
+            
+            // Factor in sun altitude angle
+            const sunAngleRad = (state.time / 24) * Math.PI * 2;
+            const altitudeMultiplier = Math.max(0, Math.sin(sunAngleRad)); // zero at night
+
+            const powerOutput = numPanels * env.solarConstant * altitudeMultiplier;
+            return powerOutput.toFixed(1) + " kW";
+        }
+
+        // Synchronize HUD panels and UI variables (UI removed)
+        function updateUI() {
+            // UI has been removed
+        }
+
+        // Bind control elements to reactive state variables (UI removed)
+        function setupInteractiveListeners() {
+            // UI controls have been removed
+        }
+
+        // Perform partial rebuild for faster responsiveness when sliding height/width values
+        function rebuildSkyscraperOnly() {
+            if (buildingGroup) {
+                // Safely traverse & clean geometries/materials
+                buildingGroup.traverse(obj => {
+                    if (obj.geometry) obj.geometry.dispose();
+                    if (obj.material) {
+                        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                        else obj.material.dispose();
+                    }
+                });
+                scene.remove(buildingGroup);
+            }
+
+            buildingGroup = new THREE.Group();
+            buildProceduralBuilding();
+            scene.add(buildingGroup);
+            updateUI();
+        }
+
+        // Animate the Sun Orbit & Sky coloration relative to slider values
+        function updateAtmosphericLighting() {
+            const env = ENVIRONMENT_PRESETS[state.setting];
+            const sunAngleRad = (state.time / 24) * Math.PI * 2;
+
+            // Direct spatial orbital path for Sun
+            const radius = 90;
+            const sx = Math.cos(sunAngleRad) * radius;
+            const sy = Math.sin(sunAngleRad) * radius;
+            const sz = Math.sin(sunAngleRad * 0.5) * 30; // slight curve
+
+            directionalLight.position.set(sx, sy, sz);
+
+            // Is the sun below horizon? Night conditions
+            const isNight = sy < 0;
+
+            if (isNight) {
+                directionalLight.intensity = 0.05; // moonlight/ambient space
+                scene.fog.color.set('#010103');
+            } else {
+                // Natural atmospheric blending depending on altitude (Sunset red vs Noon white)
+                const sunFactor = sy / radius; // 0 to 1
+                directionalLight.intensity = (0.2 + sunFactor * 0.8) * 2.5;
+                
+                // Color grading
+                const activeColor = new THREE.Color(env.sunColor);
+                const sunsetColor = new THREE.Color(env.dustColor);
+                directionalLight.color.copy(activeColor).lerp(sunsetColor, 1 - sunFactor);
+
+                const activeFog = new THREE.Color(env.fogColor);
+                const nightFog = new THREE.Color('#030307');
+                scene.fog.color.copy(activeFog).lerp(nightFog, 1 - sunFactor);
+            }
+
+            // Sync structural windows emissive glowing intensity to match time context
+            buildingGroup.traverse(obj => {
+                if (obj.material && obj.material.emissive && obj.material.name !== "solar") {
+                    obj.material.emissiveIntensity = getEmissiveIntensityByTime(state.time);
+                }
+            });
+        }
+
+        // Primary dynamic Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const timeNow = Date.now() * 0.001;
+
+            // 1. Process standard animated items (Radar rotate, warning beacons)
+            animatedElements.forEach(item => {
+                if (item.type === 'rotation') {
+                    item.obj.rotation[item.axis] += item.speed;
+                } else if (item.type === 'blink') {
+                    // Oscillating sine brightness for beacon
+                    const cycle = Math.sin(timeNow * item.speed);
+                    if (cycle > 0) {
+                        item.obj.material.color.setRGB(1, 0, 0);
+                    } else {
+                        item.obj.material.color.setRGB(0.1, 0, 0); // off
+                    }
+                }
+            });
+
+            // 2. Animate Scout Drone Orbit Path
+            if (drone) {
+                const droneData = drone.userData;
+                // Accumulate angular path
+                droneData.angle += 0.012;
+                
+                // Spiral path altitude waving
+                const dX = Math.cos(droneData.angle) * droneData.radius;
+                const dZ = Math.sin(droneData.angle) * droneData.radius;
+                const dY = droneData.height + Math.sin(droneData.angle * 2) * 5;
+
+                drone.position.set(dX, dY, dZ);
+                // Rotate drone direction to face forward along movement path
+                drone.rotation.y = -droneData.angle;
+
+                // Process drone glow trail points line
+                const posArr = droneTrail.geometry.attributes.position.array;
+                
+                // Shift historical positions
+                for (let i = posArr.length - 3; i >= 3; i -= 3) {
+                    posArr[i] = posArr[i - 3];
+                    posArr[i + 1] = posArr[i - 2];
+                    posArr[i + 2] = posArr[i - 1];
+                }
+                // Inject current drone coordinate at start of line trail
+                posArr[0] = drone.position.x;
+                posArr[1] = drone.position.y;
+                posArr[2] = drone.position.z;
+                
+                droneTrail.geometry.attributes.position.needsUpdate = true;
+
+                // If drone camera tracking is engaged
+                if (state.cameraTrackingDrone) {
+                    camera.position.set(dX - Math.cos(droneData.angle) * 7, dY + 3, dZ - Math.sin(droneData.angle) * 7);
+                    controls.target.set(0, dY - 4, 0);
+                }
+            }
+
+            // 3. Process Tectonic Dust Storm particle flows
+            if (dustStorm) {
+                const pos = dustStorm.geometry.attributes.position.array;
+                const v = dustStorm.userData.velocities;
+                const limit = dustStorm.userData.count;
+
+                for (let i = 0; i < limit; i++) {
+                    pos[i * 3] += v[i * 3]; // X drift
+                    pos[i * 3 + 1] += v[i * 3 + 1]; // Y altitude drift
+                    pos[i * 3 + 2] += v[i * 3 + 2]; // Z drift
+
+                    // Boundary reset to create continuous infinite stream
+                    if (pos[i * 3] < -100) {
+                        pos[i * 3] = 100;
+                        pos[i * 3 + 1] = Math.random() * 80;
+                    }
+                }
+                dustStorm.geometry.attributes.position.needsUpdate = true;
+            }
+
+            // 4. Subtle rotation to starry sky background for cosmic feel
+            if (celestialBodies) {
+                celestialBodies.rotation.y = timeNow * 0.001;
+            }
+
+            // Apply standard Orbit damping
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
