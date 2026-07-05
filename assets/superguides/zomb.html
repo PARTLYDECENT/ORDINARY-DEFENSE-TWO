@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDF Isometric Zombie Renderer - Realistic Proportions</title>
+    <style>
+        :root {
+            --primary: #10f17b;
+            --bg: #0a0a0f;
+            --panel: rgba(15, 15, 20, 0.85);
+            --text: #e0e0e0;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: var(--text);
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .panel {
+            background: var(--panel);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 350px;
+            pointer-events: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: calc(100vh - 4rem);
+            overflow-y: auto;
+        }
+        .panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .panel::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+        h1 {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--primary);
+            margin: 0 0 0.5rem 0;
+            border-bottom: 1px solid rgba(16, 241, 123, 0.3);
+            padding-bottom: 0.5rem;
+        }
+        h2 {
+            font-size: 0.8rem;
+            color: #888;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #bbb;
+            margin: 0;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .metric span:last-child {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .slider-container label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="panel">
+            <h1>Procedural SDF Engine</h1>
+            <p>Evaluating signed distance fields in real-time via sphere tracing. The geometry is entirely mathematically defined, utilizing Constructive Solid Geometry (CSG) for boolean operations and smooth minimums for organic tissue blending.</p>
+            
+            <div style="margin-top: 1rem;">
+                <h2>Engine Telemetry</h2>
+                <div class="metric"><span>Raymarching Steps</span> <span>Max 100</span></div>
+                <div class="metric"><span>Camera Matrix</span> <span>Orthographic</span></div>
+                <div class="metric"><span>Perspective</span> <span>Iso (30°/45°)</span></div>
+                <div class="metric"><span>Proportions</span> <span>Realistic Frame</span></div>
+            </div>
+
+            <div style="margin-top: 1rem;">
+                <h2>Parameters</h2>
+                <div class="slider-container">
+                    <label for="tiltShift">Tilt-Shift Focus Band</label>
+                    <input type="range" id="tiltShift" min="0" max="100" value="50">
+                </div>
+                <div class="slider-container">
+                    <label for="animSpeed">Animation Speed</label>
+                    <input type="range" id="animSpeed" min="0" max="200" value="100">
+                </div>
+                <div class="slider-container">
+                    <label for="decayNoise">Cellular Decay Noise</label>
+                    <input type="range" id="decayNoise" min="0" max="100" value="30">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- SHADER DEFINITIONS ---
+
+        const sdfVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const sdfFragmentShader = `
+            uniform float u_time;
+            uniform vec2 u_resolution;
+            uniform vec3 u_cameraPos;
+            uniform vec3 u_cameraDir;
+            uniform vec3 u_cameraUp;
+            uniform vec3 u_cameraRight;
+            uniform float u_orthoSize;
+            uniform float u_decay;
+            
+            varying vec2 vUv;
+
+            #define MAX_STEPS 100
+            #define MAX_DIST 50.0
+            #define SURF_DIST 0.005
+
+            // --- SDF Primitive Functions ---
+            float sdSphere(vec3 p, float s) {
+                return length(p) - s;
+            }
+
+            float sdCapsule(vec3 p, vec3 a, vec3 b, float r) {
+                vec3 pa = p - a, ba = b - a;
+                float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+                return length(pa - ba * h) - r;
+            }
+
+            float sdBox(vec3 p, vec3 b) {
+                vec3 q = abs(p) - b;
+                return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+            }
+
+            // --- CSG Boolean Operations ---
+            float opSmoothUnion(float d1, float d2, float k) {
+                float h = clamp(0.5 + 0.5 * (d2 - d1) / k, 0.0, 1.0);
+                return mix(d2, d1, h) - k * h * (1.0 - h);
+            }
+
+            float opSmoothSubtraction(float d1, float d2, float k) {
+                float h = clamp(0.5 - 0.5 * (d2 + d1) / k, 0.0, 1.0);
+                return mix(d2, -d1, h) + k * h * (1.0 - h);
+            }
+
+            // 3D Noise for rot/decay
+            float hash(vec3 p) {
+                p = fract(p * 0.3183099 + .1);
+                p *= 17.0;
+                return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+            }
+            
+            float noise(vec3 x) {
+                vec3 i = floor(x);
+                vec3 f = fract(x);
+                f = f * f * (3.0 - 2.0 * f);
+                return mix(mix(mix(hash(i + vec3(0,0,0)), hash(i + vec3(1,0,0)), f.x),
+                               mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
+                           mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
+                               mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
+            }
+
+            // --- Scene Map ---
+            vec2 map(vec3 p) {
+                vec2 res = vec2(MAX_DIST, 0.0); 
+
+                // Animation variables
+                float walkCycle = u_time * 5.0;
+                float legRot = sin(walkCycle) * 0.5;
+                float armRot = cos(walkCycle) * 0.15;
+                float headBob = abs(sin(walkCycle * 2.0)) * 0.04;
+
+                // Base offset (adjusted center of gravity to keep feet on floor at p.y = 0.0)
+                vec3 zp = p - vec3(0.0, 1.0 + headBob, 0.0);
+                
+                // 1. Head (Realistic scale, elongated)
+                vec3 headPos = zp - vec3(0.0, 0.85, 0.0);
+                // Zombie head wobble
+                headPos.x += sin(u_time)*0.03; 
+                // Using a capsule to simulate a realistically proportioned skull/jaw shape
+                float head = sdCapsule(headPos, vec3(0.0, 0.0, 0.0), vec3(0.0, 0.15, 0.0), 0.22);
+
+                // Decay/Noise subtraction on head
+                float rotNoise = noise(headPos * 12.0) * u_decay;
+                head += rotNoise;
+
+                // Eyes (Subtracted, scaled down for real cranium size)
+                vec3 eyeRPos = headPos - vec3(0.08, 0.08, 0.18);
+                vec3 eyeLPos = headPos - vec3(-0.08, 0.08, 0.18);
+                float eyes = min(sdSphere(eyeRPos, 0.035), sdSphere(eyeLPos, 0.035));
+                head = opSmoothSubtraction(eyes, head, 0.05);
+
+                // Jaw/Mouth (Subtracted)
+                vec3 mouthPos = headPos - vec3(0.0, -0.08, 0.2);
+                float mouth = sdBox(mouthPos, vec3(0.08, 0.03, 0.08));
+                head = max(head, -mouth); // Hard subtraction for gaping maw
+
+                // 2. Torso (Leaner, longer)
+                float torso = sdCapsule(zp, vec3(0.0, -0.1, 0.0), vec3(0.0, 0.7, 0.0), 0.24);
+
+                // 3. Legs (Longer, realistic thickness)
+                vec3 legR_start = vec3(0.12, -0.1, 0.0);
+                vec3 legR_end = vec3(0.12, -0.9, legRot * 0.7);
+                float legR = sdCapsule(zp, legR_start, legR_end, 0.1);
+
+                vec3 legL_start = vec3(-0.12, -0.1, 0.0);
+                vec3 legL_end = vec3(-0.12, -0.9, -legRot * 0.7);
+                float legL = sdCapsule(zp, legL_start, legL_end, 0.1);
+
+                // 4. Arms (Thinner, outstretched)
+                vec3 armR_start = vec3(0.32, 0.6, 0.0);
+                vec3 armR_end = vec3(0.35, 0.55 + armRot, 0.65);
+                float armR = sdCapsule(zp, armR_start, armR_end, 0.08);
+
+                vec3 armL_start = vec3(-0.32, 0.6, 0.0);
+                vec3 armL_end = vec3(-0.35, 0.55 - armRot, 0.65);
+                float armL = sdCapsule(zp, armL_start, armL_end, 0.08);
+
+                // Blend Body Parts using Constructive Solid Geometry & smin
+                float body = opSmoothUnion(torso, legR, 0.15);
+                body = opSmoothUnion(body, legL, 0.15);
+                body = opSmoothUnion(body, armR, 0.1);
+                body = opSmoothUnion(body, armL, 0.1);
+                
+                // Blend Head to Body (thinner neck connection)
+                float zombie = opSmoothUnion(body, head, 0.15);
+
+                // Floor (Grid simulated in shading)
+                float floorDist = p.y;
+
+                if(zombie < floorDist) {
+                    res = vec2(zombie, 1.0); // Zombie ID
+                } else {
+                    res = vec2(floorDist, 2.0); // Floor ID
+                }
+
+                return res;
+            }
+
+            // --- Raymarching ---
+            vec2 rayMarch(vec3 ro, vec3 rd) {
+                float dO = 0.0;
+                float matID = 0.0;
+                for(int i = 0; i < MAX_STEPS; i++) {
+                    vec3 p = ro + rd * dO;
+                    vec2 dS = map(p);
+                    dO += dS.x;
+                    matID = dS.y;
+                    if(dO > MAX_DIST || abs(dS.x) < SURF_DIST) break;
+                }
+                return vec2(dO, matID);
+            }
+
+            // --- Normal Calculation via Finite Differences ---
+            vec3 getNormal(vec3 p) {
+                float d = map(p).x;
+                vec2 e = vec2(0.01, 0.0);
+                vec3 n = d - vec3(
+                    map(p - e.xyy).x,
+                    map(p - e.yxy).x,
+                    map(p - e.yyx).x
+                );
+                return normalize(n);
+            }
+
+            // --- Soft Shadows ---
+            float calcShadow(vec3 ro, vec3 rd) {
+                float res = 1.0;
+                float t = 0.05;
+                for(int i = 0; i < 30; i++) {
+                    float h = map(ro + rd * t).x;
+                    res = min(res, 8.0 * h / t);
+                    t += clamp(h, 0.02, 0.1);
+                    if(h < 0.001 || t > 10.0) break;
+                }
+                return clamp(res, 0.0, 1.0);
+            }
+
+            void main() {
+                // UVs from -1 to 1, corrected for aspect ratio
+                vec2 uv = (vUv - 0.5) * 2.0;
+                uv.x *= u_resolution.x / u_resolution.y;
+
+                // Orthographic Camera Setup
+                vec3 ro = u_cameraPos + u_cameraRight * uv.x * u_orthoSize + u_cameraUp * uv.y * u_orthoSize;
+                vec3 rd = normalize(u_cameraDir);
+
+                vec2 rm = rayMarch(ro, rd);
+                float d = rm.x;
+                float matID = rm.y;
+
+                vec3 col = vec3(0.05, 0.05, 0.08); // Background
+
+                if(d < MAX_DIST) {
+                    vec3 p = ro + rd * d;
+                    vec3 n = getNormal(p);
+
+                    // Lighting Setup (Three-point lighting + SSS)
+                    vec3 lightPos = vec3(5.0, 8.0, 5.0);
+                    vec3 l = normalize(lightPos - p);
+                    vec3 v = normalize(u_cameraPos - p);
+                    
+                    // Shadows
+                    float shadow = calcShadow(p + n * 0.01, l);
+
+                    // Material Colors
+                    vec3 albedo;
+                    if(matID == 1.0) {
+                        // Zombie Flesh (Sickly Green)
+                        albedo = vec3(0.3, 0.8, 0.4);
+                    } else {
+                        // Floor (Dark grid)
+                        vec2 grid = fract(p.xz * 2.0) - 0.5;
+                        float gw = smoothstep(0.45, 0.5, abs(grid.x)) + smoothstep(0.45, 0.5, abs(grid.y));
+                        albedo = mix(vec3(0.1, 0.12, 0.15), vec3(0.15, 0.2, 0.25), clamp(gw, 0., 1.));
+                    }
+
+                    // --- Subsurface Scattering Approximation (Wrapped Lighting) ---
+                    float wrap = 0.4;
+                    float NdotL = dot(n, l);
+                    float diffuseSSS = max(0.0, (NdotL + wrap) / (1.0 + wrap));
+                    // Add slight subsurface color tint based on view angle and lighting
+                    vec3 sssColor = vec3(0.8, 0.2, 0.1) * pow(clamp(1.0 - dot(v, n), 0.0, 1.0), 3.0);
+
+                    // Key Light
+                    vec3 key = albedo * diffuseSSS * shadow * vec3(1.0, 0.95, 0.9);
+                    
+                    // Fill Light (Cool blue)
+                    vec3 fillDir = normalize(vec3(-5.0, 2.0, -5.0));
+                    float fillDif = clamp(dot(n, fillDir), 0.0, 1.0);
+                    vec3 fill = albedo * fillDif * vec3(0.2, 0.3, 0.5);
+
+                    // Rim Light (Sharp back light for cinematic pop)
+                    vec3 rimDir = normalize(vec3(0.0, 3.0, -8.0));
+                    float rimDot = clamp(dot(n, rimDir), 0.0, 1.0);
+                    float rimIntensity = pow(clamp(1.0 - dot(n, v), 0.0, 1.0), 4.0);
+                    vec3 rim = vec3(1.0, 1.0, 1.0) * rimDot * rimIntensity * shadow;
+
+                    // Combine
+                    col = key + fill + rim;
+                    
+                    if(matID == 1.0) {
+                        col += sssColor * 0.5 * shadow; // Apply bleeding SSS to flesh
+                    }
+
+                    // Distance Fog
+                    col = mix(col, vec3(0.05, 0.05, 0.08), 1.0 - exp(-0.005 * d * d));
+                }
+
+                // Output raw color for post-processing
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        // 2. Post-Processing: Tilt-Shift & Color Grading Shader
+        const postVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = vec4(position, 1.0);
+            }
+        `;
+
+        const postFragmentShader = `
+            uniform sampler2D tDiffuse;
+            uniform float u_focusCenter;
+            varying vec2 vUv;
+
+            // Bokeh Blur / Tilt-Shift
+            void main() {
+                vec4 texColor = texture2D(tDiffuse, vUv);
+                
+                // Calculate blur amount based on distance from vertical center
+                // Orthographic Y maps linearly to scene depth
+                float blurAmount = abs(vUv.y - u_focusCenter) * 2.0;
+                blurAmount = smoothstep(0.1, 0.8, blurAmount) * 0.015; // Max blur radius
+
+                vec3 col = vec3(0.0);
+                float weightSum = 0.0;
+
+                // Simple 16-sample box/bokeh approximation blur
+                const int samples = 16;
+                const float goldenAngle = 2.39996323; // Golden angle
+                
+                for(int i = 0; i < samples; i++) {
+                    float theta = float(i) * goldenAngle;
+                    float r = sqrt(float(i)) / sqrt(float(samples));
+                    vec2 offset = vec2(cos(theta), sin(theta)) * r * blurAmount;
+                    
+                    col += texture2D(tDiffuse, vUv + offset).rgb;
+                    weightSum += 1.0;
+                }
+                
+                col /= weightSum;
+
+                // Cinematic Color Grading (ACES Approximation)
+                col = clamp(col, 0.0, 1.0);
+                col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+
+                // Vignette
+                float dist = distance(vUv, vec2(0.5));
+                col *= smoothstep(0.8, 0.2, dist);
+
+                gl_FragColor = vec4(col, 1.0);
+            }
+        `;
+
+        // --- APP INITIALIZATION ---
+        
+        let camera, scene, renderer;
+        let sdfMaterial, postMaterial;
+        let renderTarget;
+        let orthoQuad, postQuad;
+        let clock;
+
+        // UI Variables
+        let speedMult = 1.0;
+        let decayAmount = 0.05;
+        let focusCenter = 0.5;
+        let timeAcc = 0;
+
+        init();
+        animate();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Setup Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: false });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            // Render Target for first pass (SDF)
+            renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.LinearFilter,
+                format: THREE.RGBAFormat
+            });
+
+            scene = new THREE.Scene();
+            clock = new THREE.Clock();
+
+            // Setup Mathematical Isometric Camera variables
+            const dist = 15.0;
+            const pitch = 30 * Math.PI / 180;
+            const yaw = 45 * Math.PI / 180;
+
+            const camPos = new THREE.Vector3(
+                dist * Math.cos(pitch) * Math.sin(yaw),
+                dist * Math.sin(pitch),
+                dist * Math.cos(pitch) * Math.cos(yaw)
+            );
+            
+            const target = new THREE.Vector3(0, 1.0, 0);
+            const camDir = new THREE.Vector3().subVectors(target, camPos).normalize();
+            const camRight = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), yaw).normalize();
+            const camUp = new THREE.Vector3().crossVectors(camRight, camDir).normalize();
+
+            const orthoSize = 4.0; // The "zoom" scale of the isometric view
+
+            // Pass 1: SDF Raymarching Material
+            sdfMaterial = new THREE.ShaderMaterial({
+                vertexShader: sdfVertexShader,
+                fragmentShader: sdfFragmentShader,
+                uniforms: {
+                    u_time: { value: 0.0 },
+                    u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                    u_cameraPos: { value: camPos },
+                    u_cameraDir: { value: camDir },
+                    u_cameraUp: { value: camUp },
+                    u_cameraRight: { value: camRight },
+                    u_orthoSize: { value: orthoSize },
+                    u_decay: { value: decayAmount }
+                }
+            });
+
+            // Pass 2: Post-Processing Material
+            postMaterial = new THREE.ShaderMaterial({
+                vertexShader: postVertexShader,
+                fragmentShader: postFragmentShader,
+                uniforms: {
+                    tDiffuse: { value: renderTarget.texture },
+                    u_focusCenter: { value: focusCenter }
+                }
+            });
+
+            // Full screen quads
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            
+            orthoQuad = new THREE.Mesh(geometry, sdfMaterial);
+            postQuad = new THREE.Mesh(geometry, postMaterial);
+
+            // UI Listeners
+            document.getElementById('tiltShift').addEventListener('input', (e) => {
+                focusCenter = 0.8 - (e.target.value / 100) * 0.6; 
+            });
+            document.getElementById('animSpeed').addEventListener('input', (e) => {
+                speedMult = e.target.value / 100;
+            });
+            document.getElementById('decayNoise').addEventListener('input', (e) => {
+                decayAmount = (e.target.value / 100) * 0.15;
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderTarget.setSize(window.innerWidth, window.innerHeight);
+            sdfMaterial.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            timeAcc += delta * speedMult;
+
+            // Update uniforms
+            sdfMaterial.uniforms.u_time.value = timeAcc;
+            sdfMaterial.uniforms.u_decay.value = decayAmount;
+            postMaterial.uniforms.u_focusCenter.value = focusCenter;
+
+            // Pass 1: Render Raymarched SDF to Render Target
+            scene.add(orthoQuad);
+            scene.remove(postQuad);
+            renderer.setRenderTarget(renderTarget);
+            renderer.render(scene, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)); 
+
+            // Pass 2: Render Render Target to Screen with Tilt-Shift
+            scene.remove(orthoQuad);
+            scene.add(postQuad);
+            renderer.setRenderTarget(null);
+            renderer.render(scene, new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1));
+        }
+    </script>
+</body>
+</html>

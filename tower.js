@@ -1380,37 +1380,10 @@ class CombatDrone {
         this.position = new THREE.Vector3();
 
         // ── Drone mesh ──────────────────────────────────────────
-        this.mesh = new THREE.Group();
-
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x312e81, metalness: 0.95, roughness: 0.08, emissive: 0x4f46e5, emissiveIntensity: 0.4 });
-        const wingMat = new THREE.MeshStandardMaterial({ color: 0x4f46e5, metalness: 0.9,  roughness: 0.15 });
-        const glowMat = new THREE.MeshBasicMaterial({ color: 0xa78bfa });
-
-        // Central fuselage
-        const bodyGeo = new THREE.BoxGeometry(0.18, 0.07, 0.28);
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        this.mesh.add(body);
-
-        // 4 swept wing arms
-        const wingGeo = new THREE.BoxGeometry(0.32, 0.03, 0.1);
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => {
-            const wing = new THREE.Mesh(wingGeo, wingMat);
-            wing.position.set(sx * 0.18, 0, sz * 0.1);
-            wing.rotation.y = Math.atan2(sz, sx) * 0.3;
-            this.mesh.add(wing);
-        });
-
-        // Engine glow orbs at wingtips
-        const thrusterGeo = new THREE.SphereGeometry(0.045, 5, 5);
-        [[-0.32, 0, -0.2], [0.32, 0, -0.2], [-0.32, 0, 0.1], [0.32, 0, 0.1]].forEach(([x, y, z]) => {
-            const orb = new THREE.Mesh(thrusterGeo, glowMat);
-            orb.position.set(x, y, z);
-            this.mesh.add(orb);
-        });
+        this.mesh = window.createReconDrone();
 
         // Eye sensor
-        const eyeGeo = new THREE.SphereGeometry(0.04, 6, 6);
-        this.eyeMesh = new THREE.Mesh(eyeGeo, new THREE.MeshBasicMaterial({ color: 0xa78bfa }));
+        this.eyeMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), new THREE.MeshBasicMaterial({ color: 0xa78bfa, visible: false }));
         this.eyeMesh.position.set(0, 0, 0.15);
         this.mesh.add(this.eyeMesh);
 
@@ -1427,6 +1400,12 @@ class CombatDrone {
     }
 
     update(dt) {
+        // Drone rotor spin
+        const blades = this.mesh.getObjectByName('blades');
+        if (blades) {
+            blades.rotation.y += dt * 30.0;
+        }
+
         const fp = this.factory.position;
         const specs = this.factory.specs;
         const range   = specs.droneRange  || 9.0;

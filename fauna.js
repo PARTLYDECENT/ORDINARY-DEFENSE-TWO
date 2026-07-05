@@ -37,6 +37,7 @@
 
         return group;
     }
+    window.createReconDrone = createReconDrone;
 
     // Helper to create an automated tracked rover model (Desert)
     function createTrackedRover() {
