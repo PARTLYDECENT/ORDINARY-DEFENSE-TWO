@@ -182,6 +182,68 @@
                     { type: 'scout', count: 6 }
                 ]
             ]
+        },
+        {
+            id: 5,
+            name: "Martian Canyons Expedition",
+            biome: "mars",
+            description: "Establishing a permanent presence on Mars. Setup the Command HQ inside the rocky Martian Canyons. Beware of massive sandstorms and radioactive alien swarms nesting in the ancient craters.",
+            victoryText: "Mars colony successfully secured! Humanity has conquered the red planet, opening a new chapter of interstellar exploration. You have achieved absolute victory!",
+            startGold: 300,
+            maxWaves: 7,
+            waves: [
+                // Wave 1
+                [
+                    { type: 'scarab', count: 12 },
+                    { type: 'ant', count: 8 }
+                ],
+                // Wave 2
+                [
+                    { type: 'scarab', count: 12 },
+                    { type: 'ant', count: 10 },
+                    { type: 'wasp', count: 6 }
+                ],
+                // Wave 3
+                [
+                    { type: 'ant', count: 12 },
+                    { type: 'wasp', count: 8 },
+                    { type: 'ufo', count: 5 }
+                ],
+                // Wave 4
+                [
+                    { type: 'wasp', count: 10 },
+                    { type: 'ufo', count: 6 },
+                    { type: 'golem', count: 4 },
+                    { type: 'stealth', count: 4 }
+                ],
+                // Wave 5
+                [
+                    { type: 'ufo', count: 8 },
+                    { type: 'golem', count: 6 },
+                    { type: 'stealth', count: 6 },
+                    { type: 'ram', count: 3 }
+                ],
+                // Wave 6
+                [
+                    { type: 'golem', count: 8 },
+                    { type: 'stealth', count: 8 },
+                    { type: 'ram', count: 4 },
+                    { type: 'carrier', count: 3 },
+                    { type: 'scout', count: 5 }
+                ],
+                // Wave 7 (Ultimate Boss Wave)
+                [
+                    { type: 'scarab', count: 25 },
+                    { type: 'ant', count: 20 },
+                    { type: 'wasp', count: 15 },
+                    { type: 'ufo', count: 10 },
+                    { type: 'golem', count: 8 },
+                    { type: 'stealth', count: 10 },
+                    { type: 'ram', count: 6 },
+                    { type: 'carrier', count: 5 },
+                    { type: 'scout', count: 8 }
+                ]
+            ]
         }
     ];
 

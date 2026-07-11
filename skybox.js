@@ -17,6 +17,35 @@
         uniform float time;
         varying vec3 vWorldPosition;
 
+        // Pseudo-random hash
+        float hash(vec2 p) {
+            return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+        }
+
+        // 2D Bilinear Noise
+        float noise2d(vec2 p) {
+            vec2 i = floor(p);
+            vec2 f = fract(p);
+            vec2 u = f * f * (3.0 - 2.0 * f);
+            return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+                       mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+        }
+
+        // Fractal Brownian Motion (FBM) for realistic dust cloud patterns
+        float fbm(vec2 p) {
+            float v = 0.0;
+            float a = 0.5;
+            vec2 shift = vec2(100.0);
+            // Rotate layers to reduce grid artifacts
+            mat2 rot = mat2(0.87758, 0.47942, -0.47942, 0.87758);
+            for (int i = 0; i < 4; ++i) {
+                v += a * noise2d(p);
+                p = rot * p * 2.0 + shift;
+                a *= 0.5;
+            }
+            return v;
+        }
+
         void main() {
             // Compute vertical gradient mapping
             float h = normalize(vWorldPosition + offset).y;
@@ -38,8 +67,13 @@
             // Active glowing grid strength
             float gridStrength = gridLine * (0.15 + pulseWave * 0.45);
 
-            // Blend grid color with background, fading towards horizon
-            vec3 finalColor = mix(skyColor, skyCloudColor, gridStrength * max(h, 0.0));
+            // Procedural drifting Martian dust clouds
+            vec2 cloudUv = vWorldPosition.xz * 0.0008 + vec2(time * 0.012, time * 0.006);
+            float dustNoise = fbm(cloudUv * 3.0 + fbm(cloudUv * 1.5));
+            float dustCloud = smoothstep(0.38, 0.78, dustNoise) * 0.48;
+
+            // Blend grid color and drifting dust cloud details with sky background, fading towards horizon
+            vec3 finalColor = mix(skyColor, skyCloudColor, (gridStrength + dustCloud) * max(h, 0.0));
             
             gl_FragColor = vec4(finalColor, 1.0);
         }

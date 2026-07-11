@@ -11,7 +11,8 @@ window.SporeTower = class SporeTower {
         this.disabledTimer = 0; // EMP stun status timer
 
         const worldPos = gridToWorld(x, z);
-        this.position = new THREE.Vector3(worldPos.x, 0, worldPos.z);
+        const terrainY = window.getTerrainHeight ? window.getTerrainHeight(worldPos.x, worldPos.z) : 0;
+        this.position = new THREE.Vector3(worldPos.x, terrainY, worldPos.z);
 
         this.mesh = this.buildMesh();
         this.mesh.position.copy(this.position);

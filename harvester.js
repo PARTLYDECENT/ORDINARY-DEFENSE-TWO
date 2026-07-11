@@ -315,6 +315,9 @@
                     break;
             }
 
+            if (window.getTerrainHeight) {
+                this.mesh.position.y = window.getTerrainHeight(this.mesh.position.x, this.mesh.position.z) + 0.12;
+            }
             // Sync coordinate positions for safety
             this.position.copy(this.mesh.position);
         }

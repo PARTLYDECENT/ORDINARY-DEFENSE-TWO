@@ -1,6 +1,55 @@
 (function() {
     window.faunaObjects = [];
 
+    // Helper to create a swirling dust devil (Mars) using an optimized PointCloud
+    function createDustDevil() {
+        const particleCount = 200;
+        const geometry = new THREE.BufferGeometry();
+        
+        const positions = new Float32Array(particleCount * 3);
+        const velocities = new Float32Array(particleCount);
+        const originalOffsets = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            const ratio = i / particleCount;
+            // Giant funnel shape
+            const height = ratio * 12.0;
+            const radius = 0.2 + ratio * 3.8;
+            const angle = Math.random() * Math.PI * 2;
+            
+            positions[i * 3] = Math.cos(angle) * radius;
+            positions[i * 3 + 1] = height;
+            positions[i * 3 + 2] = Math.sin(angle) * radius;
+            
+            originalOffsets[i * 3] = angle;
+            originalOffsets[i * 3 + 1] = radius;
+            originalOffsets[i * 3 + 2] = height;
+            
+            velocities[i] = 1.8 + Math.random() * 2.5;
+        }
+        
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const material = new THREE.PointsMaterial({
+            color: 0xa74125, // deep rusty orange
+            size: 0.2,
+            transparent: true,
+            opacity: 0.65,
+            blending: THREE.NormalBlending
+        });
+        
+        const points = new THREE.Points(geometry, material);
+        points.name = 'dustDevil';
+        points.userData = {
+            velocities,
+            originalOffsets,
+            particleCount,
+            timeOffset: Math.random() * 100
+        };
+        
+        return points;
+    }
+
     // Helper to create a micro recon drone model (Jungle)
     function createReconDrone() {
         const group = new THREE.Group();
@@ -39,49 +88,113 @@
     }
     window.createReconDrone = createReconDrone;
 
-    // Helper to create an automated tracked rover model (Desert)
+    // Helper to create an automated tracked rover model (Desert & Mars)
     function createTrackedRover() {
         const group = new THREE.Group();
         group.name = 'trackedRover';
         
-        // Chassis center body
-        const bodyGeo = new THREE.BoxGeometry(0.18, 0.08, 0.22);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x92400e, metalness: 0.7, roughness: 0.35 }); // amber/rust yellow
+        // 1. Heavy industrial main chassis
+        const bodyGeo = new THREE.BoxGeometry(0.2, 0.07, 0.24);
+        const bodyMat = new THREE.MeshStandardMaterial({ 
+            color: 0xc2410c, // Deep Martian orange-red steel
+            metalness: 0.8, 
+            roughness: 0.35 
+        });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.position.y = 0.06;
+        body.position.y = 0.055;
         body.castShadow = true;
         group.add(body);
 
-        // Left caterpillar tread plate
-        const treadLGeo = new THREE.BoxGeometry(0.03, 0.09, 0.24);
-        const treadMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.85 }); // black tread
-        const treadL = new THREE.Mesh(treadLGeo, treadMat);
-        treadL.position.set(-0.1, 0.045, 0);
-        treadL.castShadow = true;
-        group.add(treadL);
+        // 2. Cabin cabin cap (Sloped armor plate)
+        const cabGeo = new THREE.BoxGeometry(0.13, 0.05, 0.14);
+        const cabMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.85, roughness: 0.2 });
+        const cab = new THREE.Mesh(cabGeo, cabMat);
+        cab.position.set(0, 0.1, -0.02);
+        cab.rotation.x = -0.15; // slightly sloped windshield
+        cab.castShadow = true;
+        group.add(cab);
 
-        // Right caterpillar tread plate
-        const treadR = new THREE.Mesh(treadLGeo, treadMat);
-        treadR.position.set(0.1, 0.045, 0);
-        treadR.castShadow = true;
-        group.add(treadR);
+        // 3. Front reinforced bumper grill
+        const bumperGeo = new THREE.BoxGeometry(0.18, 0.035, 0.035);
+        const bumperMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.9, roughness: 0.1 });
+        const bumper = new THREE.Mesh(bumperGeo, bumperMat);
+        bumper.position.set(0, 0.035, 0.125);
+        group.add(bumper);
 
-        // Rotating sensor scanner dome on top
+        // 4. Detailed caterpillar tread systems (left & right)
+        const treadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.95 }); // dark carbon rubber tread
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 }); // metallic wheels
+        const treadLGeo = new THREE.BoxGeometry(0.032, 0.082, 0.26);
+
+        // Cylindrical gears inside treads
+        const gearGeo = new THREE.CylinderGeometry(0.038, 0.038, 0.045, 8);
+        gearGeo.rotateZ(Math.PI/2);
+
+        for (let side of [-1, 1]) {
+            const treadGroup = new THREE.Group();
+            treadGroup.position.x = side * 0.12;
+
+            // Outer tread loop
+            const tread = new THREE.Mesh(treadLGeo, treadMat);
+            tread.position.y = 0.041;
+            tread.castShadow = true;
+            treadGroup.add(tread);
+
+            // Three gears inside tread
+            for (let zOffset of [-0.09, 0, 0.09]) {
+                const gear = new THREE.Mesh(gearGeo, wheelMat);
+                gear.position.set(0, 0.038, zOffset);
+                gear.castShadow = true;
+                treadGroup.add(gear);
+            }
+
+            group.add(treadGroup);
+        }
+
+        // 5. Dual glowing yellow headlights in front
+        const lightGeo = new THREE.CylinderGeometry(0.015, 0.022, 0.032, 8);
+        lightGeo.rotateX(Math.PI / 2);
+        const emissiveYellow = new THREE.MeshBasicMaterial({ color: 0xfde047 }); // bright yellow LED
+        
+        const headlightL = new THREE.Mesh(lightGeo, emissiveYellow);
+        headlightL.position.set(-0.06, 0.075, 0.12);
+        group.add(headlightL);
+
+        const headlightR = headlightL.clone();
+        headlightR.position.x = 0.06;
+        group.add(headlightR);
+
+        // 6. Rotating sensor scanner dome on top
         const domeGroup = new THREE.Group();
         domeGroup.name = 'scannerDome';
-        domeGroup.position.set(0, 0.1, 0);
+        domeGroup.position.set(0, 0.12, 0.01);
 
-        const domeGeo = new THREE.SphereGeometry(0.06, 6, 6, 0, Math.PI*2, 0, Math.PI/2);
-        const domeMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.85 });
+        const domeGeo = new THREE.SphereGeometry(0.05, 8, 8, 0, Math.PI*2, 0, Math.PI/2);
+        const domeMat = new THREE.MeshStandardMaterial({ color: 0x111827, metalness: 0.95 });
         const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.castShadow = true;
         domeGroup.add(dome);
 
-        // Scanner lens
-        const eyeGeo = new THREE.BoxGeometry(0.04, 0.025, 0.02);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xeab308 }); // glowing amber lens scanner
-        const eye = new THREE.Mesh(eyeGeo, eyeMat);
-        eye.position.set(0, 0.03, 0.055);
-        domeGroup.add(eye);
+        // Dual scanner lens
+        const eyeGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.02, 6);
+        eyeGeo.rotateX(Math.PI / 2);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf97316 }); // glowing orange lens scanner
+        
+        const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeL.position.set(-0.018, 0.02, 0.045);
+        domeGroup.add(eyeL);
+
+        const eyeR = eyeL.clone();
+        eyeR.position.x = 0.018;
+        domeGroup.add(eyeR);
+
+        // Scanner antenna
+        const antennaGeo = new THREE.CylinderGeometry(0.003, 0.003, 0.16, 4);
+        const antenna = new THREE.Mesh(antennaGeo, wheelMat);
+        antenna.position.set(0, 0.09, -0.02);
+        antenna.rotation.x = -0.18; // angled back
+        domeGroup.add(antenna);
+
         group.add(domeGroup);
 
         return group;
@@ -264,6 +377,21 @@
                         changeTimer: Math.random() * 2.0
                     };
                 }
+            } else if (biomeName === 'mars') {
+                if (i < 4) { // Limit to exactly 4 giant dust storms
+                    type = 'dustDevil';
+                    mesh = createDustDevil();
+                    mesh.position.set(rx, 0, rz);
+                } else {
+                    type = 'bug';
+                    mesh = createTrackedRover();
+                    mesh.position.set(rx, 0.01, rz);
+                }
+                mesh.userData = {
+                    velX: (Math.random() - 0.5) * 1.5,
+                    velZ: (Math.random() - 0.5) * 1.5,
+                    changeTimer: Math.random() * 2.0
+                };
             } else if (biomeName === 'glacial') {
                 type = 'snow'; // Keep name 'snow' to reuse loop block safely
                 mesh = createGlacialBeacon();
@@ -311,7 +439,7 @@
         window.faunaObjects.forEach(obj => {
             scene.remove(obj);
             obj.traverse(child => {
-                if (child.isMesh) {
+                if (child.isMesh || child.isPoints) {
                     if (child.geometry) child.geometry.dispose();
                     if (child.material) {
                         if (Array.isArray(child.material)) {
@@ -332,7 +460,40 @@
 
         window.faunaObjects.forEach(obj => {
             const data = obj.userData;
-            if (data.type === 'firefly') {
+            if (data.type === 'dustDevil') {
+                // Swirl and drift dust devils
+                obj.position.x += Math.sin(time * 0.4 + data.uniqueId) * 0.02;
+                obj.position.z += Math.cos(time * 0.3 + data.uniqueId) * 0.02;
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(obj.position.x, obj.position.z) : 0;
+                obj.position.y = terrainHeight + 0.1;
+
+                // Spin the PointCloud particles
+                const points = obj;
+                const posAttr = points.geometry.attributes.position;
+                const velocities = points.userData.velocities;
+                const originalOffsets = points.userData.originalOffsets;
+                const count = points.userData.particleCount;
+                const stormTime = time * 0.8 + points.userData.timeOffset;
+                
+                for (let i = 0; i < count; i++) {
+                    const originalAngle = originalOffsets[i * 3];
+                    const radius = originalOffsets[i * 3 + 1];
+                    const height = originalOffsets[i * 3 + 2];
+                    const spinSpeed = velocities[i];
+                    
+                    const newAngle = originalAngle + stormTime * spinSpeed;
+                    
+                    posAttr.setX(i, Math.cos(newAngle) * radius);
+                    posAttr.setY(i, height + Math.sin(stormTime * 1.5 + i) * 0.15);
+                    posAttr.setZ(i, Math.sin(newAngle) * radius);
+                }
+                posAttr.needsUpdate = true;
+
+                if (obj.position.x < -bound) obj.position.x = bound;
+                if (obj.position.x > bound) obj.position.x = -bound;
+                if (obj.position.z < -bound) obj.position.z = bound;
+                if (obj.position.z > bound) obj.position.z = -bound;
+            } else if (data.type === 'firefly') {
                 // Drone rotor spin
                 const blades = obj.getObjectByName('blades');
                 if (blades) {
@@ -378,6 +539,8 @@
 
                 obj.position.x += data.velX * dt;
                 obj.position.z += data.velZ * dt;
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(obj.position.x, obj.position.z) : 0;
+                obj.position.y = terrainHeight + 0.01;
 
                 const angle = Math.atan2(data.velX, data.velZ);
                 obj.rotation.y = angle;
@@ -422,6 +585,8 @@
 
                 obj.position.x += data.velX * dt;
                 obj.position.z += data.velZ * dt;
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(obj.position.x, obj.position.z) : 0;
+                obj.position.y = terrainHeight + 0.01;
 
                 // Orientation angle matching movement direction
                 const angle = Math.atan2(data.velX, data.velZ);
@@ -446,6 +611,8 @@
 
                 obj.position.x += data.velX * dt;
                 obj.position.z += data.velZ * dt;
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(obj.position.x, obj.position.z) : 0;
+                obj.position.y = terrainHeight + 0.01;
 
                 const angle = Math.atan2(data.velX, data.velZ);
                 obj.rotation.y = angle;

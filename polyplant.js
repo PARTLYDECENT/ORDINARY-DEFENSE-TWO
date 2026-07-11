@@ -68,7 +68,8 @@
                ? window.gridToWorld(x, z)
                 : { x: (x - CONFIG.spawn.baseX) * 2 + 1, z: (z - CONFIG.spawn.baseZ) * 2 + 1 };
 
-            this.position = new THREE.Vector3(wPos.x, 0, wPos.z);
+            const terrainY = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
+            this.position = new THREE.Vector3(wPos.x, terrainY, wPos.z);
 
             this.mesh = this.#buildMesh();
             this.mesh.position.copy(this.position);
@@ -76,7 +77,7 @@
             this.scene.add(this.mesh);
 
             this.light = new THREE.PointLight(CONFIG.color.emissive, CONFIG.light.intensity, CONFIG.light.distance);
-            this.light.position.set(this.position.x, CONFIG.light.height, this.position.z);
+            this.light.position.set(this.position.x, terrainY + CONFIG.light.height, this.position.z);
             this.scene.add(this.light);
         }
 

@@ -127,6 +127,95 @@
             scene.add(snowMesh);
             window.floraInstancedMeshes.push(blockMesh, snowMesh);
 
+        } else if (biomeName === 'mars') {
+            // 4 sub-meshes for a highly detailed basalt cluster
+            const colGeo = new THREE.CylinderGeometry(0.08, 0.12, 1.0, 6);
+            colGeo.translate(0, 0.5, 0); // Shift origin to base of column
+            const basaltMat = new THREE.MeshStandardMaterial({ 
+                color: 0x3d201b, // dusty Martian basalt color
+                roughness: 0.9, 
+                metalness: 0.15,
+                flatShading: true 
+            });
+
+            const col1Mesh = new THREE.InstancedMesh(colGeo, basaltMat, count);
+            col1Mesh.castShadow = true;
+            col1Mesh.receiveShadow = true;
+
+            const col2Mesh = new THREE.InstancedMesh(colGeo, basaltMat, count);
+            col2Mesh.castShadow = true;
+            col2Mesh.receiveShadow = true;
+
+            const col3Mesh = new THREE.InstancedMesh(colGeo, basaltMat, count);
+            col3Mesh.castShadow = true;
+            col3Mesh.receiveShadow = true;
+
+            const crystalGeo = new THREE.OctahedronGeometry(0.075, 0);
+            const crystalMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffcca3, // matches light tint
+                emissive: 0xf97316, // glowing orange
+                emissiveIntensity: 1.0,
+                roughness: 0.1,
+                metalness: 0.8
+            });
+            const crystalMesh = new THREE.InstancedMesh(crystalGeo, crystalMat, count);
+            crystalMesh.castShadow = true;
+
+            for (let i = 0; i < count; i++) {
+                const t = transforms[i];
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(t.x, t.z) : 0;
+
+                // Column 1: Central vertical column
+                dummy.position.set(t.x, terrainHeight, t.z);
+                dummy.rotation.set(0.06 * Math.sin(t.x), t.rotY, 0.06 * Math.cos(t.z));
+                dummy.scale.set(t.scale, t.scale * 1.5, t.scale);
+                dummy.updateMatrix();
+                col1Mesh.setMatrixAt(i, dummy.matrix);
+
+                // Column 2: Leaning side column
+                dummy.position.set(0, 0, 0);
+                dummy.rotation.set(0.24, 0.0, 0.14);
+                dummy.scale.set(0.72, 0.85, 0.72);
+                dummy.updateMatrix();
+                
+                const m2 = new THREE.Matrix4().copy(dummy.matrix);
+                dummy.position.set(t.x, terrainHeight, t.z);
+                dummy.rotation.set(0.06 * Math.sin(t.x), t.rotY, 0.06 * Math.cos(t.z));
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                dummy.matrix.multiply(m2);
+                col2Mesh.setMatrixAt(i, dummy.matrix);
+
+                // Column 3: Secondary offset column
+                dummy.position.set(0, 0, 0);
+                dummy.rotation.set(-0.16, 0.0, -0.22);
+                dummy.scale.set(0.68, 0.68, 0.68);
+                dummy.updateMatrix();
+                
+                const m3 = new THREE.Matrix4().copy(dummy.matrix);
+                dummy.position.set(t.x, terrainHeight, t.z);
+                dummy.rotation.set(0.06 * Math.sin(t.x), t.rotY, 0.06 * Math.cos(t.z));
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                dummy.matrix.multiply(m3);
+                col3Mesh.setMatrixAt(i, dummy.matrix);
+
+                // Crystal: Glowing core floating in the center fork
+                dummy.position.set(0, 0.72 * t.scale, 0);
+                dummy.position.applyEuler(new THREE.Euler(0.06 * Math.sin(t.x), t.rotY, 0.06 * Math.cos(t.z)));
+                dummy.position.add(new THREE.Vector3(t.x, terrainHeight, t.z));
+                dummy.rotation.set(t.rotY, t.rotY * 0.5, 0);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                crystalMesh.setMatrixAt(i, dummy.matrix);
+            }
+
+            scene.add(col1Mesh);
+            scene.add(col2Mesh);
+            scene.add(col3Mesh);
+            scene.add(crystalMesh);
+            window.floraInstancedMeshes.push(col1Mesh, col2Mesh, col3Mesh, crystalMesh);
+
         } else if (biomeName === 'desert') {
             // 1 sub-mesh: trap beams (3 instances per trap)
             const beamGeo = new THREE.BoxGeometry(0.04, 0.04, 0.45);
