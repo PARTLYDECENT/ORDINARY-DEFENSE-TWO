@@ -220,7 +220,10 @@
 
             // The SDF will be rendered on this plane.
             // The plane acts as a "viewport" for the raymarched zombie.
-            const geometry = new THREE.PlaneGeometry(3, 3); 
+            if (!window.ZombieGeometryCache) {
+                window.ZombieGeometryCache = new THREE.PlaneGeometry(3, 3);
+            }
+            const geometry = window.ZombieGeometryCache;
             const material = new THREE.ShaderMaterial({
                 vertexShader: sdfVertexShader,
                 fragmentShader: sdfFragmentShader,
@@ -239,13 +242,13 @@
             group.add(sdfPlane);
 
             // Add HP bar from parent, but adjust position for the new mesh
-            const barBackGeo = new THREE.PlaneGeometry(0.7, 0.08);
+            const barBackGeo = typeof ENEMY_GEOMS !== 'undefined' ? ENEMY_GEOMS.scarab.barBack : new THREE.PlaneGeometry(0.7, 0.08);
             const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
             this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
             this.hpBack.position.y = 2.8; // Position above the SDF plane
             group.add(this.hpBack);
 
-            const barFillGeo = new THREE.PlaneGeometry(0.7, 0.08);
+            const barFillGeo = typeof ENEMY_GEOMS !== 'undefined' ? ENEMY_GEOMS.scarab.barFill : new THREE.PlaneGeometry(0.7, 0.08);
             this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
             this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
             this.hpFill.position.set(0, 2.8, 0.01);

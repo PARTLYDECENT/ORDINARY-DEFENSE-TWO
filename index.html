@@ -254,9 +254,15 @@
                         <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Steep canyons</div>
                     </div>
                 </div>
+
+                <!-- Load Snapshot Button -->
+                <button onclick="triggerMenuSnapshotUpload()" class="mt-4 pointer-events-auto px-6 py-2.5 bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-500/40 text-cyan-400 font-bold orbitron text-xs rounded-xl hover:border-cyan-400 hover:bg-cyan-900 transition-all shadow-lg active:scale-95 flex items-center gap-2">
+                    <i class="fa-solid fa-upload"></i> UPLOAD SNAPSHOT (.JSON)
+                </button>
             </div>
         </div>
     </div>
+    <input type="file" id="load-map-input" accept=".json" class="hidden">
 
     <!-- Space Flight Mode HUD (initially hidden) -->
     <div id="space-flight-hud" class="hidden absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6 bg-black/30">
@@ -396,6 +402,13 @@
             <div id="campaign-container" class="blur-panel rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl ml-2 transition-all duration-300">
                 <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold"><i class="fa-solid fa-rocket mr-1 text-[10px]"></i> Campaign</span>
                 <button id="campaign-select-btn" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded px-2.5 py-1 text-xs font-bold text-white orbitron cursor-pointer transition-all active:scale-95">SELECT MISSION</button>
+            </div>
+
+            <!-- Map Snapshot Panel -->
+            <div id="snapshot-container" class="blur-panel rounded-xl px-4 py-2 flex items-center gap-3 shadow-2xl ml-2 transition-all duration-300">
+                <span class="text-xs text-emerald-500 uppercase tracking-widest block font-semibold"><i class="fa-solid fa-download mr-1 text-[10px]"></i> Snapshot</span>
+                <button id="save-map-btn" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded px-2.5 py-1 text-xs font-bold text-white orbitron cursor-pointer transition-all active:scale-95">SAVE</button>
+                <button id="load-map-btn" class="bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 rounded px-2.5 py-1 text-xs font-bold text-white orbitron cursor-pointer transition-all active:scale-95">LOAD</button>
             </div>
 
             <!-- Space Flight Mode Panel -->
@@ -1135,6 +1148,47 @@
         /* ==========================================
            REAL-TIME DIJKSTRA SDF PATHFINDING
            ========================================== */
+        // ====== Binary Min-Heap for Dijkstra (zero-allocation) ======
+        const _heapX = new Int32Array(1700);
+        const _heapZ = new Int32Array(1700);
+        const _heapD = new Float64Array(1700);
+        let _heapSize = 0;
+
+        function _heapPush(x, z, d) {
+            let i = _heapSize++;
+            _heapX[i] = x; _heapZ[i] = z; _heapD[i] = d;
+            while (i > 0) {
+                const p = (i - 1) >> 1;
+                if (_heapD[p] <= _heapD[i]) break;
+                // swap
+                let tx = _heapX[i], tz = _heapZ[i], td = _heapD[i];
+                _heapX[i] = _heapX[p]; _heapZ[i] = _heapZ[p]; _heapD[i] = _heapD[p];
+                _heapX[p] = tx; _heapZ[p] = tz; _heapD[p] = td;
+                i = p;
+            }
+        }
+
+        function _heapPop() {
+            const rx = _heapX[0], rz = _heapZ[0];
+            _heapSize--;
+            if (_heapSize > 0) {
+                _heapX[0] = _heapX[_heapSize]; _heapZ[0] = _heapZ[_heapSize]; _heapD[0] = _heapD[_heapSize];
+                let i = 0;
+                while (true) {
+                    let smallest = i;
+                    const l = 2 * i + 1, r = 2 * i + 2;
+                    if (l < _heapSize && _heapD[l] < _heapD[smallest]) smallest = l;
+                    if (r < _heapSize && _heapD[r] < _heapD[smallest]) smallest = r;
+                    if (smallest === i) break;
+                    let tx = _heapX[i], tz = _heapZ[i], td = _heapD[i];
+                    _heapX[i] = _heapX[smallest]; _heapZ[i] = _heapZ[smallest]; _heapD[i] = _heapD[smallest];
+                    _heapX[smallest] = tx; _heapZ[smallest] = tz; _heapD[smallest] = td;
+                    i = smallest;
+                }
+            }
+            return { x: rx, z: rz };
+        }
+
         function computeSDF() {
             // Step 1: Initialize all values to Infinity
             for (let x = 0; x < GRID_SIZE; x++) {
@@ -1146,75 +1200,99 @@
             // Step 2: Set the Destination (Base Crystal) to distance 0
             sdfGrid[BASE_COORD.x][BASE_COORD.z] = 0;
 
-            // Step 3: Dijkstra BFS queue
-            let queue = [{ x: BASE_COORD.x, z: BASE_COORD.z }];
+            // Step 3: Dijkstra with binary min-heap
+            _heapSize = 0;
+            _heapPush(BASE_COORD.x, BASE_COORD.z, 0);
 
-            const neighbors = [
-                { dx: 1, dz: 0, cost: 1.0 },
-                { dx: -1, dz: 0, cost: 1.0 },
-                { dx: 0, dz: 1, cost: 1.0 },
-                { dx: 0, dz: -1, cost: 1.0 },
-                // Diagonal moves for smoother paths
-                { dx: 1, dz: 1, cost: 1.414 },
-                { dx: -1, dz: -1, cost: 1.414 },
-                { dx: 1, dz: -1, cost: 1.414 },
-                { dx: -1, dz: 1, cost: 1.414 }
-            ];
+            while (_heapSize > 0) {
+                const curr = _heapPop();
+                const currDist = sdfGrid[curr.x][curr.z];
+                const neighbors = window.Translator.getNeighbors8(curr.x, curr.z);
 
-            while (queue.length > 0) {
-                // Find node with minimum current distance in queue
-                let minIdx = 0;
-                for (let i = 1; i < queue.length; i++) {
-                    if (sdfGrid[queue[i].x][queue[i].z] < sdfGrid[queue[minIdx].x][queue[minIdx].z]) {
-                        minIdx = i;
+                for (let i = 0; i < neighbors.length; i++) {
+                    const n = neighbors[i];
+                    const nx = n.x;
+                    const nz = n.z;
+
+                    // Avoid towers and obstacles
+                    if (grid[nx][nz] === CELL_TYPES.OBSTACLE || grid[nx][nz] === CELL_TYPES.TOWER || grid[nx][nz] === CELL_TYPES.LAKE) {
+                        continue;
                     }
-                }
-                let curr = queue.splice(minIdx, 1)[0];
 
-                for (let n of neighbors) {
-                    let nx = curr.x + n.dx;
-                    let nz = curr.z + n.dz;
-
-                    // Bound checks
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        // Avoid towers and obstacles
-                        if (grid[nx][nz] === CELL_TYPES.OBSTACLE || grid[nx][nz] === CELL_TYPES.TOWER || grid[nx][nz] === CELL_TYPES.LAKE) {
-                            continue;
-                        }
-
-                        let targetDist = sdfGrid[curr.x][curr.z] + n.cost;
-                        if (targetDist < sdfGrid[nx][nz]) {
-                            sdfGrid[nx][nz] = targetDist;
-                            queue.push({ x: nx, z: nz });
-                        }
+                    const targetDist = currDist + n.cost;
+                    if (targetDist < sdfGrid[nx][nz]) {
+                        sdfGrid[nx][nz] = targetDist;
+                        _heapPush(nx, nz, targetDist);
                     }
                 }
             }
             updateSDFRadar();
         }
 
+        // Pre-allocated flat arrays for BFS reachability check
+        const _bfsVisited = new Uint8Array(GRID_SIZE * GRID_SIZE);
+        const _bfsQueueX = new Int32Array(GRID_SIZE * GRID_SIZE);
+        const _bfsQueueZ = new Int32Array(GRID_SIZE * GRID_SIZE);
+
         // Test if a temporary block would break the paths from Spawns to Base
         function validatePathways(tempX, tempZ) {
-            // Save state
-            const orig = grid[tempX][tempZ];
-            grid[tempX][tempZ] = CELL_TYPES.TOWER;
+            // Clear visited
+            _bfsVisited.fill(0);
 
-            // Run localized dry-run computation
-            computeSDF();
+            // BFS flood-fill from base, treating tempX/tempZ as blocked
+            let head = 0, tail = 0;
+            _bfsQueueX[tail] = BASE_COORD.x;
+            _bfsQueueZ[tail] = BASE_COORD.z;
+            _bfsVisited[BASE_COORD.x * GRID_SIZE + BASE_COORD.z] = 1;
+            tail++;
 
-            let viable = true;
-            for (let spawn of SPAWN_POINTS) {
-                if (sdfGrid[spawn.x][spawn.z] === Infinity) {
-                    viable = false;
-                    break;
+            while (head < tail) {
+                const cx = _bfsQueueX[head];
+                const cz = _bfsQueueZ[head];
+                head++;
+
+                const neighbors = window.Translator.getNeighbors8(cx, cz);
+                for (let i = 0; i < neighbors.length; i++) {
+                    const n = neighbors[i];
+                    const nx = n.x, nz = n.z;
+                    const idx = nx * GRID_SIZE + nz;
+
+                    if (_bfsVisited[idx]) continue;
+
+                    // Treat the candidate cell as blocked
+                    if (nx === tempX && nz === tempZ) continue;
+
+                    const cell = grid[nx][nz];
+                    if (cell === CELL_TYPES.OBSTACLE || cell === CELL_TYPES.TOWER || cell === CELL_TYPES.LAKE) continue;
+
+                    _bfsVisited[idx] = 1;
+                    _bfsQueueX[tail] = nx;
+                    _bfsQueueZ[tail] = nz;
+                    tail++;
                 }
             }
 
-            // Restore state
-            grid[tempX][tempZ] = orig;
-            computeSDF(); // Recalculate original
+            // Check all spawn points are reachable
+            for (let i = 0; i < SPAWN_POINTS.length; i++) {
+                if (!_bfsVisited[SPAWN_POINTS[i].x * GRID_SIZE + SPAWN_POINTS[i].z]) {
+                    return false;
+                }
+            }
+            return true;
+        }
 
-            return viable;
+        function getNextSDFStep(cx, cz) {
+            const neighbors = window.Translator.getNeighbors8(cx, cz);
+            let bestStep = { x: cx, z: cz };
+            let bestDist = sdfGrid[cx][cz];
+            for (let i = 0; i < neighbors.length; i++) {
+                const n = neighbors[i];
+                if (sdfGrid[n.x][n.z] < bestDist) {
+                    bestDist = sdfGrid[n.x][n.z];
+                    bestStep = n;
+                }
+            }
+            return bestStep;
         }
 
         /* ==========================================
@@ -1378,6 +1456,106 @@
 
         const scene = new THREE.Scene();
         window.projectileInstancer = new ProjectileInstancer(scene);
+
+        // Global Geometry Cache for high performance (zero allocations at runtime)
+        const ENEMY_GEOMS = {};
+        function initEnemyGeometries() {
+            ENEMY_GEOMS.scarab = {
+                shell: new THREE.DodecahedronGeometry(0.35, 1),
+                neon: new THREE.BoxGeometry(0.1, 0.38, 0.5),
+                leg: new THREE.BoxGeometry(0.08, 0.4, 0.08),
+                barBack: new THREE.PlaneGeometry(0.7, 0.08),
+                barFill: new THREE.PlaneGeometry(0.7, 0.08)
+            };
+            ENEMY_GEOMS.ant = {
+                abdomen: new THREE.SphereGeometry(0.24, 6, 6),
+                thorax: new THREE.SphereGeometry(0.16, 6, 6),
+                head: new THREE.SphereGeometry(0.18, 6, 6),
+                neon: new THREE.BoxGeometry(0.06, 0.1, 0.25),
+                leg: new THREE.BoxGeometry(0.05, 0.35, 0.05),
+                barBack: new THREE.PlaneGeometry(0.55, 0.06),
+                barFill: new THREE.PlaneGeometry(0.55, 0.06)
+            };
+            ENEMY_GEOMS.golem = {
+                body: new THREE.DodecahedronGeometry(0.5, 0),
+                neon: new THREE.BoxGeometry(0.2, 0.1, 0.6),
+                leg: new THREE.CylinderGeometry(0.12, 0.12, 0.5, 5),
+                barBack: new THREE.PlaneGeometry(0.8, 0.08),
+                barFill: new THREE.PlaneGeometry(0.8, 0.08)
+            };
+            ENEMY_GEOMS.wasp = {
+                abdomen: new THREE.ConeGeometry(0.18, 0.8, 5),
+                thorax: new THREE.SphereGeometry(0.15, 6, 6),
+                head: new THREE.SphereGeometry(0.14, 6, 6),
+                neon: new THREE.BoxGeometry(0.04, 0.08, 0.2),
+                wing: new THREE.BoxGeometry(0.4, 0.02, 0.15),
+                barBack: new THREE.PlaneGeometry(0.5, 0.06),
+                barFill: new THREE.PlaneGeometry(0.5, 0.06)
+            };
+            ENEMY_GEOMS.carrier = {
+                abdomen: new THREE.SphereGeometry(0.3, 8, 8),
+                thorax: new THREE.SphereGeometry(0.2, 6, 6),
+                head: new THREE.SphereGeometry(0.18, 6, 6),
+                pod: new THREE.SphereGeometry(0.1, 5, 5),
+                leg: new THREE.BoxGeometry(0.06, 0.4, 0.06),
+                barBack: new THREE.PlaneGeometry(0.7, 0.07),
+                barFill: new THREE.PlaneGeometry(0.7, 0.07)
+            };
+            ENEMY_GEOMS.ufo = {
+                body: new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10),
+                dome: new THREE.SphereGeometry(0.24, 8, 8, 0, Math.PI*2, 0, Math.PI/2),
+                thrust: new THREE.CylinderGeometry(0.15, 0.2, 0.1, 8),
+                cone: new THREE.ConeGeometry(0.35, 1.8, 8, 1, true),
+                barBack: new THREE.PlaneGeometry(0.8, 0.08),
+                barFill: new THREE.PlaneGeometry(0.8, 0.08)
+            };
+            ENEMY_GEOMS.stealth = {
+                shell: new THREE.OctahedronGeometry(0.3, 1),
+                visor: new THREE.BoxGeometry(0.12, 0.03, 0.03),
+                leg: new THREE.BoxGeometry(0.04, 0.35, 0.04),
+                barBack: new THREE.PlaneGeometry(0.55, 0.07),
+                barFill: new THREE.PlaneGeometry(0.55, 0.07)
+            };
+            ENEMY_GEOMS.ram = {
+                chassis: new THREE.BoxGeometry(0.55, 0.45, 0.65),
+                power: new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6),
+                shield: new THREE.BoxGeometry(0.16, 0.6, 0.45),
+                leg: new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6),
+                barBack: new THREE.PlaneGeometry(0.9, 0.09),
+                barFill: new THREE.PlaneGeometry(0.9, 0.09)
+            };
+            ENEMY_GEOMS.scout = {
+                jet: new THREE.ConeGeometry(0.24, 0.85, 4),
+                visor: new THREE.BoxGeometry(0.08, 0.02, 0.02),
+                thruster: new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6),
+                barBack: new THREE.PlaneGeometry(0.6, 0.07),
+                barFill: new THREE.PlaneGeometry(0.6, 0.07)
+            };
+            ENEMY_GEOMS.spike = new THREE.ConeGeometry(0.05, 0.25, 4);
+            
+            // Pre-rotate/scale cached geometries where needed
+            ENEMY_GEOMS.ram.power.rotateX(Math.PI/2);
+            ENEMY_GEOMS.scout.jet.rotateX(Math.PI/2);
+            ENEMY_GEOMS.scout.jet.scale(1.8, 0.35, 1.0);
+            ENEMY_GEOMS.scout.thruster.rotateX(Math.PI/2);
+        }
+        initEnemyGeometries();
+
+        function disposeEnemyMaterials(mesh) {
+            if (!mesh) return;
+            mesh.traverse(child => {
+                if (child.isMesh) {
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
+        }
+
         // Foggy Dark Jungle Atmosphere
         scene.background = new THREE.Color(0x010803);
         scene.fog = new THREE.FogExp2(0x010803, 0.02);
@@ -1530,7 +1708,7 @@
             if (!tier || tier === 1) return;
             const color = tier === 3 ? 0xd946ef : 0x22c55e; // Magenta for Tier 3, Green for Tier 2
             const spikeMat = new THREE.MeshBasicMaterial({ color: color });
-            const spikeGeo = new THREE.ConeGeometry(0.05, 0.25, 4);
+            const spikeGeo = ENEMY_GEOMS.spike;
 
             if (tier === 2) {
                 const horn = new THREE.Mesh(spikeGeo, spikeMat);
@@ -2536,8 +2714,9 @@
                         }
                         if (isSpawnZone) continue;
 
-                        // Obstacle density probability (9%)
-                        if (Math.random() < 0.09) {
+                        // Obstacle density probability (9% general, 3% on Mars)
+                        const density = (typeof gameState !== 'undefined' && gameState.currentBiome === 'mars') ? 0.03 : 0.09;
+                        if (Math.random() < density) {
                             grid[x][z] = CELL_TYPES.OBSTACLE;
                         }
                     }
@@ -2586,16 +2765,12 @@
 
                     if (gameState.currentBiome === 'mars') {
                         const r = Math.random();
-                        if (r < 0.2) {
+                        if (r < 0.25) {
                             model = createMartianColumn();
-                        } else if (r < 0.4) {
+                        } else if (r < 0.5) {
                             model = createMartianBoulder();
-                        } else if (r < 0.6) {
-                            model = createCarbonIceVent();
                         } else if (r < 0.75) {
-                            model = createMartianFort();
-                        } else if (r < 0.9) {
-                            model = createScrapBarricade();
+                            model = createCarbonIceVent();
                         } else {
                             model = createMartianLog();
                         }
@@ -2873,7 +3048,7 @@
             obstacleMeshes.length = 0;
         }
 
-        function loadBiome(biomeName) {
+        function loadBiome(biomeName, isRestoringSnapshot = false, onCompleteCallback = null) {
             if (!BIOMES[biomeName]) return;
             console.log(`[Biome Engine] Loading Biome: ${biomeName}`);
             
@@ -3075,7 +3250,9 @@
             });
 
             sequencer.enqueue("2/5 CALCULATING COGNITIVE ENVIRONMENT GRID", () => {
-                generateObstacleLayoutGrid();
+                if (!isRestoringSnapshot) {
+                    generateObstacleLayoutGrid();
+                }
                 return true;
             });
 
@@ -3103,6 +3280,9 @@
             sequencer.start(() => {
                 console.log(`[Biome Engine] Biome loaded smooth sequencing: ${biomeName}`);
                 showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'desert' ? 'yellow' : biomeName === 'mars' ? 'orange' : 'green');
+                if (onCompleteCallback) {
+                    onCompleteCallback();
+                }
             });
         }
 
@@ -4626,7 +4806,7 @@
                 const group = new THREE.Group();
 
                 // Scarab outer hard shell (Low Poly Capsule style)
-                const shellGeo = new THREE.DodecahedronGeometry(0.35, 1);
+                const shellGeo = ENEMY_GEOMS.scarab.shell;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x0f172a,
                     roughness: 0.1,
@@ -4639,7 +4819,7 @@
                 group.add(shell);
 
                 // Bioluminescent pattern under shell (glowing segment)
-                const neonGeo = new THREE.BoxGeometry(0.1, 0.38, 0.5);
+                const neonGeo = ENEMY_GEOMS.scarab.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
                 const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
                 neonStrip.position.y = 0.1;
@@ -4647,7 +4827,7 @@
 
                 // 6 segmented spider/insect legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.08, 0.4, 0.08);
+                const legGeo = ENEMY_GEOMS.scarab.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -4663,13 +4843,13 @@
                 }
 
                 // Add simple HP bar floating above
-                const barBackGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                const barBackGeo = ENEMY_GEOMS.scarab.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.0;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                const barFillGeo = ENEMY_GEOMS.scarab.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.0, 0.01);
@@ -4716,6 +4896,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4806,31 +4987,7 @@
 
             // Inspect 8-directional neighbors and walk towards the lowest SDF value
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 },
-                    { dx: -1, dz: 0 },
-                    { dx: 0, dz: 1 },
-                    { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 },
-                    { dx: -1, dz: -1 },
-                    { dx: 1, dz: -1 },
-                    { dx: -1, dz: 1 }
-                ];
-
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -4885,7 +5042,7 @@
                 });
 
                 // 1. Abdomen
-                const abGeo = new THREE.SphereGeometry(0.24, 6, 6);
+                const abGeo = ENEMY_GEOMS.ant.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.position.set(0, 0, -0.35);
                 abdomen.scale.set(1, 0.8, 1.4);
@@ -4893,7 +5050,7 @@
                 group.add(abdomen);
 
                 // 2. Thorax
-                const thGeo = new THREE.SphereGeometry(0.16, 6, 6);
+                const thGeo = ENEMY_GEOMS.ant.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0);
                 thorax.scale.set(0.9, 0.9, 1.1);
@@ -4901,14 +5058,14 @@
                 group.add(thorax);
 
                 // 3. Head
-                const hdGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                const hdGeo = ENEMY_GEOMS.ant.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.3);
                 head.castShadow = true;
                 group.add(head);
 
                 // Bioluminescent strip (thorax top)
-                const neonGeo = new THREE.BoxGeometry(0.06, 0.1, 0.25);
+                const neonGeo = ENEMY_GEOMS.ant.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xf97316 }); // Orange neon
                 const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
                 neonStrip.position.set(0, 0.2, 0);
@@ -4916,7 +5073,7 @@
 
                 // Ant legs (6 legs)
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.05, 0.35, 0.05);
+                const legGeo = ENEMY_GEOMS.ant.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -4932,13 +5089,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                const barBackGeo = ENEMY_GEOMS.ant.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.7;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                const barFillGeo = ENEMY_GEOMS.ant.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xe11d48 }); // Red HP fill
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.7, 0.01);
@@ -4984,6 +5141,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -5060,23 +5218,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -5130,14 +5272,14 @@
                     flatShading: true
                 });
 
-                const bodyGeo = new THREE.DodecahedronGeometry(0.5, 0);
+                const bodyGeo = ENEMY_GEOMS.golem.body;
                 const body = new THREE.Mesh(bodyGeo, this.bodyMat);
                 body.scale.set(1.1, 0.9, 1.2);
                 body.castShadow = true;
                 group.add(body);
 
                 // Magma glows
-                const neonGeo = new THREE.BoxGeometry(0.2, 0.1, 0.6);
+                const neonGeo = ENEMY_GEOMS.golem.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xea580c }); // Magma orange
                 const magma = new THREE.Mesh(neonGeo, this.neonMat);
                 magma.position.set(0, 0.45, 0);
@@ -5145,7 +5287,7 @@
 
                 // 4 thick stubby legs
                 this.legs = [];
-                const legGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.5, 5);
+                const legGeo = ENEMY_GEOMS.golem.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
                 
                 const legOffsets = [
@@ -5164,13 +5306,13 @@
                 });
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barBackGeo = ENEMY_GEOMS.golem.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.3;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barFillGeo = ENEMY_GEOMS.golem.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xea580c });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.3, 0.01);
@@ -5216,6 +5358,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -5293,23 +5436,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -5363,7 +5490,7 @@
                 });
 
                 // Abdomen
-                const abGeo = new THREE.ConeGeometry(0.18, 0.8, 5);
+                const abGeo = ENEMY_GEOMS.wasp.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.rotation.x = -Math.PI / 3;
                 abdomen.position.set(0, 0, -0.3);
@@ -5371,27 +5498,27 @@
                 group.add(abdomen);
 
                 // Thorax
-                const thGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const thGeo = ENEMY_GEOMS.wasp.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0.1);
                 thorax.castShadow = true;
                 group.add(thorax);
 
                 // Head
-                const hdGeo = new THREE.SphereGeometry(0.14, 6, 6);
+                const hdGeo = ENEMY_GEOMS.wasp.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.25);
                 group.add(head);
 
                 // Glowing yellow stripe
-                const neonGeo = new THREE.BoxGeometry(0.04, 0.08, 0.2);
+                const neonGeo = ENEMY_GEOMS.wasp.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
                 const neon = new THREE.Mesh(neonGeo, this.neonMat);
                 neon.position.set(0, 0.2, 0.1);
                 group.add(neon);
 
                 // Wing Left
-                const wingGeo = new THREE.BoxGeometry(0.4, 0.02, 0.15);
+                const wingGeo = ENEMY_GEOMS.wasp.wing;
                 const wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
                 
                 this.wingL = new THREE.Mesh(wingGeo, wingMat);
@@ -5406,13 +5533,13 @@
                 group.add(this.wingR);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.5, 0.06);
+                const barBackGeo = ENEMY_GEOMS.wasp.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.8;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.5, 0.06);
+                const barFillGeo = ENEMY_GEOMS.wasp.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.8, 0.01);
@@ -5458,6 +5585,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -5535,23 +5663,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -5606,7 +5718,7 @@
                 });
 
                 // Abdomen
-                const abGeo = new THREE.SphereGeometry(0.3, 8, 8);
+                const abGeo = ENEMY_GEOMS.carrier.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.scale.set(1.1, 1.0, 1.5);
                 abdomen.position.set(0, 0, -0.3);
@@ -5614,20 +5726,20 @@
                 group.add(abdomen);
 
                 // Thorax
-                const thGeo = new THREE.SphereGeometry(0.2, 6, 6);
+                const thGeo = ENEMY_GEOMS.carrier.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0.15);
                 thorax.castShadow = true;
                 group.add(thorax);
 
                 // Head
-                const hdGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                const hdGeo = ENEMY_GEOMS.carrier.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.4);
                 group.add(head);
 
                 // Spore pods
-                const podGeo = new THREE.SphereGeometry(0.1, 5, 5);
+                const podGeo = ENEMY_GEOMS.carrier.pod;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 
                 const pod1 = new THREE.Mesh(podGeo, this.neonMat);
@@ -5644,7 +5756,7 @@
 
                 // Legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.06, 0.4, 0.06);
+                const legGeo = ENEMY_GEOMS.carrier.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -5660,13 +5772,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.7, 0.07);
+                const barBackGeo = ENEMY_GEOMS.carrier.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.0;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.7, 0.07);
+                const barFillGeo = ENEMY_GEOMS.carrier.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.0, 0.01);
@@ -5719,6 +5831,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -5796,23 +5909,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -5859,7 +5956,7 @@
                 const group = new THREE.Group();
 
                 // 1. Saucer body (Flattened Cylinder)
-                const bodyGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10);
+                const bodyGeo = ENEMY_GEOMS.ufo.body;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x334155,
                     roughness: 0.1,
@@ -5871,7 +5968,7 @@
                 group.add(saucer);
 
                 // 2. Glass Dome
-                const domeGeo = new THREE.SphereGeometry(0.24, 8, 8, 0, Math.PI*2, 0, Math.PI/2);
+                const domeGeo = ENEMY_GEOMS.ufo.dome;
                 const domeMat = new THREE.MeshStandardMaterial({
                     color: 0x0284c7,
                     transparent: true,
@@ -5884,14 +5981,14 @@
                 group.add(dome);
 
                 // 3. Central Thruster
-                const thrustGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.1, 8);
+                const thrustGeo = ENEMY_GEOMS.ufo.thrust;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
                 const thruster = new THREE.Mesh(thrustGeo, this.neonMat);
                 thruster.position.y = -0.08;
                 group.add(thruster);
 
                 // 4. Downward glowing tractor beam visual (Translucent Cone)
-                const coneGeo = new THREE.ConeGeometry(0.35, 1.8, 8, 1, true);
+                const coneGeo = ENEMY_GEOMS.ufo.cone;
                 const coneMat = new THREE.MeshBasicMaterial({
                     color: 0xa855f7,
                     transparent: true,
@@ -5904,13 +6001,13 @@
                 group.add(beam);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barBackGeo = ENEMY_GEOMS.ufo.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.6;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barFillGeo = ENEMY_GEOMS.ufo.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.6, 0.01);
@@ -5956,6 +6053,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -6095,7 +6193,7 @@
                 const group = new THREE.Group();
 
                 // Stealth cloaked shell (highly translucent)
-                const shellGeo = new THREE.OctahedronGeometry(0.3, 1);
+                const shellGeo = ENEMY_GEOMS.stealth.shell;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x6b21a8,
                     transparent: true,
@@ -6109,7 +6207,7 @@
                 group.add(shell);
 
                 // Small purple glowing visor lens
-                const visorGeo = new THREE.BoxGeometry(0.12, 0.03, 0.03);
+                const visorGeo = ENEMY_GEOMS.stealth.visor;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.8 });
                 const visor = new THREE.Mesh(visorGeo, this.neonMat);
                 visor.position.set(0, 0.05, 0.25);
@@ -6117,7 +6215,7 @@
 
                 // 6 thin insect legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.04, 0.35, 0.04);
+                const legGeo = ENEMY_GEOMS.stealth.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, roughness: 0.5, transparent: true, opacity: 0.25 });
                 for (let i = 0; i < 6; i++) {
                     const leg = new THREE.Mesh(legGeo, legMat);
@@ -6131,13 +6229,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.55, 0.07);
+                const barBackGeo = ENEMY_GEOMS.stealth.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.8;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.55, 0.07);
+                const barFillGeo = ENEMY_GEOMS.stealth.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.8, 0.01);
@@ -6177,6 +6275,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -6253,23 +6352,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -6309,7 +6392,7 @@
                 group.scale.set(1.4, 1.4, 1.4);
 
                 // Heavy walker chassis box
-                const chassisGeo = new THREE.BoxGeometry(0.55, 0.45, 0.65);
+                const chassisGeo = ENEMY_GEOMS.ram.chassis;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x3f3f46,
                     roughness: 0.25,
@@ -6320,8 +6403,7 @@
                 group.add(chassis);
 
                 // Bioluminescent charging power cell
-                const powerGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6);
-                powerGeo.rotateX(Math.PI/2);
+                const powerGeo = ENEMY_GEOMS.ram.power;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xeab308 }); // glowing amber
                 const cell = new THREE.Mesh(powerGeo, this.neonMat);
                 cell.position.y = 0.26;
@@ -6329,7 +6411,7 @@
 
                 // Dual Heavy Front Shields
                 const shieldMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.95, roughness: 0.15 });
-                const shieldGeo = new THREE.BoxGeometry(0.16, 0.6, 0.45);
+                const shieldGeo = ENEMY_GEOMS.ram.shield;
                 const shieldL = new THREE.Mesh(shieldGeo, shieldMat);
                 shieldL.position.set(-0.35, 0.05, 0.22);
                 shieldL.rotation.y = 0.2;
@@ -6342,7 +6424,7 @@
 
                 // 4 heavy thick hydraulic legs
                 this.legs = [];
-                const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6);
+                const legGeo = ENEMY_GEOMS.ram.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.8 });
                 for (let i = 0; i < 4; i++) {
                     const leg = new THREE.Mesh(legGeo, legMat);
@@ -6356,13 +6438,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.9, 0.09);
+                const barBackGeo = ENEMY_GEOMS.ram.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.9;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.9, 0.09);
+                const barFillGeo = ENEMY_GEOMS.ram.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xeab308 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.9, 0.01);
@@ -6403,6 +6485,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -6479,23 +6562,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -6533,9 +6600,7 @@
                 const group = new THREE.Group();
 
                 // Delta wing jet design
-                const jetGeo = new THREE.ConeGeometry(0.24, 0.85, 4);
-                jetGeo.rotateX(Math.PI / 2);
-                jetGeo.scale(1.8, 0.35, 1.0);
+                const jetGeo = ENEMY_GEOMS.scout.jet;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x064e3b,
                     metalness: 0.82,
@@ -6546,15 +6611,14 @@
                 group.add(jet);
 
                 // Mini green glow visor/lens
-                const visorGeo = new THREE.BoxGeometry(0.08, 0.02, 0.02);
+                const visorGeo = ENEMY_GEOMS.scout.visor;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 const visor = new THREE.Mesh(visorGeo, this.neonMat);
                 visor.position.set(0, 0.04, 0.42);
                 group.add(visor);
 
                 // Back green exhaust thrusters
-                const thrusterGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6);
-                thrusterGeo.rotateX(Math.PI/2);
+                const thrusterGeo = ENEMY_GEOMS.scout.thruster;
                 const thrustMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 const thrustL = new THREE.Mesh(thrusterGeo, thrustMat);
                 thrustL.position.set(-0.15, -0.02, -0.42);
@@ -6565,13 +6629,13 @@
                 group.add(thrustR);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.6, 0.07);
+                const barBackGeo = ENEMY_GEOMS.scout.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.5;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.6, 0.07);
+                const barFillGeo = ENEMY_GEOMS.scout.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.5, 0.01);
@@ -6611,6 +6675,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -6678,36 +6743,68 @@
         class ParticleSystem {
             constructor() {
                 this.activeParticles = [];
+                this.inactiveParticles = [];
                 
-                // Pooled mesh elements
-                this.geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-                this.smokeGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+                // Shared unit box geometry (to scale particles dynamically)
+                this.sharedGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+
+                // Pre-allocate a pool of particles to prevent allocations at runtime
+                for (let i = 0; i < 400; i++) {
+                    this.inactiveParticles.push(this.createParticleObject());
+                }
+            }
+
+            createParticleObject() {
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const mesh = new THREE.Mesh(this.sharedGeo, mat);
+                const vel = new THREE.Vector3();
+                return {
+                    mesh: mesh,
+                    vel: vel,
+                    life: 0,
+                    maxLife: 0,
+                    type: 'explosion',
+                    active: false
+                };
             }
 
             spawnExplosion(pos, colorHex, count) {
-                const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
                 for (let i = 0; i < count; i++) {
-                    const mesh = new THREE.Mesh(this.geo, mat.clone());
-                    mesh.position.copy(pos);
-                    mesh.position.x += (Math.random() - 0.5) * 0.4;
-                    mesh.position.y += (Math.random() - 0.5) * 0.4;
-                    mesh.position.z += (Math.random() - 0.5) * 0.4;
+                    let p = null;
+                    if (this.inactiveParticles.length > 0) {
+                        p = this.inactiveParticles.pop();
+                    } else {
+                        p = this.createParticleObject();
+                    }
 
-                    const velocity = new THREE.Vector3(
+                    p.active = true;
+                    p.type = 'explosion';
+                    
+                    const life = 0.6 + Math.random() * 0.4;
+                    p.life = life;
+                    p.maxLife = life;
+
+                    p.vel.set(
                         (Math.random() - 0.5) * 6,
                         Math.random() * 5 + 1.5,
                         (Math.random() - 0.5) * 6
                     );
 
-                    scene.add(mesh);
-                    const life = 0.6 + Math.random()*0.4;
-                    this.activeParticles.push({
-                        mesh: mesh,
-                        vel: velocity,
-                        life: life,
-                        maxLife: life,
-                        type: 'explosion'
-                    });
+                    p.mesh.position.copy(pos);
+                    p.mesh.position.x += (Math.random() - 0.5) * 0.4;
+                    p.mesh.position.y += (Math.random() - 0.5) * 0.4;
+                    p.mesh.position.z += (Math.random() - 0.5) * 0.4;
+
+                    p.mesh.scale.set(0.12, 0.12, 0.12);
+                    p.mesh.material.color.setHex(colorHex);
+                    p.mesh.material.opacity = 0.85;
+
+                    scene.add(p.mesh);
+                    this.activeParticles.push(p);
                 }
             }
 
@@ -6716,26 +6813,33 @@
             }
 
             spawnSmoke(pos) {
-                // Realistic expanding and fading smoke particle
-                const mat = new THREE.MeshBasicMaterial({ color: 0xd1d5db, transparent: true, opacity: 0.45 });
-                const mesh = new THREE.Mesh(this.smokeGeo, mat);
-                mesh.position.copy(pos);
+                let p = null;
+                if (this.inactiveParticles.length > 0) {
+                    p = this.inactiveParticles.pop();
+                } else {
+                    p = this.createParticleObject();
+                }
 
-                const velocity = new THREE.Vector3(
+                p.active = true;
+                p.type = 'smoke';
+
+                const life = 0.4 + Math.random() * 0.3;
+                p.life = life;
+                p.maxLife = life;
+
+                p.vel.set(
                     (Math.random() - 0.5) * 0.8,
-                    Math.random() * 0.5 + 0.35, // slowly float upwards
+                    Math.random() * 0.5 + 0.35,
                     (Math.random() - 0.5) * 0.8
                 );
 
-                scene.add(mesh);
-                const life = 0.4 + Math.random() * 0.3;
-                this.activeParticles.push({
-                    mesh: mesh,
-                    vel: velocity,
-                    life: life,
-                    maxLife: life,
-                    type: 'smoke'
-                });
+                p.mesh.position.copy(pos);
+                p.mesh.scale.set(0.16, 0.16, 0.16);
+                p.mesh.material.color.setHex(0xd1d5db); // smoke grey
+                p.mesh.material.opacity = 0.45;
+
+                scene.add(p.mesh);
+                this.activeParticles.push(p);
             }
 
             update(dt) {
@@ -6744,18 +6848,18 @@
                     p.life -= dt;
                     if (p.life <= 0) {
                         scene.remove(p.mesh);
-                        if (p.mesh.material) p.mesh.material.dispose();
+                        p.active = false;
                         this.activeParticles.splice(i, 1);
+                        this.inactiveParticles.push(p);
                     } else {
                         if (p.type === 'smoke') {
                             p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(1.025); // expand slightly
+                            p.mesh.scale.multiplyScalar(1.025);
                             p.mesh.material.opacity = (p.life / p.maxLife) * 0.45;
                         } else {
-                            // Gravity & Drag physics
-                            p.vel.y -= 9.8 * dt; // gravity
+                            p.vel.y -= 9.8 * dt;
                             p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(0.96); // slowly shrink
+                            p.mesh.scale.multiplyScalar(0.96);
                             p.mesh.material.opacity = (p.life / p.maxLife) * 0.85;
                         }
                     }
@@ -6911,50 +7015,57 @@
 
                 // Handle changes in cell coordinate hovering
                 if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
-                    hoverGridCoord = gridPos;
-                    const wPos = gridToWorld(gridPos.x, gridPos.z);
-                    const previewY = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
-                    holographicPreview.position.set(wPos.x, previewY, wPos.z);
+                    if (hoverGridCoord.x !== gridPos.x || hoverGridCoord.z !== gridPos.z || window.lastBuildModeState !== buildModeActive || window.lastActiveBuildType !== activeBuildType) {
+                        hoverGridCoord = gridPos;
+                        window.lastBuildModeState = buildModeActive;
+                        window.lastActiveBuildType = activeBuildType;
 
-                    if (buildModeActive) {
-                        holographicPreview.visible = true;
-                        
-                        let allowed = false;
-                        if (activeBuildType === 'argon_harvester') {
-                            allowed = grid[gridPos.x][gridPos.z] === CELL_TYPES.LAKE;
-                        } else {
-                            const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
-                            let validPath = false;
-                            if (cellEmpty) {
-                                validPath = validatePathways(gridPos.x, gridPos.z);
-                            }
+                        const wPos = gridToWorld(gridPos.x, gridPos.z);
+                        const previewY = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
+                        holographicPreview.position.set(wPos.x, previewY, wPos.z);
 
-                            let nearLake = true;
-                            if (activeBuildType === 'water_pump') {
-                                nearLake = false;
-                                const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
-                                for (let d of checkDirs) {
-                                    let nx = gridPos.x + d.dx;
-                                    let nz = gridPos.z + d.dz;
-                                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                                        if (grid[nx][nz] === CELL_TYPES.LAKE) {
-                                            nearLake = true;
-                                            break;
+                        if (buildModeActive) {
+                            holographicPreview.visible = true;
+                            
+                            let allowed = false;
+                            if (activeBuildType === 'argon_harvester') {
+                                allowed = grid[gridPos.x][gridPos.z] === CELL_TYPES.LAKE;
+                            } else {
+                                const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
+                                let validPath = false;
+                                if (cellEmpty) {
+                                    validPath = validatePathways(gridPos.x, gridPos.z);
+                                }
+
+                                let nearLake = true;
+                                if (activeBuildType === 'water_pump') {
+                                    nearLake = false;
+                                    const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
+                                    for (let d of checkDirs) {
+                                        let nx = gridPos.x + d.dx;
+                                        let nz = gridPos.z + d.dz;
+                                        if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                                            if (grid[nx][nz] === CELL_TYPES.LAKE) {
+                                                nearLake = true;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
+                                allowed = cellEmpty && validPath && nearLake;
                             }
-                            allowed = cellEmpty && validPath && nearLake;
+                            setHologramColor(allowed);
+                        } else {
+                            holographicPreview.visible = false;
                         }
-                        setHologramColor(allowed);
-                    } else {
-                        holographicPreview.visible = false;
                     }
                 } else {
                     holographicPreview.visible = false;
+                    hoverGridCoord = { x: -1, z: -1 };
                 }
             } else {
                 holographicPreview.visible = false;
+                hoverGridCoord = { x: -1, z: -1 };
             }
         });
 
@@ -7420,20 +7531,59 @@
 
             if (window.CampaignManager && window.CampaignManager.isActive) {
                 const mission = window.CampaignManager.missions[window.CampaignManager.currentMissionIndex];
-                const waveSpawns = mission.waves[gameState.wave - 1];
-                if (waveSpawns) {
-                    waveSpawns.forEach(spawnDef => {
-                        for (let i = 0; i < spawnDef.count; i++) {
-                            const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
-                            waveSpawnQueue.push({
-                                x: spawn.x,
-                                z: spawn.z,
-                                type: spawnDef.type
-                            });
-                            numEnemies++;
-                        }
-                    });
+                let waveSpawns = mission.waves[gameState.wave - 1];
+                
+                // Procedural survival wave generation if we exceed hardcoded waves
+                if (!waveSpawns) {
+                    const biomePools = {
+                        jungle: ['scarab', 'ant', 'wasp'],
+                        desert: ['scarab', 'ant', 'wasp', 'ufo', 'golem'],
+                        glacial: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier'],
+                        volcanic: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'],
+                        mars: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout']
+                    };
+                    const enemyCosts = {
+                        scarab: 1.0,
+                        ant: 1.5,
+                        wasp: 2.0,
+                        ufo: 3.0,
+                        golem: 4.0,
+                        stealth: 3.5,
+                        ram: 5.0,
+                        carrier: 6.0,
+                        scout: 4.5
+                    };
+                    
+                    const pool = biomePools[mission.biome] || biomePools.jungle;
+                    const waveIndex = gameState.wave;
+                    let remainingBudget = 15 + waveIndex * 7;
+                    const spawns = {};
+                    
+                    while (remainingBudget >= 1.0) {
+                        const affordable = pool.filter(type => enemyCosts[type] <= remainingBudget);
+                        if (affordable.length === 0) break;
+                        const type = affordable[Math.floor(Math.random() * affordable.length)];
+                        spawns[type] = (spawns[type] || 0) + 1;
+                        remainingBudget -= enemyCosts[type];
+                    }
+                    
+                    waveSpawns = Object.keys(spawns).map(type => ({
+                        type: type,
+                        count: spawns[type]
+                    }));
                 }
+
+                waveSpawns.forEach(spawnDef => {
+                    for (let i = 0; i < spawnDef.count; i++) {
+                        const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
+                        waveSpawnQueue.push({
+                            x: spawn.x,
+                            z: spawn.z,
+                            type: spawnDef.type
+                        });
+                        numEnemies++;
+                    }
+                });
             } else {
                  numEnemies = 4 + gameState.wave * 2;
                  for (let i = 0; i < numEnemies; i++) {
@@ -7507,6 +7657,228 @@
             // Check auto wave triggers if enabled
             if (gameState.autoStartWave) {
                 setTimeout(startWave, 2500);
+            }
+        }
+
+        /* ==========================================
+           MAP SNAPSHOT CONTROLLERS
+           ========================================== */
+        window.triggerMenuSnapshotUpload = function() {
+            document.getElementById('load-map-input').click();
+        };
+
+        function saveMapSnapshot() {
+            const snapshot = {
+                version: "1.0",
+                savedAt: new Date().toISOString(),
+                gameState: {
+                    gold: gameState.gold,
+                    health: gameState.health,
+                    wave: gameState.wave,
+                    score: gameState.score,
+                    gameSpeed: gameState.gameSpeed,
+                    currentBiome: gameState.currentBiome,
+                    food: gameState.food,
+                    water: gameState.water,
+                    power: gameState.power,
+                    collectedFood: gameState.collectedFood,
+                    baseTier: gameState.baseTier
+                },
+                campaign: {
+                    isActive: window.CampaignManager ? window.CampaignManager.isActive : false,
+                    currentMissionIndex: window.CampaignManager ? window.CampaignManager.currentMissionIndex : 0
+                },
+                grid: JSON.parse(JSON.stringify(grid)),
+                towers: towers.map(t => ({
+                    gridX: t.gridX,
+                    gridZ: t.gridZ,
+                    type: t.type,
+                    level: t.level
+                })),
+                polyplants: (window.polyplants || []).map(p => ({
+                    gridX: p.gridX,
+                    gridZ: p.gridZ,
+                    scale: p.scale
+                }))
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snapshot, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `map_snapshot_${gameState.currentBiome}_wave_${gameState.wave}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            showToast("Map snapshot saved successfully!", "green");
+            if (audio && typeof audio.playBuild === 'function') audio.playBuild();
+        }
+
+        function loadMapSnapshot(snapshot) {
+            try {
+                if (!snapshot || snapshot.version !== "1.0" || !snapshot.gameState || !snapshot.grid) {
+                    showToast("Invalid snapshot file!", "red");
+                    if (audio && typeof audio.playDenied === 'function') audio.playDenied();
+                    return;
+                }
+
+                if (gameState.inMenu) {
+                    const menuContainer = document.getElementById('main-menu-container');
+                    if (menuContainer) {
+                        menuContainer.classList.add('opacity-0', 'pointer-events-none');
+                        setTimeout(() => menuContainer.remove(), 1200);
+                    }
+                    
+                    const uiContainer = document.getElementById('ui-container');
+                    if (uiContainer) uiContainer.classList.remove('hidden');
+                    
+                    gameState.inMenu = false;
+                    if (typeof clearMenuBackground === 'function') clearMenuBackground();
+                    if (typeof startCameraTransition === 'function') startCameraTransition();
+                }
+
+                gameState.isWaveActive = false;
+                const waveBtn = document.getElementById('wave-btn');
+                if (waveBtn) {
+                    waveBtn.disabled = false;
+                    waveBtn.classList.remove('opacity-50', 'pointer-events-none');
+                }
+                const waveDesc = document.getElementById('wave-desc');
+                if (waveDesc) waveDesc.innerText = `Ready to Engage`;
+
+                enemies.forEach(e => { if (e.mesh) scene.remove(e.mesh); });
+                enemies.length = 0;
+                
+                projectiles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
+                projectiles.length = 0;
+
+                if (typeof particles !== 'undefined' && particles.activeParticles) {
+                    particles.activeParticles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
+                    particles.activeParticles.length = 0;
+                }
+
+                towers.forEach(t => {
+                    if (t.scarab && typeof t.scarab.destroy === 'function') {
+                        t.scarab.destroy();
+                    }
+                    if (t.drones) {
+                        t.drones.forEach(d => {
+                            if (d.mesh) scene.remove(d.mesh);
+                        });
+                    }
+                    if (t.mesh) {
+                        scene.remove(t.mesh);
+                    }
+                });
+                towers.length = 0;
+
+                if (window.clearPolyplants) window.clearPolyplants();
+
+                gameState.gold = snapshot.gameState.gold;
+                gameState.health = snapshot.gameState.health;
+                gameState.wave = snapshot.gameState.wave;
+                gameState.score = snapshot.gameState.score;
+                gameState.gameSpeed = snapshot.gameState.gameSpeed || 1.0;
+                gameState.currentBiome = snapshot.gameState.currentBiome;
+                gameState.food = snapshot.gameState.food !== undefined ? snapshot.gameState.food : 100;
+                gameState.water = snapshot.gameState.water !== undefined ? snapshot.gameState.water : 100;
+                gameState.power = snapshot.gameState.power !== undefined ? snapshot.gameState.power : 100;
+                gameState.collectedFood = snapshot.gameState.collectedFood !== undefined ? snapshot.gameState.collectedFood : 0;
+                gameState.baseTier = snapshot.gameState.baseTier !== undefined ? snapshot.gameState.baseTier : 1;
+
+                if (window.CampaignManager && snapshot.campaign) {
+                    window.CampaignManager.isActive = snapshot.campaign.isActive;
+                    window.CampaignManager.currentMissionIndex = snapshot.campaign.currentMissionIndex;
+                    
+                    const selectEl = document.getElementById('biome-select');
+                    if (selectEl) {
+                        if (window.CampaignManager.isActive) {
+                            selectEl.disabled = true;
+                            selectEl.classList.add('opacity-50', 'pointer-events-none');
+                        } else {
+                            selectEl.disabled = false;
+                            selectEl.classList.remove('opacity-50', 'pointer-events-none');
+                        }
+                    }
+                }
+
+                if (typeof deselectTower === 'function') deselectTower();
+
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        grid[x][z] = snapshot.grid[x][z];
+                    }
+                }
+
+                loadBiome(gameState.currentBiome, true, () => {
+                    if (snapshot.towers) {
+                        snapshot.towers.forEach(tInfo => {
+                            grid[tInfo.gridX][tInfo.gridZ] = CELL_TYPES.TOWER;
+
+                            let newTower;
+                            if (tInfo.type === 'supertower') {
+                                newTower = new SuperTower(tInfo.gridX, tInfo.gridZ);
+                            } else if (tInfo.type === 'argon_harvester') {
+                                newTower = new ArgonHarvester(tInfo.gridX, tInfo.gridZ);
+                            } else {
+                                newTower = new SporeTower(tInfo.gridX, tInfo.gridZ, tInfo.type);
+                            }
+
+                            if (tInfo.level === 2) {
+                                newTower.level = 2;
+                                newTower.specs = { ...TOWER_SPECS[newTower.type].upgraded };
+
+                                if (newTower.turretHead && newTower.turretHead.children[0] && newTower.turretHead.children[0].material) {
+                                    newTower.turretHead.children[0].material.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.pulseCore && newTower.pulseCore.material) {
+                                    newTower.pulseCore.material.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.chestLight) {
+                                    newTower.chestLight.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.shards) {
+                                    newTower.shards.forEach(coil => {
+                                        if (coil.material) coil.material.color.setHex(newTower.specs.bulletColor);
+                                    });
+                                }
+                                if (newTower.muzzleFlash) newTower.muzzleFlash.color.setHex(newTower.specs.bulletColor);
+                                if (newTower.muzzleFlashMesh && newTower.muzzleFlashMesh.material) {
+                                    newTower.muzzleFlashMesh.material.color.setHex(newTower.specs.bulletColor);
+                                }
+                            }
+                            towers.push(newTower);
+                        });
+                    }
+
+                    if (snapshot.polyplants && window.Polyplant) {
+                        snapshot.polyplants.forEach(pData => {
+                            const plant = new window.Polyplant(scene, pData.gridX, pData.gridZ);
+                            plant.scale = pData.scale;
+                            if (plant.mesh) plant.mesh.scale.setScalar(pData.scale);
+                            window.polyplants.push(plant);
+                        });
+                    }
+
+                    if (typeof rebuildBase === 'function') {
+                        rebuildBase();
+                    }
+
+                    computeSDF();
+                    updateStatsUI();
+                    if (window.updateSurvivalHUD) window.updateSurvivalHUD();
+
+                    const biomeSelect = document.getElementById('biome-select');
+                    if (biomeSelect) biomeSelect.value = gameState.currentBiome;
+
+                    showToast("Map snapshot restored successfully!", "green");
+                    if (audio && typeof audio.playBuild === 'function') audio.playBuild();
+                });
+
+            } catch (err) {
+                console.error("Error restoring snapshot:", err);
+                showToast("Failed to restore snapshot!", "red");
+                if (audio && typeof audio.playDenied === 'function') audio.playDenied();
             }
         }
 
@@ -7863,6 +8235,35 @@
                 soundBtn.classList.remove('text-emerald-400');
                 soundBtn.classList.add('text-red-400');
             }
+        });
+
+        // Map Snapshot Event Handlers
+        document.getElementById('save-map-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            saveMapSnapshot();
+        });
+
+        document.getElementById('load-map-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('load-map-input').click();
+        });
+
+        document.getElementById('load-map-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const snapshot = JSON.parse(evt.target.result);
+                    loadMapSnapshot(snapshot);
+                } catch (err) {
+                    showToast("Invalid JSON file!", "red");
+                    if (audio && typeof audio.playDenied === 'function') audio.playDenied();
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
         });
 
         function checkGameOver() {
@@ -9501,18 +9902,7 @@
             if (window.odyseeModelTemplate) {
                 shipMesh = window.odyseeModelTemplate.clone();
             } else {
-                shipMesh = new THREE.Group();
-                const bodyGeo = new THREE.ConeGeometry(0.6, 2.5, 5);
-                bodyGeo.rotateX(Math.PI / 2);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.1 });
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
-                shipMesh.add(body);
-
-                const wingGeo = new THREE.BoxGeometry(2.0, 0.08, 0.6);
-                const wingMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, metalness: 0.8, roughness: 0.2 });
-                const wings = new THREE.Mesh(wingGeo, wingMat);
-                wings.position.set(0, -0.1, -0.4);
-                shipMesh.add(wings);
+                shipMesh = createProceduralSpaceShip({ type: 'player' });
             }
 
             const thrusterLight = new THREE.PointLight(0x06b6d4, 2.0, 5.0);
@@ -9581,32 +9971,94 @@
             showFlightToast("ORBIT SECTOR REACHED: ENGINE SYSTEMS ONLINE", "cyan");
         };
 
+        function createProceduralSpaceShip(options = {}) {
+            const type = options.type || 'pirate';
+            const scale = options.scale || (type === 'player' ? 1.3 : 0.85 + Math.random() * 0.65);
+            const palette = type === 'player'
+                ? { body: 0x8dd3ff, accent: 0x06b6d4, glow: 0x38bdf8 }
+                : { body: Math.min(0xffffff, 0xe11d48 + Math.floor(Math.random() * 0x002200)), accent: 0xf97316, glow: 0xff6f61 };
+
+            const ship = new THREE.Group();
+            ship.castShadow = true;
+
+            const bodyShape = Math.random() < 0.5 ? 'box' : 'cylinder';
+            let body;
+            if (bodyShape === 'box') {
+                const bodyGeo = new THREE.BoxGeometry(1.9 * scale, 0.34 * scale, 0.72 * scale);
+                body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({
+                    color: palette.body,
+                    metalness: 0.9,
+                    roughness: 0.18,
+                    emissive: 0x000000
+                }));
+            } else {
+                const bodyGeo = new THREE.CylinderGeometry(0.28 * scale, 0.24 * scale, 1.8 * scale, 10, 1, true);
+                bodyGeo.rotateX(Math.PI / 2);
+                body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({
+                    color: palette.body,
+                    metalness: 0.9,
+                    roughness: 0.18,
+                    emissive: 0x000000
+                }));
+            }
+            body.castShadow = true;
+            ship.add(body);
+
+            const noseGeo = new THREE.ConeGeometry(0.28 * scale, 0.7 * scale, 10);
+            noseGeo.rotateX(Math.PI / 2);
+            const nose = new THREE.Mesh(noseGeo, new THREE.MeshStandardMaterial({
+                color: palette.accent,
+                metalness: 0.95,
+                roughness: 0.1,
+                emissive: palette.glow * 0.25
+            }));
+            nose.position.set(0, 0, 0.98 * scale);
+            nose.castShadow = true;
+            ship.add(nose);
+
+            const wingMat = new THREE.MeshStandardMaterial({ color: palette.accent, metalness: 0.85, roughness: 0.18 });
+            const wing = new THREE.Mesh(new THREE.BoxGeometry(1.55 * scale, 0.06 * scale, 0.28 * scale), wingMat);
+            wing.position.set(0, -0.08 * scale, 0.0);
+            ship.add(wing);
+
+            const rearWing = wing.clone();
+            rearWing.scale.set(0.75, 1.0, 0.85);
+            rearWing.position.set(0, 0.02 * scale, -0.68 * scale);
+            ship.add(rearWing);
+
+            if (Math.random() > 0.35) {
+                const finGeo = new THREE.BoxGeometry(0.14 * scale, 0.45 * scale, 0.07 * scale);
+                const fin = new THREE.Mesh(finGeo, wingMat);
+                fin.position.set(0, 0.22 * scale, -0.2 * scale);
+                ship.add(fin);
+            }
+
+            const engineBody = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * scale, 0.2 * scale, 0.5 * scale, 8), new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                metalness: 0.75,
+                roughness: 0.24
+            }));
+            engineBody.rotateX(Math.PI / 2);
+            engineBody.position.set(0, 0, -1.0 * scale);
+            ship.add(engineBody);
+
+            const engineGlow = new THREE.PointLight(palette.glow, type === 'player' ? 2.4 : 1.4, 6 * scale);
+            engineGlow.position.set(0, 0, -1.25 * scale);
+            ship.add(engineGlow);
+
+            return ship;
+        }
+
         function spawnSpacePirate() {
             if (!window.spaceFlightGroup) return;
-            const pirateGroup = new THREE.Group();
-            
-            const coneGeo = new THREE.ConeGeometry(0.5, 2.0, 4);
-            coneGeo.rotateX(Math.PI / 2);
-            const cone = new THREE.Mesh(coneGeo, new THREE.MeshStandardMaterial({
-                color: 0xe11d48,
-                metalness: 0.8,
-                roughness: 0.2
-            }));
-            pirateGroup.add(cone);
-
-            const wings = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.5), new THREE.MeshStandardMaterial({ color: 0xf97316 }));
-            wings.position.set(0, -0.1, -0.3);
-            pirateGroup.add(wings);
-
-            const engineGlow = new THREE.PointLight(0xef4444, 1.5, 4);
-            engineGlow.position.set(0, 0, -1.2);
-            pirateGroup.add(engineGlow);
+            const pirateGroup = createProceduralSpaceShip({ type: 'pirate' });
 
             const angle = Math.random() * Math.PI * 2;
             const dist = 75 + Math.random() * 150;
             const px = Math.sin(angle) * dist;
             const pz = Math.cos(angle) * dist;
             pirateGroup.position.set(px, 0, pz);
+            pirateGroup.rotation.y = Math.random() * Math.PI * 2;
 
             window.spaceFlightGroup.add(pirateGroup);
             window.spacePirates.push({
@@ -10287,12 +10739,13 @@
 
         // === BOOT ENTRY POINT ===
         window.onload = function() {
-            runCRTBoot(() => {
-                initMenuBackground();
-                updateStatsUI();
-                animate();
-                if (typeof initAnimatedFavicon === 'function') initAnimatedFavicon();
-            });
+            // Skip CRT boot animation — load immediately
+            const crtLoader = document.getElementById('crt-loader');
+            if (crtLoader) { crtLoader.style.display = 'none'; }
+            initMenuBackground();
+            updateStatsUI();
+            animate();
+            if (typeof initAnimatedFavicon === 'function') initAnimatedFavicon();
         };
 
     </script>

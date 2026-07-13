@@ -6,7 +6,7 @@
         window.clearFlora(scene);
         console.log(`[Flora System] Spawning instanced scenery for biome: ${biomeName}`);
 
-        const count = 35;
+        const count = biomeName === 'mars' ? 12 : 35;
         const dummy = new THREE.Object3D();
 
         // Precompute random transforms

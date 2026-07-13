@@ -7,7 +7,7 @@
             description: "We have arrived at the Biolum Jungle of Acheron Prime. Deploy the Command HQ and establish a defensive perimeter against the localized hostiles. Harvest Biolum credits to fund our foothold.",
             victoryText: "Sector secured! The landing zone is fortified. Sensors detect massive underground movement in the solar dunes of Helios. Pack up and prepare for transit.",
             startGold: 150,
-            maxWaves: 4,
+            maxWaves: 20,
             waves: [
                 // Wave 1
                 [
@@ -39,7 +39,7 @@
             description: "Establish a solar outpost in the Cyber Desert of Helios to power our weapon grids. Scout reports indicate robotic swarms and heavy hostiles converging on our position.",
             victoryText: "Outpost fully charged! Power lines are active. High-priority distress signals are arriving from the frozen cryo-mines on Gliese-9. We must reinforce them immediately.",
             startGold: 180,
-            maxWaves: 5,
+            maxWaves: 20,
             waves: [
                 // Wave 1
                 [
@@ -81,7 +81,7 @@
             description: "Temperatures are below freezing on Gliese-9. Erect a thermal defense generator dome to protect the cryo-miners. Be prepared for shielded stealth UFOs and armored vanguard hostiles.",
             victoryText: "Thermal shield operational! The miners are secure. However, seismic activity indicates the swarm source has breached the volcanic core of Sector Vulcan. Prepare for the final showdown.",
             startGold: 200,
-            maxWaves: 5,
+            maxWaves: 20,
             waves: [
                 // Wave 1
                 [
@@ -129,7 +129,7 @@
             description: "This is it. The core magma relay in the Volcanic Ashlands. The alien swarm is launching a last-ditch apocalyptic assault to destroy our planetary gateway. Hold the line at all costs!",
             victoryText: "Colony secured! Planetary gateway activated. Humanity now has a permanent home on this world. You are a legendary commander!",
             startGold: 250,
-            maxWaves: 6,
+            maxWaves: 20,
             waves: [
                 // Wave 1
                 [
@@ -190,7 +190,7 @@
             description: "Establishing a permanent presence on Mars. Setup the Command HQ inside the rocky Martian Canyons. Beware of massive sandstorms and radioactive alien swarms nesting in the ancient craters.",
             victoryText: "Mars colony successfully secured! Humanity has conquered the red planet, opening a new chapter of interstellar exploration. You have achieved absolute victory!",
             startGold: 300,
-            maxWaves: 7,
+            maxWaves: 20,
             waves: [
                 // Wave 1
                 [

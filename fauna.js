@@ -351,7 +351,7 @@
         window.clearFauna(scene);
         console.log(`[Fauna System] Spawning ambient fauna for biome: ${biomeName}`);
 
-        const count = 25;
+        const count = biomeName === 'mars' ? 8 : 25;
         for (let i = 0; i < count; i++) {
             const rx = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
             const rz = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
@@ -378,7 +378,7 @@
                     };
                 }
             } else if (biomeName === 'mars') {
-                if (i < 4) { // Limit to exactly 4 giant dust storms
+                if (i < 1) { // Limit to exactly 1 giant dust storm
                     type = 'dustDevil';
                     mesh = createDustDevil();
                     mesh.position.set(rx, 0, rz);
