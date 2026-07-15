@@ -3651,6 +3651,41 @@
         /* ==========================================
            WAVE CONTROL & SPAWN MECHANICS
            ========================================== */
+        function getNextWaveEnemyCount(waveIndex) {
+            if (waveIndex === undefined) waveIndex = gameState.wave;
+
+            if (window.CampaignManager && window.CampaignManager.isActive) {
+                const mission = window.CampaignManager.missions[window.CampaignManager.currentMissionIndex];
+                const waveSpawns = mission.waves[waveIndex - 1];
+                if (waveSpawns) {
+                    let count = 0;
+                    waveSpawns.forEach(def => count += def.count);
+                    return count;
+                } else {
+                    if (mission.biome === 'mars') {
+                        return 10 + (waveIndex - 1) * 5;
+                    }
+                    const enemyCosts = { scarab: 1.0, ant: 1.5, wasp: 2.0, ufo: 3.0, golem: 4.0, stealth: 3.5, ram: 5.0, carrier: 6.0, scout: 4.5 };
+                    const pool = ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'];
+                    let remainingBudget = 15 + waveIndex * 7;
+                    let count = 0;
+                    while (remainingBudget >= 1.0) {
+                        const affordable = pool.filter(type => enemyCosts[type] <= remainingBudget);
+                        if (affordable.length === 0) break;
+                        const type = affordable[Math.floor(Math.random() * affordable.length)];
+                        count++;
+                        remainingBudget -= enemyCosts[type];
+                    }
+                    return count;
+                }
+            } else {
+                if (gameState.currentBiome === 'mars') {
+                    return 10 + (waveIndex - 1) * 5;
+                }
+                return 4 + waveIndex * 2;
+            }
+        }
+
         let waveSpawnQueue = [];
         let spawnIntervalTimer = 0;
         const SPAWN_SPEED = 0.6; // spawning interval seconds
@@ -3683,7 +3718,7 @@
                     });
                 }
             } else {
-                 numEnemies = 4 + gameState.wave * 2;
+                 numEnemies = getNextWaveEnemyCount();
                  for (let i = 0; i < numEnemies; i++) {
                      const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
                      let type = 'scarab';
@@ -3748,7 +3783,7 @@
             document.getElementById('wave-btn').classList.remove('opacity-50', 'pointer-events-none');
 
             document.getElementById('wave-desc').innerText = `Ready to Engage`;
-            document.getElementById('enemy-count').innerText = `${4 + gameState.wave * 2} Swarm Hostiles`;
+            document.getElementById('enemy-count').innerText = `${getNextWaveEnemyCount()} Swarm Hostiles`;
 
             showToast(`WAVE CLEARED! +30¢ Bonus Awarded`, "green");
             

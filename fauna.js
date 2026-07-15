@@ -392,11 +392,11 @@
                     velZ: (Math.random() - 0.5) * 1.5,
                     changeTimer: Math.random() * 2.0
                 };
-            } else if (biomeName === 'glacial') {
+            } else if (biomeName === 'europa') {
                 type = 'snow'; // Keep name 'snow' to reuse loop block safely
                 mesh = createGlacialBeacon();
                 mesh.position.set(rx, Math.random() * 2.5 + 0.5, rz);
-            } else if (biomeName === 'desert') {
+            } else if (biomeName === 'venus') {
                 if (Math.random() < 0.5) {
                     type = 'bug';
                     mesh = createTrackedRover();

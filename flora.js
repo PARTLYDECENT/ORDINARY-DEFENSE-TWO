@@ -91,7 +91,7 @@
             scene.add(valveMesh);
             window.floraInstancedMeshes.push(pipeMesh, bracketMesh, valveMesh);
 
-        } else if (biomeName === 'glacial') {
+        } else if (biomeName === 'europa') {
             // 2 sub-meshes: concrete block, snow top
             const blockGeo = new THREE.BoxGeometry(0.35, 0.22, 0.18);
             const blockMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
@@ -216,7 +216,7 @@
             scene.add(crystalMesh);
             window.floraInstancedMeshes.push(col1Mesh, col2Mesh, col3Mesh, crystalMesh);
 
-        } else if (biomeName === 'desert') {
+        } else if (biomeName === 'venus') {
             // 1 sub-mesh: trap beams (3 instances per trap)
             const beamGeo = new THREE.BoxGeometry(0.04, 0.04, 0.45);
             const beamMat = new THREE.MeshStandardMaterial({ color: 0x27272a, metalness: 0.95, roughness: 0.2 });

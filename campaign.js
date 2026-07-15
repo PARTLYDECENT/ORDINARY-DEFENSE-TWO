@@ -34,10 +34,10 @@
         },
         {
             id: 2,
-            name: "Helios Dunes Harvesting",
-            biome: "desert",
-            description: "Establish a solar outpost in the Cyber Desert of Helios to power our weapon grids. Scout reports indicate robotic swarms and heavy hostiles converging on our position.",
-            victoryText: "Outpost fully charged! Power lines are active. High-priority distress signals are arriving from the frozen cryo-mines on Gliese-9. We must reinforce them immediately.",
+            name: "Venusian Sulfur Outpost",
+            biome: "venus",
+            description: "Deploy a resource harvester in the Venusian Wasteland. Collect pressurized sulfur crystals while braving the toxic acid rain, severe heat, and dense hostiles.",
+            victoryText: "Venusian outpost successfully established! Sulfur harvesters are locked. Distress signals are now arriving from Europa's ice trenches. Commencing transit.",
             startGold: 180,
             maxWaves: 20,
             waves: [
@@ -76,10 +76,10 @@
         },
         {
             id: 3,
-            name: "Cryo-Shield at Gliese-9",
-            biome: "glacial",
-            description: "Temperatures are below freezing on Gliese-9. Erect a thermal defense generator dome to protect the cryo-miners. Be prepared for shielded stealth UFOs and armored vanguard hostiles.",
-            victoryText: "Thermal shield operational! The miners are secure. However, seismic activity indicates the swarm source has breached the volcanic core of Sector Vulcan. Prepare for the final showdown.",
+            name: "Europa Icy Depths",
+            biome: "europa",
+            description: "Establish a defensive outpost on Europa's cracked ice-shell. Displace gravity waves to shield the outpost from heavy armored vanguard swarms nesting in the icy trenches.",
+            victoryText: "Europa's ice-shell outpost is fortified and secure! However, seismic activity indicates the swarm source has breached the volcanic core of Sector Vulcan. Prepare for the final showdown.",
             startGold: 200,
             maxWaves: 20,
             waves: [
@@ -194,54 +194,57 @@
             waves: [
                 // Wave 1
                 [
-                    { type: 'scarab', count: 12 },
-                    { type: 'ant', count: 8 }
+                    { type: 'scarab', count: 6 },
+                    { type: 'ant', count: 4 }
                 ],
                 // Wave 2
                 [
-                    { type: 'scarab', count: 12 },
-                    { type: 'ant', count: 10 },
-                    { type: 'wasp', count: 6 }
+                    { type: 'scarab', count: 7 },
+                    { type: 'ant', count: 5 },
+                    { type: 'wasp', count: 3 }
                 ],
                 // Wave 3
                 [
-                    { type: 'ant', count: 12 },
-                    { type: 'wasp', count: 8 },
-                    { type: 'ufo', count: 5 }
+                    { type: 'ant', count: 8 },
+                    { type: 'wasp', count: 6 },
+                    { type: 'ufo', count: 4 },
+                    { type: 'golem', count: 2 }
                 ],
                 // Wave 4
                 [
-                    { type: 'wasp', count: 10 },
+                    { type: 'wasp', count: 8 },
                     { type: 'ufo', count: 6 },
                     { type: 'golem', count: 4 },
-                    { type: 'stealth', count: 4 }
+                    { type: 'stealth', count: 4 },
+                    { type: 'ram', count: 3 }
                 ],
                 // Wave 5
                 [
                     { type: 'ufo', count: 8 },
-                    { type: 'golem', count: 6 },
+                    { type: 'golem', count: 8 },
                     { type: 'stealth', count: 6 },
-                    { type: 'ram', count: 3 }
+                    { type: 'ram', count: 4 },
+                    { type: 'carrier', count: 4 }
                 ],
                 // Wave 6
                 [
-                    { type: 'golem', count: 8 },
+                    { type: 'golem', count: 10 },
                     { type: 'stealth', count: 8 },
-                    { type: 'ram', count: 4 },
-                    { type: 'carrier', count: 3 },
-                    { type: 'scout', count: 5 }
+                    { type: 'ram', count: 6 },
+                    { type: 'carrier', count: 5 },
+                    { type: 'scout', count: 6 }
                 ],
                 // Wave 7 (Ultimate Boss Wave)
                 [
-                    { type: 'scarab', count: 25 },
-                    { type: 'ant', count: 20 },
-                    { type: 'wasp', count: 15 },
-                    { type: 'ufo', count: 10 },
-                    { type: 'golem', count: 8 },
-                    { type: 'stealth', count: 10 },
-                    { type: 'ram', count: 6 },
-                    { type: 'carrier', count: 5 },
-                    { type: 'scout', count: 8 }
+                    { type: 'scarab', count: 10 },
+                    { type: 'ant', count: 8 },
+                    { type: 'wasp', count: 6 },
+                    { type: 'ufo', count: 6 },
+                    { type: 'golem', count: 4 },
+                    { type: 'stealth', count: 3 },
+                    { type: 'ram', count: 1 },
+                    { type: 'carrier', count: 1 },
+                    { type: 'scout', count: 1 }
                 ]
             ]
         }

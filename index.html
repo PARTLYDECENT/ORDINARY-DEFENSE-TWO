@@ -229,21 +229,21 @@
                         <div class="orbitron font-extrabold text-[10px] text-red-400 tracking-wider">VOLCANIC</div>
                         <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Lava fields</div>
                     </div>
-                    <!-- Glacial -->
-                    <div onclick="selectMenuMap('glacial')" class="holo-card group relative cursor-pointer border border-cyan-500/30 bg-cyan-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
+                    <!-- Europa -->
+                    <div onclick="selectMenuMap('europa')" class="holo-card group relative cursor-pointer border border-cyan-500/30 bg-cyan-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
                         <div class="w-full h-16 bg-cyan-950/80 rounded-lg flex items-center justify-center group-hover:bg-cyan-900 duration-300">
                             <i class="fa-solid fa-snowflake text-2xl text-cyan-400 group-hover:scale-125 duration-300"></i>
                         </div>
-                        <div class="orbitron font-extrabold text-[10px] text-cyan-400 tracking-wider">GLACIAL</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Sub-zero ice</div>
+                        <div class="orbitron font-extrabold text-[10px] text-cyan-400 tracking-wider">EUROPA</div>
+                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Icy crust shell</div>
                     </div>
-                    <!-- Desert -->
-                    <div onclick="selectMenuMap('desert')" class="holo-card group relative cursor-pointer border border-yellow-500/30 bg-yellow-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-yellow-400 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-yellow-950/80 rounded-lg flex items-center justify-center group-hover:bg-yellow-900 duration-300">
-                            <i class="fa-solid fa-sun text-2xl text-yellow-400 group-hover:scale-125 duration-300"></i>
+                    <!-- Venus -->
+                    <div onclick="selectMenuMap('venus')" class="holo-card group relative cursor-pointer border border-lime-500/30 bg-lime-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-lime-400 hover:shadow-[0_0_20px_rgba(132,204,22,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
+                        <div class="w-full h-16 bg-lime-950/80 rounded-lg flex items-center justify-center group-hover:bg-lime-900 duration-300">
+                            <i class="fa-solid fa-cloud-showers-water text-2xl text-lime-400 group-hover:scale-125 duration-300"></i>
                         </div>
-                        <div class="orbitron font-extrabold text-[10px] text-yellow-400 tracking-wider">DESERT</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Silicon dunes</div>
+                        <div class="orbitron font-extrabold text-[10px] text-lime-400 tracking-wider">VENUS</div>
+                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Acidic Wasteland</div>
                     </div>
                     <!-- Mars -->
                     <div onclick="selectMenuMap('mars')" class="holo-card group relative cursor-pointer border border-orange-500/30 bg-orange-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
@@ -392,8 +392,8 @@
                 <select id="biome-select" class="bg-black/90 text-emerald-400 font-bold border border-emerald-500/30 rounded px-2 py-1 text-xs focus:outline-none focus:border-emerald-400 cursor-pointer">
                     <option value="jungle">Biolum Jungle</option>
                     <option value="volcanic">Volcanic Ashlands</option>
-                    <option value="glacial">Glacial Abyss</option>
-                    <option value="desert">Cyber Desert</option>
+                    <option value="europa">Europa Ice-Shell</option>
+                    <option value="venus">Venusian Wasteland</option>
                     <option value="mars">Martian Canyons</option>
                 </select>
             </div>
@@ -807,6 +807,230 @@
             return marsGroundTexture;
         }
 
+        let venusGroundTexture = null;
+        function generateVenusTexture() {
+            if (venusGroundTexture) return venusGroundTexture;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Dark dark basaltic base
+            const grad = ctx.createLinearGradient(0, 0, 512, 512);
+            grad.addColorStop(0, '#1c1917'); // stone-900 (almost black)
+            grad.addColorStop(0.5, '#292524'); // stone-800
+            grad.addColorStop(1, '#1c1917');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Add fine noise for rocky texture
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            for (let i = 0; i < 6000; i++) {
+                const rx = Math.random() * 512;
+                const ry = Math.random() * 512;
+                const rw = Math.random() * 2 + 1;
+                ctx.fillRect(rx, ry, rw, rw);
+            }
+
+            // Draw glowing acidic lime-green cracks/lava veins
+            ctx.strokeStyle = '#84cc16'; // lime-500
+            ctx.shadowColor = '#65a30d'; // lime-600 glow
+            ctx.shadowBlur = 6;
+            ctx.lineWidth = 2.0;
+
+            const numVeins = 35;
+            for (let i = 0; i < numVeins; i++) {
+                ctx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                ctx.moveTo(x, y);
+                const segments = 4 + Math.floor(Math.random() * 6);
+                for (let j = 0; j < segments; j++) {
+                    x += (Math.random() - 0.5) * 60;
+                    y += (Math.random() - 0.5) * 60;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Reset shadow settings for subsequent operations
+            ctx.shadowBlur = 0;
+
+            // Draw broader molten orange/yellow flows
+            ctx.strokeStyle = '#eab308'; // yellow-500
+            ctx.lineWidth = 3.0;
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                ctx.moveTo(x, y);
+                const segments = 3 + Math.floor(Math.random() * 4);
+                for (let j = 0; j < segments; j++) {
+                    x += (Math.random() - 0.5) * 120;
+                    y += (Math.random() - 0.5) * 120;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(32, 32); // repeat to look detailed
+            venusGroundTexture = texture;
+            return venusGroundTexture;
+        }
+
+        function calculateVenusHeight(x, z) {
+            const distToBase = Math.sqrt(x*x + z*z);
+            // Rugged volcanic terrain
+            let h = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2.5;
+            h += Math.sin(x * 0.01) * Math.sin(z * 0.01) * 4.0;
+
+            // Stepped basalt plateaus (using floor or smoothstep-like steps)
+            const plateauCenter1 = Math.max(Math.abs(x - 40), Math.abs(z + 40));
+            if (plateauCenter1 < 25) {
+                const heightContribution = 10.0 * (1.0 - plateauCenter1 / 25);
+                // Make it stepped/terraced
+                const stepped = Math.floor(heightContribution * 2) / 2;
+                h = Math.max(h, stepped);
+            }
+
+            const plateauCenter2 = Math.max(Math.abs(x + 45), Math.abs(z - 35));
+            if (plateauCenter2 < 20) {
+                const heightContribution = 8.0 * (1.0 - plateauCenter2 / 20);
+                const stepped = Math.floor(heightContribution * 2.5) / 2.5;
+                h = Math.max(h, stepped);
+            }
+
+            // Acid lake depressions
+            const lakeDist1 = Math.sqrt((x - 10)**2 + (z - 45)**2);
+            if (lakeDist1 < 15 && distToBase > 15) {
+                const t = lakeDist1 / 15;
+                h += -4.0 * (1.0 - t * t);
+            }
+
+            // Base Flat Smoothing
+            if (distToBase < 16) {
+                const factor = distToBase / 16;
+                const smoothFactor = factor * factor * (3 - 2 * factor);
+                h = h * smoothFactor;
+            }
+
+            return h;
+        }
+
+        let europaGroundTexture = null;
+        function generateEuropaTexture() {
+            return europaGroundTexture;
+        }
+
+        function calculateEuropaHeight(x, z) {
+            const distToBase = Math.sqrt(x*x + z*z);
+            // Stepped glacial hills
+            let h = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.5;
+            h += Math.sin(x * 0.015) * Math.sin(z * 0.015) * 5.0;
+
+            // 1. Ice Impact Crater 1
+            const cx1 = -25, cz1 = 20;
+            const distToCrater1 = Math.sqrt((x - cx1)**2 + (z - cz1)**2);
+            if (distToCrater1 < 18) {
+                if (distToCrater1 < 10) {
+                    const t = distToCrater1 / 10;
+                    h += -3.0 + t * t * 1.5;
+                } else if (distToCrater1 < 14) {
+                    const t = (distToCrater1 - 10) / 4;
+                    h += -1.5 + Math.sin(t * Math.PI) * 2.5; 
+                } else {
+                    const t = (distToCrater1 - 14) / 4;
+                    h += (1.0 - t) * 1.0;
+                }
+            }
+
+            // 2. Ice Impact Crater 2
+            const cx2 = 20, cz2 = -25;
+            const distToCrater2 = Math.sqrt((x - cx2)**2 + (z - cz2)**2);
+            if (distToCrater2 < 12) {
+                if (distToCrater2 < 6) {
+                    const t = distToCrater2 / 6;
+                    h += -2.0 + t * t * 1.0;
+                } else if (distToCrater2 < 9) {
+                    const t = (distToCrater2 - 6) / 3;
+                    h += -1.0 + Math.sin(t * Math.PI) * 1.8;
+                } else {
+                    const t = (distToCrater2 - 9) / 3;
+                    h += (1.0 - t) * 0.8;
+                }
+            }
+
+            // 3. Ice Ripples / Fissures
+            let ripples = Math.sin(x * 0.35 + Math.sin(z * 0.15) * 2.0) * 0.25;
+            ripples += Math.cos(z * 0.4 - Math.cos(x * 0.2)) * 0.15;
+            h += ripples;
+
+            // 4. Glacial Crevasse / Canyon
+            const canyonCenterZ = Math.sin(x * 0.03) * 40 - 20;
+            const distToCanyon = Math.abs(z - canyonCenterZ);
+            if (distToCanyon < 25 && distToBase > 18) {
+                let canyonDepth = 0;
+                if (distToCanyon < 15) {
+                    canyonDepth = -14.0;
+                } else {
+                    const t = (distToCanyon - 15) / 10;
+                    canyonDepth = -14.0 * (1.0 - Math.sin(t * Math.PI / 2));
+                }
+                
+                if (distToBase < 28) {
+                    const blend = (distToBase - 18) / 10;
+                    canyonDepth *= blend;
+                }
+                h += canyonDepth;
+            }
+
+            // 5. Ice Trenches
+            if (Math.abs(z) < 22 && distToBase > 12) {
+                const distToTrench1 = Math.abs(x - 14);
+                const distToTrench2 = Math.abs(x + 14);
+                const trenchDist = Math.min(distToTrench1, distToTrench2);
+                if (trenchDist < 2.5) {
+                    const t = trenchDist / 2.5;
+                    const trenchDepth = -2.8 * (1.0 - t * t);
+                    h += trenchDepth;
+                }
+            }
+
+            // 6. Base Flat Smoothing
+            if (distToBase < 16) {
+                const factor = distToBase / 16;
+                const smoothFactor = factor * factor * (3 - 2 * factor);
+                h = h * smoothFactor;
+            }
+
+            // 7. Stepped Ice Shelves / Pyramids
+            const px1 = 45, pz1 = -45;
+            const dx1 = Math.abs(x - px1);
+            const dz1 = Math.abs(z - pz1);
+            const pyrDist1 = Math.max(dx1, dz1);
+            if (pyrDist1 < 16) {
+                const pyrHeight = 12.0 * (1.0 - pyrDist1 / 16);
+                const step = Math.floor(pyrHeight * 4) / 4;
+                h = Math.max(h, step);
+            }
+
+            const px2 = -50, pz2 = 45;
+            const dx2 = Math.abs(x - px2);
+            const dz2 = Math.abs(z - pz2);
+            const pyrDist2 = Math.max(dx2, dz2);
+            if (pyrDist2 < 14) {
+                const pyrHeight = 9.0 * (1.0 - pyrDist2 / 14);
+                const step = Math.floor(pyrHeight * 3) / 3;
+                h = Math.max(h, step);
+            }
+
+            return h;
+        }
+
         function calculateMarsHeight(x, z) {
             const distToBase = Math.sqrt(x*x + z*z);
             let h = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.5;
@@ -914,8 +1138,14 @@
         }
 
         window.getTerrainHeight = function(wx, wz) {
-            if (typeof gameState !== 'undefined' && gameState.currentBiome === 'mars') {
-                return calculateMarsHeight(wx, wz);
+            if (typeof gameState !== 'undefined') {
+                if (gameState.currentBiome === 'mars') {
+                    return calculateMarsHeight(wx, wz);
+                } else if (gameState.currentBiome === 'europa') {
+                    return calculateEuropaHeight(wx, wz);
+                } else if (gameState.currentBiome === 'venus') {
+                    return calculateVenusHeight(wx, wz);
+                }
             }
             return 0;
         };
@@ -957,41 +1187,41 @@
                 gridSubColor: 0x3b0a05,
                 themeClass: "border-red-500/30 text-red-400 focus:border-red-400"
             },
-            glacial: {
-                name: "Glacial Abyss",
-                groundColor: 0x0a1c28,
-                fogColor: 0x030d14,
-                skyTop: 0x0f2d4a,
-                skyBottom: 0x030d14,
+            europa: {
+                name: "Europa Ice-Shell",
+                groundColor: 0x0b243a,
+                fogColor: 0x04111f,
+                skyTop: 0x051d33,
+                skyBottom: 0x04111f,
                 skyCloud: 0x38bdf8,
-                ambientColor: 0x0d2538,
-                dirColor: 0x93c5fd,
-                dirIntensity: 0.75,
-                baseCrystalColor: 0x06b6d4,
+                ambientColor: 0x0d2a45,
+                dirColor: 0xa5f3fc,
+                dirIntensity: 0.85,
+                baseCrystalColor: 0x22d3ee,
                 baseCrystalEmissive: 0x0891b2,
                 baseShardColor: 0xffffff,
-                baseShardEmissive: 0x06b6d4,
-                gridMainColor: 0x06b6d4,
-                gridSubColor: 0x082f49,
+                baseShardEmissive: 0x22d3ee,
+                gridMainColor: 0x22d3ee,
+                gridSubColor: 0x083344,
                 themeClass: "border-cyan-500/30 text-cyan-400 focus:border-cyan-400"
             },
-            desert: {
-                name: "Cyber Desert",
-                groundColor: 0x2d1b0a,
-                fogColor: 0x0d0803,
-                skyTop: 0x4a2a0f,
-                skyBottom: 0x0d0803,
-                skyCloud: 0xa855f7,
-                ambientColor: 0x24160a,
-                dirColor: 0xfde047,
-                dirIntensity: 0.85,
-                baseCrystalColor: 0xfacc15,
-                baseCrystalEmissive: 0xca8a04,
-                baseShardColor: 0xa855f7,
-                baseShardEmissive: 0x7c3aed,
-                gridMainColor: 0xeab308,
-                gridSubColor: 0x451a03,
-                themeClass: "border-yellow-500/30 text-yellow-400 focus:border-yellow-400"
+            venus: {
+                name: "Venusian Wasteland",
+                groundColor: 0x2e190a,
+                fogColor: 0x1a1c0d,
+                skyTop: 0x42380f,
+                skyBottom: 0x1a1c0d,
+                skyCloud: 0x65a30d,
+                ambientColor: 0x1e240f,
+                dirColor: 0xfef08a,
+                dirIntensity: 0.8,
+                baseCrystalColor: 0x84cc16,
+                baseCrystalEmissive: 0x4d7c0f,
+                baseShardColor: 0xa3e635,
+                baseShardEmissive: 0x65a30d,
+                gridMainColor: 0xa3e635,
+                gridSubColor: 0x1a2e05,
+                themeClass: "border-lime-500/30 text-lime-400 focus:border-lime-400"
             },
             mars: {
                 name: "Martian Canyons",
@@ -1603,6 +1833,18 @@
 
         // Global variable for dust storm particles
         let marsDustParticles = null;
+        let venusAcidRainParticles = null;
+        let ufoBodyInstancedMesh = null;
+        let ufoDomeInstancedMesh = null;
+        let ufoThrustInstancedMesh = null;
+        let ambientUfoPositions = [];
+        let ambientUfoVels = [];
+        let ambientUfoScales = [];
+        let ambientUfoRotations = [];
+        let ambientUfoBombTimers = [];
+        let ambientUfoBombs = [];
+        let ufoIntroActive = true;
+        let ufoIntroTimer = 0;
 
         // Base Crystal Light source
         const baseLight = new THREE.PointLight(0xec4899, 3, 15);
@@ -1621,6 +1863,17 @@
             }
         }, undefined, (err) => {
             console.error('[THREE.TextureLoader] Error loading martian_soil_diffuse.png texture:', err);
+        });
+
+        europaGroundTexture = textureLoader.load('assets/textures/europa_ice_diffuse.png', (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(16, 16);
+            if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
+                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            }
+        }, undefined, (err) => {
+            console.error('[THREE.TextureLoader] Error loading europa_ice_diffuse.png texture:', err);
         });
 
         const groundTexture = textureLoader.load('assets/textures/black_sand.png', (texture) => {
@@ -1762,13 +2015,12 @@
             branch2.rotation.z = 0.6;
             tree.add(branch2);
 
-            // Foliage layers (Stacked smooth cones)
+            // Foliage layers (Stacked smooth dodecahedrons)
             const leavesMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.85, flatShading: false });
             const numLayers = 3;
             for (let i = 0; i < numLayers; i++) {
                 const layerRadius = 0.82 - i * 0.18;
-                const layerHeight = 1.15 - i * 0.15;
-                const leavesGeo = new THREE.ConeGeometry(layerRadius, layerHeight, 16);
+                const leavesGeo = new THREE.DodecahedronGeometry(layerRadius * 0.75, 1);
                 const leaves = new THREE.Mesh(leavesGeo, leavesMat);
                 leaves.position.y = 1.25 + (i * 0.65);
                 leaves.castShadow = true;
@@ -2288,7 +2540,7 @@
                 roughness: 0.92,
                 flatShading: true
             });
-            const outerSlabGeo = new THREE.ConeGeometry(0.35, 0.65, 4);
+            const outerSlabGeo = new THREE.BoxGeometry(0.38, 0.65, 0.38);
             
             for (let i = 0; i < 6; i++) {
                 const angle = (i * Math.PI) / 3;
@@ -2384,8 +2636,8 @@
         function createVolcanicVent() {
             const group = new THREE.Group();
             
-            // Volcanic vent base cone
-            const coneGeo = new THREE.ConeGeometry(0.72, 1.1, 16);
+            // Volcanic vent base tapered cylinder
+            const coneGeo = new THREE.CylinderGeometry(0.48, 0.72, 1.1, 16);
             const coneMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.88, metalness: 0.15 });
             const cone = new THREE.Mesh(coneGeo, coneMat);
             cone.position.y = 0.55;
@@ -2463,7 +2715,7 @@
         /* Glacial Biome Obstacle Synthesizers (Reflective Ice & Snow Caps) */
         function createIceSpire() {
             const group = new THREE.Group();
-            const coneGeo = new THREE.ConeGeometry(0.32, 2.0, 12);
+            const coneGeo = new THREE.CylinderGeometry(0.12, 0.32, 2.0, 8);
             const coneMat = new THREE.MeshStandardMaterial({
                 color: 0xbae6fd,
                 emissive: 0x0ea5e9,
@@ -2500,18 +2752,22 @@
             
             for (let i = 0; i < 3; i++) {
                 const crystal = new THREE.Mesh(geo, mat);
-                crystal.position.y = 0.35;
-                crystal.rotation.set(Math.random() * 0.8, Math.random() * Math.PI, Math.random() * 0.8);
-                crystal.scale.set(0.9, 1.5 + i*0.4, 0.9);
+                // Staggered local position offsets (in x, y, and z)
+                const offsetX = (Math.random() - 0.5) * 0.35;
+                const offsetZ = (Math.random() - 0.5) * 0.35;
+                crystal.position.set(offsetX, 0.35 + i * 0.1, offsetZ);
+                crystal.rotation.set(Math.random() * 1.2, Math.random() * Math.PI, Math.random() * 1.2);
+                crystal.scale.set(0.9 + Math.random()*0.3, 1.5 + i*0.5, 0.9 + Math.random()*0.3);
                 crystal.castShadow = true;
                 group.add(crystal);
             }
 
-            const light = new THREE.PointLight(0x06b6d4, 0.5, 3.0);
+            const light = new THREE.PointLight(0x06b6d4, 0.6, 3.5);
             light.position.y = 0.5;
             group.add(light);
 
-            group.scale.set(0.9 + Math.random()*0.3, 0.9 + Math.random()*0.3, 0.9 + Math.random()*0.3);
+            const crystalScale = 0.85 + Math.random()*2.35;
+            group.scale.set(crystalScale, crystalScale, crystalScale);
             return group;
         }
 
@@ -2536,7 +2792,8 @@
             cap.castShadow = true;
             group.add(cap);
 
-            group.scale.set(1.1 + Math.random()*0.3, 1.1 + Math.random()*0.3, 1.1 + Math.random()*0.3);
+            const rockScale = 0.5 + Math.random()*1.8;
+            group.scale.set(rockScale, rockScale, rockScale);
             return group;
         }
 
@@ -2550,6 +2807,27 @@
             block.rotation.set(0.08 + Math.random()*0.12, Math.random()*Math.PI, 0.08 + Math.random()*0.12);
             block.castShadow = true;
             group.add(block);
+
+            const pulseGeo = new THREE.TorusGeometry(0.24, 0.03, 10, 40);
+            const pulseMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.7, roughness: 0.12, metalness: 0.55 });
+            const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            pulse.position.y = 0.4;
+            pulse.rotation.x = Math.PI / 2;
+            group.add(pulse);
+
+            const coreGem = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.8, roughness: 0.1, metalness: 0.6 }));
+            coreGem.position.set(0, 1.05, 0);
+            group.add(coreGem);
+
+            group.userData.age = Math.random() * 8;
+            group.userData.update = function(dt) {
+                this.age += dt;
+                pulse.rotation.z += dt * 0.9;
+                coreGem.rotation.y += dt * 1.4;
+                const glow = 0.65 + Math.sin(this.age * 2.0) * 0.25;
+                pulse.material.emissiveIntensity = glow;
+                coreGem.material.emissiveIntensity = 0.6 + Math.sin(this.age * 3.1) * 0.2;
+            };
             
             group.scale.set(1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3);
             return group;
@@ -2565,8 +2843,8 @@
             group.add(pillar);
 
             // Detailed rings
-            const ringGeo = new THREE.TorusGeometry(0.24, 0.035, 8, 24);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+            const ringGeo = new THREE.TorusGeometry(0.24, 0.035, 10, 40);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.8, roughness: 0.15, metalness: 0.65 });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.position.y = 1.05;
             ring.rotation.x = Math.PI / 2;
@@ -2574,66 +2852,92 @@
 
             // Glowing vertical data strips
             const stripGeo = new THREE.BoxGeometry(0.02, 1.2, 0.02);
-            const stripMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+            const strips = [];
             for (let i = 0; i < 4; i++) {
+                const stripMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.65, roughness: 0.18, metalness: 0.55 });
                 const strip = new THREE.Mesh(stripGeo, stripMat);
                 strip.position.set(Math.cos(i * Math.PI/2)*0.202, 0.75, Math.sin(i * Math.PI/2)*0.202);
                 strip.rotation.y = i * Math.PI/2;
                 group.add(strip);
+                strips.push(strip);
             }
 
             const light = new THREE.PointLight(0xa855f7, 0.7, 3.0);
             light.position.y = 1.05;
             group.add(light);
 
+            group.userData.age = Math.random() * 8;
+            group.userData.update = function(dt) {
+                this.age += dt;
+                ring.rotation.y += dt * 0.75;
+                strips.forEach((strip, idx) => {
+                    const intensity = 0.55 + Math.sin(this.age * 2.4 + idx * 1.2) * 0.18;
+                    strip.material.emissiveIntensity = intensity;
+                });
+            };
+
             group.scale.set(1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3);
             return group;
         }
 
-        function createDesertCactus() {
+        function createSulfurCrystal() {
             const group = new THREE.Group();
-            const mat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.88 });
+            const geo = new THREE.DodecahedronGeometry(0.35, 1);
+            const mat = new THREE.MeshStandardMaterial({
+                color: 0xa3e635, // acidic yellow-green
+                emissive: 0x4d7c0f,
+                roughness: 0.1,
+                metalness: 0.9,
+                flatShading: false
+            });
             
-            // Main trunk cylinder (smooth)
-            const trunkGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.4, 10);
-            const trunk = new THREE.Mesh(trunkGeo, mat);
-            trunk.position.y = 0.7;
-            trunk.castShadow = true;
-            group.add(trunk);
-
-            // Left arm
-            const arm1 = new THREE.Group();
-            const joint1 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.28, 8), mat);
-            joint1.rotation.z = Math.PI / 2;
-            arm1.add(joint1);
-            const branch1 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 8), mat);
-            branch1.position.set(0.14, 0.2, 0);
-            arm1.add(branch1);
-            arm1.position.set(0.08, 0.7, 0);
-            group.add(arm1);
-
-            // Right arm
-            const arm2 = new THREE.Group();
-            const joint2 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.28, 8), mat);
-            joint2.rotation.z = -Math.PI / 2;
-            arm2.add(joint2);
-            const branch2 = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.4, 8), mat);
-            branch2.position.set(-0.14, 0.15, 0);
-            arm2.add(branch2);
-            arm2.position.set(-0.08, 0.55, 0);
-            group.add(arm2);
-
-            // Tiny spine spikes
-            const spineGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.08, 4);
-            const spineMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-            for (let i = 0; i < 8; i++) {
-                const spine = new THREE.Mesh(spineGeo, spineMat);
-                spine.position.set((Math.random()-0.5)*0.16, 0.2 + i*0.12, (Math.random()-0.5)*0.16);
-                spine.rotation.set(Math.random()*0.8, Math.random()*Math.PI, 0);
-                group.add(spine);
+            for (let i = 0; i < 4; i++) {
+                const crystal = new THREE.Mesh(geo, mat);
+                crystal.position.y = 0.25;
+                crystal.rotation.set(Math.random() * 0.9, Math.random() * Math.PI, Math.random() * 0.9);
+                crystal.scale.set(0.7, 1.4 + i*0.3, 0.7);
+                crystal.castShadow = true;
+                group.add(crystal);
             }
 
-            group.scale.set(1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3);
+            const light = new THREE.PointLight(0xa3e635, 0.6, 2.5);
+            light.position.y = 0.6;
+            group.add(light);
+
+            const scale = 0.5 + Math.random()*1.8;
+            group.scale.set(scale, scale, scale);
+            return group;
+        }
+
+        function createAcidicGeyser() {
+            const group = new THREE.Group();
+
+            // Craggy volcano geyser cone (frustum cylinder)
+            const coneGeo = new THREE.CylinderGeometry(0.28, 0.75, 1.25, 12);
+            const coneMat = new THREE.MeshStandardMaterial({
+                color: 0x2e190a, // deep brown-black basalt
+                roughness: 0.94,
+                metalness: 0.1
+            });
+            const cone = new THREE.Mesh(coneGeo, coneMat);
+            cone.position.y = 0.625;
+            cone.castShadow = true;
+            group.add(cone);
+
+            // Glowing lime pool at top opening
+            const poolGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.05, 10);
+            const poolMat = new THREE.MeshBasicMaterial({ color: 0x84cc16 }); // lime geyser glow
+            const pool = new THREE.Mesh(poolGeo, poolMat);
+            pool.position.y = 1.25;
+            group.add(pool);
+
+            // Point light emitting from pool
+            const light = new THREE.PointLight(0x84cc16, 0.8, 3.5);
+            light.position.y = 1.35;
+            group.add(light);
+
+            const scale = 0.65 + Math.random()*1.55;
+            group.scale.set(scale, scale, scale);
             return group;
         }
 
@@ -2783,23 +3087,14 @@
                         } else {
                             model = createBurntStump();
                         }
-                    } else if (gameState.currentBiome === 'glacial') {
+                    } else if (gameState.currentBiome === 'europa') {
+                        model = createFrostCrystal();
+                    } else if (gameState.currentBiome === 'venus') {
                         const r = Math.random();
-                        if (r < 0.4) {
-                            model = createIceSpire();
-                        } else if (r < 0.7) {
-                            model = createFrostCrystal();
+                        if (r < 0.55) {
+                            model = createSulfurCrystal();
                         } else {
-                            model = createSnowRock();
-                        }
-                    } else if (gameState.currentBiome === 'desert') {
-                        const r = Math.random();
-                        if (r < 0.4) {
-                            model = createRuinedMonolith();
-                        } else if (r < 0.7) {
-                            model = createCyberPillar();
-                        } else {
-                            model = createDesertCactus();
+                            model = createAcidicGeyser();
                         }
                     } else { // jungle
                         const r = Math.random();
@@ -3066,10 +3361,36 @@
             }
             projectiles.length = 0;
             
-            if (typeof particles !== 'undefined' && particles.activeParticles) {
-                particles.activeParticles.forEach(p => scene.remove(p.mesh));
-                particles.activeParticles.length = 0;
+            if (typeof particles !== 'undefined' && typeof particles.clear === 'function') {
+                particles.clear();
             }
+
+            // Clear ambient UFO fleet and bombs on biome transitions
+            if (ufoBodyInstancedMesh) {
+                scene.remove(ufoBodyInstancedMesh);
+                ufoBodyInstancedMesh.dispose();
+                ufoBodyInstancedMesh = null;
+            }
+            if (ufoDomeInstancedMesh) {
+                scene.remove(ufoDomeInstancedMesh);
+                ufoDomeInstancedMesh.dispose();
+                ufoDomeInstancedMesh = null;
+            }
+            if (ufoThrustInstancedMesh) {
+                scene.remove(ufoThrustInstancedMesh);
+                ufoThrustInstancedMesh.dispose();
+                ufoThrustInstancedMesh = null;
+            }
+            if (typeof ambientUfoBombs !== 'undefined') {
+                ambientUfoBombs.forEach(bomb => {
+                    scene.remove(bomb.mesh);
+                    bomb.mesh.geometry.dispose();
+                    bomb.mesh.material.dispose();
+                });
+                ambientUfoBombs.length = 0;
+            }
+            ufoIntroActive = true;
+            ufoIntroTimer = -5.0;
 
             gameState.isWaveActive = false;
             const waveBtn = document.getElementById('wave-btn');
@@ -3080,33 +3401,46 @@
             const waveDesc = document.getElementById('wave-desc');
             if (waveDesc) waveDesc.innerText = `Ready to Engage`;
             const enemyCount = document.getElementById('enemy-count');
-            if (enemyCount) enemyCount.innerText = `${4 + gameState.wave * 2} Swarm Hostiles`;
+            if (enemyCount) enemyCount.innerText = `${getNextWaveEnemyCount()} Swarm Hostiles`;
 
             // 2. Update colors & intensities
             if (ground && ground.material) {
                 ground.material.color.setHex(config.groundColor);
                 
-                if (biomeName === 'mars') {
-                    // Create displaced Mars ground geometry if not already created
-                    if (ground.geometry === groundGeo) {
-                        const marsGeo = new THREE.PlaneGeometry(360, 360, 180, 180);
-                        const posAttr = marsGeo.attributes.position;
-                        for (let i = 0; i < posAttr.count; i++) {
-                            const vx = posAttr.getX(i);
-                            const vy = posAttr.getY(i);
-                            const height = calculateMarsHeight(vx, -vy); // Plane Y is -World Z
-                            posAttr.setZ(i, height);
-                        }
-                        marsGeo.computeVertexNormals();
-                        ground.geometry = marsGeo;
-                        
-                        // Switch texture repeated mapping for procedural look
-                        if (typeof generateMarsTexture === 'function') {
-                            ground.material.map = generateMarsTexture();
-                            ground.material.bumpMap = ground.material.map;
-                            ground.material.bumpScale = 0.35;
-                            ground.material.needsUpdate = true;
-                        }
+                if (biomeName === 'mars' || biomeName === 'europa' || biomeName === 'venus') {
+                    // Recreate/update displaced ground geometry
+                    if (ground.geometry !== groundGeo) {
+                        const oldGeo = ground.geometry;
+                        oldGeo.dispose();
+                    }
+                    const dispGeo = new THREE.PlaneGeometry(360, 360, 180, 180);
+                    const posAttr = dispGeo.attributes.position;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        const vx = posAttr.getX(i);
+                        const vy = posAttr.getY(i);
+                        const height = biomeName === 'mars' 
+                            ? calculateMarsHeight(vx, -vy) 
+                            : (biomeName === 'europa' ? calculateEuropaHeight(vx, -vy) : calculateVenusHeight(vx, -vy));
+                        posAttr.setZ(i, height);
+                    }
+                    dispGeo.computeVertexNormals();
+                    ground.geometry = dispGeo;
+                    
+                    if (biomeName === 'mars' && typeof generateMarsTexture === 'function') {
+                        ground.material.map = generateMarsTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.35;
+                        ground.material.needsUpdate = true;
+                    } else if (biomeName === 'europa' && typeof generateEuropaTexture === 'function') {
+                        ground.material.map = generateEuropaTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.35;
+                        ground.material.needsUpdate = true;
+                    } else if (biomeName === 'venus' && typeof generateVenusTexture === 'function') {
+                        ground.material.map = generateVenusTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.55;
+                        ground.material.needsUpdate = true;
                     }
                 } else {
                     // Restore original flat ground geometry
@@ -3184,17 +3518,56 @@
                     marsDustParticles.userData = { velocities: pVelocities };
                 }
                 scene.add(marsDustParticles);
-            } else {
-                if (fillLight) fillLight.intensity = 0.0;
-                if (dirLight) {
-                    dirLight.shadow.bias = -0.001;
-                    dirLight.shadow.mapSize.width = 2048;
-                    dirLight.shadow.mapSize.height = 2048;
+                } else if (biomeName === 'venus') {
+                    if (fillLight) {
+                        fillLight.color.setHex(0x65a30d); // Lime green fill light
+                        fillLight.intensity = 0.5;
+                    }
+                    if (!venusAcidRainParticles) {
+                        const pCount = 450; // Heavy acid rain
+                        const pGeo = new THREE.BufferGeometry();
+                        const pPositions = new Float32Array(pCount * 3);
+                        const pVelocities = [];
+                        for (let i = 0; i < pCount; i++) {
+                            pPositions[i * 3] = (Math.random() - 0.5) * 200;
+                            pPositions[i * 3 + 1] = Math.random() * 20 + 0.2;
+                            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+                            pVelocities.push({
+                                x: -2.0 - Math.random() * 2.0, // Drifting diagonally
+                                y: -10.0 - Math.random() * 5.0, // Fast falling rain
+                                z: (Math.random() - 0.5) * 1.5
+                            });
+                        }
+                        pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+                        const pMat = new THREE.PointsMaterial({
+                            color: 0xa3e635, // Glowing yellow-green
+                            size: 0.16,
+                            transparent: true,
+                            opacity: 0.65,
+                            blending: THREE.AdditiveBlending
+                        });
+                        venusAcidRainParticles = new THREE.Points(pGeo, pMat);
+                        venusAcidRainParticles.userData = { velocities: pVelocities };
+                    }
+                    scene.add(venusAcidRainParticles);
+                    if (ground && ground.material) {
+                        ground.material.bumpScale = 0.55;
+                        ground.material.roughness = 0.96;
+                    }
+                } else {
+                    if (fillLight) fillLight.intensity = 0.0;
+                    if (dirLight) {
+                        dirLight.shadow.bias = -0.001;
+                        dirLight.shadow.mapSize.width = 2048;
+                        dirLight.shadow.mapSize.height = 2048;
+                    }
+                    if (marsDustParticles) {
+                        scene.remove(marsDustParticles);
+                    }
+                    if (venusAcidRainParticles) {
+                        scene.remove(venusAcidRainParticles);
+                    }
                 }
-                if (marsDustParticles) {
-                    scene.remove(marsDustParticles);
-                }
-            }
 
             // Skybox Colors
             if (skyboxController && skyboxController.uniforms) {
@@ -3222,20 +3595,20 @@
                 containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300";
 
                 if (biomeName === 'volcanic') {
-                    selectEl.classList.add('border-red-500/30', 'text-red-400', 'focus:border-red-400');
-                    containerEl.classList.add('border-red-500/20');
-                } else if (biomeName === 'glacial') {
-                    selectEl.classList.add('border-cyan-500/30', 'text-cyan-400', 'focus:border-cyan-400');
-                    containerEl.classList.add('border-cyan-500/20');
-                } else if (biomeName === 'desert') {
-                    selectEl.classList.add('border-yellow-500/30', 'text-yellow-400', 'focus:border-yellow-400');
-                    containerEl.classList.add('border-yellow-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-red-500/30 text-red-400 focus:border-red-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-red-500/20";
+                } else if (biomeName === 'europa') {
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-cyan-500/30 text-cyan-400 focus:border-cyan-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-cyan-500/20";
+                } else if (biomeName === 'venus') {
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-lime-500/30 text-lime-400 focus:border-lime-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-lime-500/20";
                 } else if (biomeName === 'mars') {
-                    selectEl.classList.add('border-orange-500/30', 'text-orange-400', 'focus:border-orange-400');
-                    containerEl.classList.add('border-orange-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-orange-500/30 text-orange-400 focus:border-orange-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-orange-500/20";
                 } else {
-                    selectEl.classList.add('border-emerald-500/30', 'text-emerald-400', 'focus:border-emerald-400');
-                    containerEl.classList.add('border-emerald-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-emerald-500/30 text-emerald-400 focus:border-emerald-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-emerald-500/20";
                 }
             }
 
@@ -3279,7 +3652,7 @@
 
             sequencer.start(() => {
                 console.log(`[Biome Engine] Biome loaded smooth sequencing: ${biomeName}`);
-                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'desert' ? 'yellow' : biomeName === 'mars' ? 'orange' : 'green');
+                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'venus' ? 'lime' : biomeName === 'mars' ? 'orange' : 'green');
                 if (onCompleteCallback) {
                     onCompleteCallback();
                 }
@@ -3347,7 +3720,7 @@
                 baseGroup.add(modelInstance);
             } else {
                 // Fallback procedural base structure (scaled up 3x)
-                const fallbackColor = (typeof gameState !== 'undefined' && gameState.currentBiome === 'desert') ? 0xc5a059 : 0x384a27;
+                const fallbackColor = (typeof gameState !== 'undefined' && gameState.currentBiome === 'venus') ? 0x84cc16 : 0x384a27;
                 const fallbackMat = new THREE.MeshStandardMaterial({
                     color: fallbackColor,
                     roughness: 0.4,
@@ -6742,68 +7115,62 @@
            ========================================== */
         class ParticleSystem {
             constructor() {
-                this.activeParticles = [];
-                this.inactiveParticles = [];
-                
-                // Shared unit box geometry (to scale particles dynamically)
+                this.maxParticlesCount = 1000;
                 this.sharedGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
-
-                // Pre-allocate a pool of particles to prevent allocations at runtime
-                for (let i = 0; i < 400; i++) {
-                    this.inactiveParticles.push(this.createParticleObject());
-                }
-            }
-
-            createParticleObject() {
-                const mat = new THREE.MeshBasicMaterial({
+                this.sharedMat = new THREE.MeshBasicMaterial({
                     color: 0xffffff,
                     transparent: true,
                     opacity: 1.0
                 });
-                const mesh = new THREE.Mesh(this.sharedGeo, mat);
-                const vel = new THREE.Vector3();
-                return {
-                    mesh: mesh,
-                    vel: vel,
-                    life: 0,
-                    maxLife: 0,
-                    type: 'explosion',
-                    active: false
-                };
+                this.instancedMesh = new THREE.InstancedMesh(this.sharedGeo, this.sharedMat, this.maxParticlesCount);
+                
+                // Initialize default colors
+                const defaultColor = new THREE.Color(0xffffff);
+                for (let i = 0; i < this.maxParticlesCount; i++) {
+                    this.instancedMesh.setColorAt(i, defaultColor);
+                }
+                scene.add(this.instancedMesh);
+
+                this.inactiveParticles = [];
+                this.activeParticles = [];
+                for (let i = 0; i < this.maxParticlesCount; i++) {
+                    this.inactiveParticles.push({
+                        pos: new THREE.Vector3(),
+                        vel: new THREE.Vector3(),
+                        color: new THREE.Color(),
+                        life: 0,
+                        maxLife: 0,
+                        baseScale: 0.12,
+                        type: 'explosion',
+                        active: false
+                    });
+                }
             }
 
             spawnExplosion(pos, colorHex, count) {
+                const color = new THREE.Color(colorHex);
                 for (let i = 0; i < count; i++) {
-                    let p = null;
-                    if (this.inactiveParticles.length > 0) {
-                        p = this.inactiveParticles.pop();
-                    } else {
-                        p = this.createParticleObject();
-                    }
-
+                    if (this.inactiveParticles.length === 0) continue;
+                    const p = this.inactiveParticles.pop();
                     p.active = true;
                     p.type = 'explosion';
                     
                     const life = 0.6 + Math.random() * 0.4;
                     p.life = life;
                     p.maxLife = life;
+                    p.baseScale = 0.12;
+                    p.color.copy(color);
+
+                    p.pos.copy(pos);
+                    p.pos.x += (Math.random() - 0.5) * 0.4;
+                    p.pos.y += (Math.random() - 0.5) * 0.4;
+                    p.pos.z += (Math.random() - 0.5) * 0.4;
 
                     p.vel.set(
                         (Math.random() - 0.5) * 6,
                         Math.random() * 5 + 1.5,
                         (Math.random() - 0.5) * 6
                     );
-
-                    p.mesh.position.copy(pos);
-                    p.mesh.position.x += (Math.random() - 0.5) * 0.4;
-                    p.mesh.position.y += (Math.random() - 0.5) * 0.4;
-                    p.mesh.position.z += (Math.random() - 0.5) * 0.4;
-
-                    p.mesh.scale.set(0.12, 0.12, 0.12);
-                    p.mesh.material.color.setHex(colorHex);
-                    p.mesh.material.opacity = 0.85;
-
-                    scene.add(p.mesh);
                     this.activeParticles.push(p);
                 }
             }
@@ -6813,57 +7180,102 @@
             }
 
             spawnSmoke(pos) {
-                let p = null;
-                if (this.inactiveParticles.length > 0) {
-                    p = this.inactiveParticles.pop();
-                } else {
-                    p = this.createParticleObject();
-                }
-
+                if (this.inactiveParticles.length === 0) return;
+                const p = this.inactiveParticles.pop();
                 p.active = true;
                 p.type = 'smoke';
 
                 const life = 0.4 + Math.random() * 0.3;
                 p.life = life;
                 p.maxLife = life;
+                p.baseScale = 0.16;
+                p.color.setHex(0xd1d5db); // smoke grey
 
+                p.pos.copy(pos);
                 p.vel.set(
                     (Math.random() - 0.5) * 0.8,
                     Math.random() * 0.5 + 0.35,
                     (Math.random() - 0.5) * 0.8
                 );
-
-                p.mesh.position.copy(pos);
-                p.mesh.scale.set(0.16, 0.16, 0.16);
-                p.mesh.material.color.setHex(0xd1d5db); // smoke grey
-                p.mesh.material.opacity = 0.45;
-
-                scene.add(p.mesh);
                 this.activeParticles.push(p);
             }
 
             update(dt) {
+                // 1. Update physics states of active particles
                 for (let i = this.activeParticles.length - 1; i >= 0; i--) {
                     const p = this.activeParticles[i];
                     p.life -= dt;
                     if (p.life <= 0) {
-                        scene.remove(p.mesh);
                         p.active = false;
                         this.activeParticles.splice(i, 1);
                         this.inactiveParticles.push(p);
                     } else {
                         if (p.type === 'smoke') {
-                            p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(1.025);
-                            p.mesh.material.opacity = (p.life / p.maxLife) * 0.45;
+                            p.pos.addScaledVector(p.vel, dt);
                         } else {
                             p.vel.y -= 9.8 * dt;
-                            p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(0.96);
-                            p.mesh.material.opacity = (p.life / p.maxLife) * 0.85;
+                            p.pos.addScaledVector(p.vel, dt);
                         }
                     }
                 }
+
+                // 2. Set matrices and colors on the InstancedMesh
+                const dummy = new THREE.Object3D();
+                const activeCount = this.activeParticles.length;
+
+                for (let i = 0; i < this.maxParticlesCount; i++) {
+                    if (i < activeCount) {
+                        const p = this.activeParticles[i];
+                        let s = p.baseScale;
+                        
+                        // Calculate dynamic scaling for fade/dissolve effect
+                        if (p.type === 'smoke') {
+                            // Grows initially, then dissolves to 0
+                            const progress = 1.0 - (p.life / p.maxLife);
+                            s = p.baseScale * (1.0 + progress * 1.5) * (p.life / p.maxLife);
+                        } else {
+                            // Shrinks linearly to 0
+                            s = p.baseScale * (p.life / p.maxLife);
+                        }
+
+                        dummy.position.copy(p.pos);
+                        dummy.scale.set(s, s, s);
+                        dummy.updateMatrix();
+                        
+                        this.instancedMesh.setMatrixAt(i, dummy.matrix);
+                        this.instancedMesh.setColorAt(i, p.color);
+                    } else {
+                        // Hide inactive particles by positioning them far away with scale 0
+                        dummy.position.set(9999, 9999, 9999);
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        
+                        this.instancedMesh.setMatrixAt(i, dummy.matrix);
+                    }
+                }
+
+                // 3. Mark instanced mesh attributes as dirty
+                this.instancedMesh.instanceMatrix.needsUpdate = true;
+                if (this.instancedMesh.instanceColor) {
+                    this.instancedMesh.instanceColor.needsUpdate = true;
+                }
+            }
+
+            clear() {
+                this.activeParticles.forEach(p => {
+                    p.active = false;
+                    this.inactiveParticles.push(p);
+                });
+                this.activeParticles.length = 0;
+                
+                const dummy = new THREE.Object3D();
+                dummy.position.set(9999, 9999, 9999);
+                dummy.scale.set(0, 0, 0);
+                dummy.updateMatrix();
+                for (let i = 0; i < this.maxParticlesCount; i++) {
+                    this.instancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+                this.instancedMesh.instanceMatrix.needsUpdate = true;
             }
         }
         const particles = new ParticleSystem();
@@ -7514,6 +7926,41 @@
         /* ==========================================
            WAVE CONTROL & SPAWN MECHANICS
            ========================================== */
+        function getNextWaveEnemyCount(waveIndex) {
+            if (waveIndex === undefined) waveIndex = gameState.wave;
+
+            if (window.CampaignManager && window.CampaignManager.isActive) {
+                const mission = window.CampaignManager.missions[window.CampaignManager.currentMissionIndex];
+                const waveSpawns = mission.waves[waveIndex - 1];
+                if (waveSpawns) {
+                    let count = 0;
+                    waveSpawns.forEach(def => count += def.count);
+                    return count;
+                } else {
+                    if (mission.biome === 'mars') {
+                        return 10 + (waveIndex - 1) * 5;
+                    }
+                    const enemyCosts = { scarab: 1.0, ant: 1.5, wasp: 2.0, ufo: 3.0, golem: 4.0, stealth: 3.5, ram: 5.0, carrier: 6.0, scout: 4.5 };
+                    const pool = ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'];
+                    let remainingBudget = 15 + waveIndex * 7;
+                    let count = 0;
+                    while (remainingBudget >= 1.0) {
+                        const affordable = pool.filter(type => enemyCosts[type] <= remainingBudget);
+                        if (affordable.length === 0) break;
+                        const type = affordable[Math.floor(Math.random() * affordable.length)];
+                        count++;
+                        remainingBudget -= enemyCosts[type];
+                    }
+                    return count;
+                }
+            } else {
+                if (gameState.currentBiome === 'mars') {
+                    return 10 + (waveIndex - 1) * 5;
+                }
+                return 4 + waveIndex * 2;
+            }
+        }
+
         let waveSpawnQueue = [];
         let spawnIntervalTimer = 0;
         const SPAWN_SPEED = 0.6; // spawning interval seconds
@@ -7537,8 +7984,8 @@
                 if (!waveSpawns) {
                     const biomePools = {
                         jungle: ['scarab', 'ant', 'wasp'],
-                        desert: ['scarab', 'ant', 'wasp', 'ufo', 'golem'],
-                        glacial: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier'],
+                        venus: ['scarab', 'ant', 'wasp', 'ufo', 'golem'],
+                        europa: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier'],
                         volcanic: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'],
                         mars: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout']
                     };
@@ -7585,7 +8032,7 @@
                     }
                 });
             } else {
-                 numEnemies = 4 + gameState.wave * 2;
+                 numEnemies = getNextWaveEnemyCount();
                  for (let i = 0; i < numEnemies; i++) {
                      const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
                      let type = 'scarab';
@@ -7650,7 +8097,7 @@
             document.getElementById('wave-btn').classList.remove('opacity-50', 'pointer-events-none');
 
             document.getElementById('wave-desc').innerText = `Ready to Engage`;
-            document.getElementById('enemy-count').innerText = `${4 + gameState.wave * 2} Swarm Hostiles`;
+            document.getElementById('enemy-count').innerText = `${getNextWaveEnemyCount()} Swarm Hostiles`;
 
             showToast(`WAVE CLEARED! +30¢ Bonus Awarded`, "green");
             
@@ -7752,9 +8199,8 @@
                 projectiles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
                 projectiles.length = 0;
 
-                if (typeof particles !== 'undefined' && particles.activeParticles) {
-                    particles.activeParticles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
-                    particles.activeParticles.length = 0;
+                if (typeof particles !== 'undefined' && typeof particles.clear === 'function') {
+                    particles.clear();
                 }
 
                 towers.forEach(t => {
@@ -9023,6 +9469,251 @@
            ========================================== */
         const clock = new THREE.Clock();
 
+        function updateAmbientUfoFleet(dt) {
+            if (gameState.inMenu) return;
+
+            const count = 450; // 10x original swarm amount
+
+            // 1. Initialize instanced meshes if not yet created
+            if (!ufoBodyInstancedMesh) {
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e293b,
+                    roughness: 0.2,
+                    metalness: 0.85
+                });
+                ufoBodyInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.body, bodyMat, count);
+                ufoBodyInstancedMesh.castShadow = true;
+                ufoBodyInstancedMesh.receiveShadow = true;
+                scene.add(ufoBodyInstancedMesh);
+
+                const domeMat = new THREE.MeshStandardMaterial({
+                    color: 0x0ea5e9,
+                    transparent: true,
+                    opacity: 0.65,
+                    roughness: 0.05
+                });
+                ufoDomeInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.dome, domeMat, count);
+                scene.add(ufoDomeInstancedMesh);
+
+                const neonMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                ufoThrustInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.thrust, neonMat, count);
+                scene.add(ufoThrustInstancedMesh);
+
+                // Initialize individual state lists
+                ambientUfoPositions = [];
+                ambientUfoVels = [];
+                ambientUfoScales = [];
+                ambientUfoRotations = [];
+                ambientUfoBombTimers = [];
+
+                // West-to-East cinematic swarm initial setup
+                for (let i = 0; i < count; i++) {
+                    // Start far West (negative X) offscreen/out-of-bounds
+                    const rx = -180.0 - Math.random() * 80.0;
+                    // Spread along Z axis (narrower spread so they are closer to the centerline)
+                    const rz = (Math.random() - 0.5) * 60.0;
+                    // Very low flight height to zoom extremely close past the base crystal (base crystal is at y=1.8)
+                    const ry = 2.8 + Math.random() * 3.2;
+                    ambientUfoPositions.push(new THREE.Vector3(rx, ry, rz));
+
+                    // Direct trajectory towards a point very close to the base crystal (0, ry, targetZ)
+                    const targetZ = (Math.random() - 0.5) * 12.0;
+                    const dx = 0.0 - rx;
+                    const dz = targetZ - rz;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    
+                    const speed = 40.0 + Math.random() * 12.0; // slower majestic flyover (10 seconds)
+                    const vx = (dx / dist) * speed;
+                    const vz = (dz / dist) * speed;
+
+                    ambientUfoVels.push(new THREE.Vector2(vx, vz));
+
+                    // Scale
+                    ambientUfoScales.push(0.65 + Math.random() * 0.7);
+
+                    // Spinning animation rotation speed
+                    ambientUfoRotations.push({
+                        y: Math.random() * Math.PI * 2,
+                        speed: 1.5 + Math.random() * 2.0
+                    });
+
+                    // Random initial bomb timer (only used post-cinematic by index 0)
+                    ambientUfoBombTimers.push(Math.random() * 6 + 3);
+                }
+
+                ufoIntroActive = true;
+                ufoIntroTimer = -5.0; // Wait 5 seconds till after start
+            }
+
+            const dummy = new THREE.Object3D();
+
+            if (ufoIntroActive) {
+                ufoIntroTimer += dt;
+
+                // 5-second initial delay: Keep all UFOs hidden
+                if (ufoIntroTimer < 0) {
+                    for (let i = 0; i < count; i++) {
+                        dummy.position.set(9999, 9999, 9999);
+                        dummy.scale.set(0, 0, 0);
+                        dummy.updateMatrix();
+                        ufoBodyInstancedMesh.setMatrixAt(i, dummy.matrix);
+                        ufoDomeInstancedMesh.setMatrixAt(i, dummy.matrix);
+                        ufoThrustInstancedMesh.setMatrixAt(i, dummy.matrix);
+                    }
+                    ufoBodyInstancedMesh.instanceMatrix.needsUpdate = true;
+                    ufoDomeInstancedMesh.instanceMatrix.needsUpdate = true;
+                    ufoThrustInstancedMesh.instanceMatrix.needsUpdate = true;
+                    return;
+                }
+
+                // Active intro flyover: Move all 450 UFOs slowly Eastward
+                for (let i = 0; i < count; i++) {
+                    const pos = ambientUfoPositions[i];
+                    const vel = ambientUfoVels[i];
+                    const scale = ambientUfoScales[i];
+                    const rot = ambientUfoRotations[i];
+
+                    pos.x += vel.x * dt;
+                    pos.z += vel.y * dt;
+                    rot.y += rot.speed * dt;
+
+                    // Update matrix
+                    dummy.position.copy(pos);
+                    dummy.rotation.set(0, rot.y, 0);
+                    dummy.scale.set(scale * 1.5, scale * 0.8, scale * 1.5);
+                    dummy.updateMatrix();
+                    ufoBodyInstancedMesh.setMatrixAt(i, dummy.matrix);
+
+                    dummy.position.set(pos.x, pos.y + 0.08 * scale, pos.z);
+                    dummy.scale.set(scale * 1.25, scale * 1.25, scale * 1.25);
+                    dummy.updateMatrix();
+                    ufoDomeInstancedMesh.setMatrixAt(i, dummy.matrix);
+
+                    dummy.position.set(pos.x, pos.y - 0.06 * scale, pos.z);
+                    dummy.scale.set(scale, scale, scale);
+                    dummy.updateMatrix();
+                    ufoThrustInstancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+
+                // Transition to single harasser mode after fly-by completes (10 seconds duration)
+                if (ufoIntroTimer >= 10.0) {
+                    ufoIntroActive = false;
+                    
+                    // Reposition instance 0 to hover slowly over map center
+                    ambientUfoPositions[0].set(0, 32, 0);
+                    ambientUfoVels[0].set((Math.random() - 0.5) * 15.0, (Math.random() - 0.5) * 15.0);
+                    ambientUfoBombTimers[0] = Math.random() * 5.0 + 3.0; // short initial timer
+                }
+            } else {
+                // Harassment phase: Only instance 0 updates and wanders
+                const pos = ambientUfoPositions[0];
+                const vel = ambientUfoVels[0];
+                const scale = ambientUfoScales[0];
+                const rot = ambientUfoRotations[0];
+
+                pos.x += vel.x * dt;
+                pos.z += vel.y * dt;
+                rot.y += rot.speed * dt;
+
+                // Wrap boundaries
+                if (pos.x < -140) pos.x = 140;
+                if (pos.x > 140) pos.x = -140;
+                if (pos.z < -140) pos.z = 140;
+                if (pos.z > 140) pos.z = -140;
+
+                // Mega-bomb dropping check
+                ambientUfoBombTimers[0] -= dt;
+                if (ambientUfoBombTimers[0] <= 0) {
+                    ambientUfoBombTimers[0] = Math.random() * 8.0 + 5.0; // drops every 5-13s
+
+                    // Spawn 3x larger mega bomb
+                    const bombGeo = new THREE.DodecahedronGeometry(0.35, 1);
+                    const bombMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                    const bomb = new THREE.Mesh(bombGeo, bombMat);
+                    bomb.position.copy(pos);
+                    // Scale bomb 3x larger!
+                    bomb.scale.set(3.0, 3.0, 3.0);
+                    scene.add(bomb);
+
+                    // 3x higher intensity/range point light
+                    const bombLight = new THREE.PointLight(0xef4444, 3.6, 18.0);
+                    bomb.add(bombLight);
+
+                    ambientUfoBombs.push({
+                        mesh: bomb,
+                        light: bombLight,
+                        fallSpeed: 8.0 + Math.random() * 7.0,
+                        isMega: true
+                    });
+                }
+
+                // Set active matrix for instance 0 (slightly larger boss scale)
+                dummy.position.copy(pos);
+                dummy.rotation.set(0, rot.y, 0);
+                dummy.scale.set(scale * 1.5 * 1.3, scale * 0.8 * 1.3, scale * 1.5 * 1.3);
+                dummy.updateMatrix();
+                ufoBodyInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                dummy.position.set(pos.x, pos.y + 0.08 * scale * 1.3, pos.z);
+                dummy.scale.set(scale * 1.25 * 1.3, scale * 1.25 * 1.3, scale * 1.25 * 1.3);
+                dummy.updateMatrix();
+                ufoDomeInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                dummy.position.set(pos.x, pos.y - 0.06 * scale * 1.3, pos.z);
+                dummy.scale.set(scale * 1.3, scale * 1.3, scale * 1.3);
+                dummy.updateMatrix();
+                ufoThrustInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                // Set all other instances (1 to 449) to scale 0 to hide them completely
+                for (let i = 1; i < count; i++) {
+                    dummy.position.set(9999, 9999, 9999);
+                    dummy.scale.set(0, 0, 0);
+                    dummy.updateMatrix();
+                    ufoBodyInstancedMesh.setMatrixAt(i, dummy.matrix);
+                    ufoDomeInstancedMesh.setMatrixAt(i, dummy.matrix);
+                    ufoThrustInstancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+            }
+
+            // Flag matrices as dirty to send to GPU
+            ufoBodyInstancedMesh.instanceMatrix.needsUpdate = true;
+            ufoDomeInstancedMesh.instanceMatrix.needsUpdate = true;
+            ufoThrustInstancedMesh.instanceMatrix.needsUpdate = true;
+
+            // 3. Update falling bombs
+            for (let i = ambientUfoBombs.length - 1; i >= 0; i--) {
+                const bomb = ambientUfoBombs[i];
+                bomb.mesh.position.y -= bomb.fallSpeed * dt;
+                bomb.mesh.rotation.x += dt * 1.8;
+                bomb.mesh.rotation.y += dt * 1.2;
+
+                const currentTargetY = window.getTerrainHeight ? window.getTerrainHeight(bomb.mesh.position.x, bomb.mesh.position.z) : 0;
+                if (bomb.mesh.position.y <= currentTargetY) {
+                    if (particles && typeof particles.spawnExplosion === 'function') {
+                        const explodePos = bomb.mesh.position.clone();
+                        explodePos.y = currentTargetY;
+                        // Mega bombs trigger massive 3x larger explosions (80 particles instead of 25)
+                        const pCount = bomb.isMega ? 80 : 25;
+                        particles.spawnExplosion(explodePos, 0xef4444, pCount);
+                        
+                        if (audio && typeof audio.playExplosion === 'function') {
+                            audio.playExplosion();
+                        }
+                    }
+
+                    scene.remove(bomb.mesh);
+                    bomb.mesh.geometry.dispose();
+                    bomb.mesh.material.dispose();
+                    if (bomb.light) {
+                        bomb.mesh.remove(bomb.light);
+                        bomb.light.dispose();
+                    }
+
+                    ambientUfoBombs.splice(i, 1);
+                }
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
 
@@ -9046,6 +9737,9 @@
 
             // Update skybox shader time
             if (skyboxController) skyboxController.update(dt);
+
+            // Update ambient UFO fleet and falling bombs
+            updateAmbientUfoFleet(dt);
 
             // 1. Core Rotating animations for Base Temple Core (Organic levitating)
             if (baseCrystal) {
@@ -9080,6 +9774,39 @@
                     // Pulsating base energy core light
                     const elapsed = clock.getElapsedTime();
                     baseLight.intensity = 2.5 + Math.sin(elapsed * 2.5) * 1.2;
+                }
+            }
+
+            if (gameState.currentBiome === 'venus') {
+                if (venusAcidRainParticles && venusAcidRainParticles.parent) {
+                    const posAttr = venusAcidRainParticles.geometry.attributes.position;
+                    const vels = venusAcidRainParticles.userData.velocities;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        let px = posAttr.getX(i) + vels[i].x * dt;
+                        let py = posAttr.getY(i) + vels[i].y * dt;
+                        let pz = posAttr.getZ(i) + vels[i].z * dt;
+
+                        if (px < -100) px = 100;
+                        if (px > 100) px = -100;
+                        if (py < 0.1) py = 20.0;
+                        if (py > 20.0) py = 0.1;
+                        if (pz < -100) pz = 100;
+                        if (pz > 100) pz = -100;
+
+                        posAttr.setXYZ(i, px, py, pz);
+                    }
+                    posAttr.needsUpdate = true;
+                }
+
+                if (ground && ground.material && ground.material.map) {
+                    ground.material.map.offset.x += dt * 0.0006;
+                    ground.material.map.offset.y += dt * 0.0009;
+                    ground.material.map.needsUpdate = true;
+                }
+
+                if (baseLight) {
+                    const elapsed = clock.getElapsedTime();
+                    baseLight.intensity = 2.5 + Math.sin(elapsed * 3.0) * 1.0;
                 }
             }
 

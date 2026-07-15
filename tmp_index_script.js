@@ -46,6 +46,7 @@
 
         // System Settings
         let gameState = {
+            inMenu: true,
             gold: 1000,
             health: 20,
             wave: 1,
@@ -61,6 +62,353 @@
             water: 100,
             power: 100,
             collectedFood: 0
+        };
+
+        function generateMarsTexture() {
+            return marsGroundTexture;
+        }
+
+        let venusGroundTexture = null;
+        function generateVenusTexture() {
+            if (venusGroundTexture) return venusGroundTexture;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Dark dark basaltic base
+            const grad = ctx.createLinearGradient(0, 0, 512, 512);
+            grad.addColorStop(0, '#1c1917'); // stone-900 (almost black)
+            grad.addColorStop(0.5, '#292524'); // stone-800
+            grad.addColorStop(1, '#1c1917');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Add fine noise for rocky texture
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            for (let i = 0; i < 6000; i++) {
+                const rx = Math.random() * 512;
+                const ry = Math.random() * 512;
+                const rw = Math.random() * 2 + 1;
+                ctx.fillRect(rx, ry, rw, rw);
+            }
+
+            // Draw glowing acidic lime-green cracks/lava veins
+            ctx.strokeStyle = '#84cc16'; // lime-500
+            ctx.shadowColor = '#65a30d'; // lime-600 glow
+            ctx.shadowBlur = 6;
+            ctx.lineWidth = 2.0;
+
+            const numVeins = 35;
+            for (let i = 0; i < numVeins; i++) {
+                ctx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                ctx.moveTo(x, y);
+                const segments = 4 + Math.floor(Math.random() * 6);
+                for (let j = 0; j < segments; j++) {
+                    x += (Math.random() - 0.5) * 60;
+                    y += (Math.random() - 0.5) * 60;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Reset shadow settings for subsequent operations
+            ctx.shadowBlur = 0;
+
+            // Draw broader molten orange/yellow flows
+            ctx.strokeStyle = '#eab308'; // yellow-500
+            ctx.lineWidth = 3.0;
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                let x = Math.random() * 512;
+                let y = Math.random() * 512;
+                ctx.moveTo(x, y);
+                const segments = 3 + Math.floor(Math.random() * 4);
+                for (let j = 0; j < segments; j++) {
+                    x += (Math.random() - 0.5) * 120;
+                    y += (Math.random() - 0.5) * 120;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(32, 32); // repeat to look detailed
+            venusGroundTexture = texture;
+            return venusGroundTexture;
+        }
+
+        function calculateVenusHeight(x, z) {
+            const distToBase = Math.sqrt(x*x + z*z);
+            // Rugged volcanic terrain
+            let h = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 2.5;
+            h += Math.sin(x * 0.01) * Math.sin(z * 0.01) * 4.0;
+
+            // Stepped basalt plateaus (using floor or smoothstep-like steps)
+            const plateauCenter1 = Math.max(Math.abs(x - 40), Math.abs(z + 40));
+            if (plateauCenter1 < 25) {
+                const heightContribution = 10.0 * (1.0 - plateauCenter1 / 25);
+                // Make it stepped/terraced
+                const stepped = Math.floor(heightContribution * 2) / 2;
+                h = Math.max(h, stepped);
+            }
+
+            const plateauCenter2 = Math.max(Math.abs(x + 45), Math.abs(z - 35));
+            if (plateauCenter2 < 20) {
+                const heightContribution = 8.0 * (1.0 - plateauCenter2 / 20);
+                const stepped = Math.floor(heightContribution * 2.5) / 2.5;
+                h = Math.max(h, stepped);
+            }
+
+            // Acid lake depressions
+            const lakeDist1 = Math.sqrt((x - 10)**2 + (z - 45)**2);
+            if (lakeDist1 < 15 && distToBase > 15) {
+                const t = lakeDist1 / 15;
+                h += -4.0 * (1.0 - t * t);
+            }
+
+            // Base Flat Smoothing
+            if (distToBase < 16) {
+                const factor = distToBase / 16;
+                const smoothFactor = factor * factor * (3 - 2 * factor);
+                h = h * smoothFactor;
+            }
+
+            return h;
+        }
+
+        let europaGroundTexture = null;
+        function generateEuropaTexture() {
+            return europaGroundTexture;
+        }
+
+        function calculateEuropaHeight(x, z) {
+            const distToBase = Math.sqrt(x*x + z*z);
+            // Stepped glacial hills
+            let h = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.5;
+            h += Math.sin(x * 0.015) * Math.sin(z * 0.015) * 5.0;
+
+            // 1. Ice Impact Crater 1
+            const cx1 = -25, cz1 = 20;
+            const distToCrater1 = Math.sqrt((x - cx1)**2 + (z - cz1)**2);
+            if (distToCrater1 < 18) {
+                if (distToCrater1 < 10) {
+                    const t = distToCrater1 / 10;
+                    h += -3.0 + t * t * 1.5;
+                } else if (distToCrater1 < 14) {
+                    const t = (distToCrater1 - 10) / 4;
+                    h += -1.5 + Math.sin(t * Math.PI) * 2.5; 
+                } else {
+                    const t = (distToCrater1 - 14) / 4;
+                    h += (1.0 - t) * 1.0;
+                }
+            }
+
+            // 2. Ice Impact Crater 2
+            const cx2 = 20, cz2 = -25;
+            const distToCrater2 = Math.sqrt((x - cx2)**2 + (z - cz2)**2);
+            if (distToCrater2 < 12) {
+                if (distToCrater2 < 6) {
+                    const t = distToCrater2 / 6;
+                    h += -2.0 + t * t * 1.0;
+                } else if (distToCrater2 < 9) {
+                    const t = (distToCrater2 - 6) / 3;
+                    h += -1.0 + Math.sin(t * Math.PI) * 1.8;
+                } else {
+                    const t = (distToCrater2 - 9) / 3;
+                    h += (1.0 - t) * 0.8;
+                }
+            }
+
+            // 3. Ice Ripples / Fissures
+            let ripples = Math.sin(x * 0.35 + Math.sin(z * 0.15) * 2.0) * 0.25;
+            ripples += Math.cos(z * 0.4 - Math.cos(x * 0.2)) * 0.15;
+            h += ripples;
+
+            // 4. Glacial Crevasse / Canyon
+            const canyonCenterZ = Math.sin(x * 0.03) * 40 - 20;
+            const distToCanyon = Math.abs(z - canyonCenterZ);
+            if (distToCanyon < 25 && distToBase > 18) {
+                let canyonDepth = 0;
+                if (distToCanyon < 15) {
+                    canyonDepth = -14.0;
+                } else {
+                    const t = (distToCanyon - 15) / 10;
+                    canyonDepth = -14.0 * (1.0 - Math.sin(t * Math.PI / 2));
+                }
+                
+                if (distToBase < 28) {
+                    const blend = (distToBase - 18) / 10;
+                    canyonDepth *= blend;
+                }
+                h += canyonDepth;
+            }
+
+            // 5. Ice Trenches
+            if (Math.abs(z) < 22 && distToBase > 12) {
+                const distToTrench1 = Math.abs(x - 14);
+                const distToTrench2 = Math.abs(x + 14);
+                const trenchDist = Math.min(distToTrench1, distToTrench2);
+                if (trenchDist < 2.5) {
+                    const t = trenchDist / 2.5;
+                    const trenchDepth = -2.8 * (1.0 - t * t);
+                    h += trenchDepth;
+                }
+            }
+
+            // 6. Base Flat Smoothing
+            if (distToBase < 16) {
+                const factor = distToBase / 16;
+                const smoothFactor = factor * factor * (3 - 2 * factor);
+                h = h * smoothFactor;
+            }
+
+            // 7. Stepped Ice Shelves / Pyramids
+            const px1 = 45, pz1 = -45;
+            const dx1 = Math.abs(x - px1);
+            const dz1 = Math.abs(z - pz1);
+            const pyrDist1 = Math.max(dx1, dz1);
+            if (pyrDist1 < 16) {
+                const pyrHeight = 12.0 * (1.0 - pyrDist1 / 16);
+                const step = Math.floor(pyrHeight * 4) / 4;
+                h = Math.max(h, step);
+            }
+
+            const px2 = -50, pz2 = 45;
+            const dx2 = Math.abs(x - px2);
+            const dz2 = Math.abs(z - pz2);
+            const pyrDist2 = Math.max(dx2, dz2);
+            if (pyrDist2 < 14) {
+                const pyrHeight = 9.0 * (1.0 - pyrDist2 / 14);
+                const step = Math.floor(pyrHeight * 3) / 3;
+                h = Math.max(h, step);
+            }
+
+            return h;
+        }
+
+        function calculateMarsHeight(x, z) {
+            const distToBase = Math.sqrt(x*x + z*z);
+            let h = Math.sin(x * 0.04) * Math.cos(z * 0.04) * 3.5;
+            h += Math.sin(x * 0.015) * Math.sin(z * 0.015) * 5.0;
+
+            // 1. Crater 1
+            const cx1 = -25, cz1 = 20;
+            const distToCrater1 = Math.sqrt((x - cx1)**2 + (z - cz1)**2);
+            if (distToCrater1 < 18) {
+                if (distToCrater1 < 10) {
+                    const t = distToCrater1 / 10;
+                    h += -3.0 + t * t * 1.5;
+                } else if (distToCrater1 < 14) {
+                    const t = (distToCrater1 - 10) / 4;
+                    h += -1.5 + Math.sin(t * Math.PI) * 2.5; 
+                } else {
+                    const t = (distToCrater1 - 14) / 4;
+                    h += (1.0 - t) * 1.0;
+                }
+            }
+
+            // 2. Crater 2
+            const cx2 = 20, cz2 = -25;
+            const distToCrater2 = Math.sqrt((x - cx2)**2 + (z - cz2)**2);
+            if (distToCrater2 < 12) {
+                if (distToCrater2 < 6) {
+                    const t = distToCrater2 / 6;
+                    h += -2.0 + t * t * 1.0;
+                } else if (distToCrater2 < 9) {
+                    const t = (distToCrater2 - 6) / 3;
+                    h += -1.0 + Math.sin(t * Math.PI) * 1.8;
+                } else {
+                    const t = (distToCrater2 - 9) / 3;
+                    h += (1.0 - t) * 0.8;
+                }
+            }
+
+            // 3. Sand Ripples
+            let ripples = Math.sin(x * 0.35 + Math.sin(z * 0.15) * 2.0) * 0.25;
+            ripples += Math.cos(z * 0.4 - Math.cos(x * 0.2)) * 0.15;
+            h += ripples;
+
+            // 4. Curving Canyon (a few units off base)
+            const canyonCenterZ = Math.sin(x * 0.03) * 40 - 20;
+            const distToCanyon = Math.abs(z - canyonCenterZ);
+            if (distToCanyon < 25 && distToBase > 18) {
+                let canyonDepth = 0;
+                if (distToCanyon < 15) {
+                    canyonDepth = -14.0;
+                } else {
+                    const t = (distToCanyon - 15) / 10;
+                    canyonDepth = -14.0 * (1.0 - Math.sin(t * Math.PI / 2));
+                }
+                
+                if (distToBase < 28) {
+                    const blend = (distToBase - 18) / 10;
+                    canyonDepth *= blend;
+                }
+                h += canyonDepth;
+            }
+
+            // 5. Tactical Trenches
+            if (Math.abs(z) < 22 && distToBase > 12) {
+                const distToTrench1 = Math.abs(x - 14);
+                const distToTrench2 = Math.abs(x + 14);
+                const trenchDist = Math.min(distToTrench1, distToTrench2);
+                if (trenchDist < 2.5) {
+                    const t = trenchDist / 2.5;
+                    const trenchDepth = -2.8 * (1.0 - t * t);
+                    h += trenchDepth;
+                }
+            }
+
+            // 6. Base Flat Smoothing
+            if (distToBase < 16) {
+                const factor = distToBase / 16;
+                const smoothFactor = factor * factor * (3 - 2 * factor);
+                h = h * smoothFactor;
+            }
+
+            // 7. Realistic Stepped Pyramids (Superimpose on top)
+            // Pyramid 1 at (45, -45)
+            const px1 = 45, pz1 = -45;
+            const dx1 = Math.abs(x - px1);
+            const dz1 = Math.abs(z - pz1);
+            const pyrDist1 = Math.max(dx1, dz1);
+            if (pyrDist1 < 16) {
+                const pyrHeight = 12.0 * (1.0 - pyrDist1 / 16);
+                const step = Math.floor(pyrHeight * 4) / 4;
+                h = Math.max(h, step);
+            }
+
+            // Pyramid 2 at (-50, 45)
+            const px2 = -50, pz2 = 45;
+            const dx2 = Math.abs(x - px2);
+            const dz2 = Math.abs(z - pz2);
+            const pyrDist2 = Math.max(dx2, dz2);
+            if (pyrDist2 < 14) {
+                const pyrHeight = 9.0 * (1.0 - pyrDist2 / 14);
+                const step = Math.floor(pyrHeight * 3) / 3;
+                h = Math.max(h, step);
+            }
+
+            return h;
+        }
+
+        window.getTerrainHeight = function(wx, wz) {
+            if (typeof gameState !== 'undefined') {
+                if (gameState.currentBiome === 'mars') {
+                    return calculateMarsHeight(wx, wz);
+                } else if (gameState.currentBiome === 'europa') {
+                    return calculateEuropaHeight(wx, wz);
+                } else if (gameState.currentBiome === 'venus') {
+                    return calculateVenusHeight(wx, wz);
+                }
+            }
+            return 0;
         };
 
         const BIOMES = {
@@ -135,6 +483,24 @@
                 gridMainColor: 0xa3e635,
                 gridSubColor: 0x1a2e05,
                 themeClass: "border-lime-500/30 text-lime-400 focus:border-lime-400"
+            },
+            mars: {
+                name: "Martian Canyons",
+                groundColor: 0x9e3d1b,
+                fogColor: 0x2a130e,
+                skyTop: 0x1f0e0a,
+                skyBottom: 0x853b27,
+                skyCloud: 0x4f2317,
+                ambientColor: 0x3d1b14,
+                dirColor: 0xffcca3,
+                dirIntensity: 0.95,
+                baseCrystalColor: 0xef4444,
+                baseCrystalEmissive: 0x991b1b,
+                baseShardColor: 0xf97316,
+                baseShardEmissive: 0x7c2d12,
+                gridMainColor: 0xf97316,
+                gridSubColor: 0x431407,
+                themeClass: "border-orange-500/30 text-orange-400 focus:border-orange-400"
             }
         };
 
@@ -273,6 +639,47 @@
         /* ==========================================
            REAL-TIME DIJKSTRA SDF PATHFINDING
            ========================================== */
+        // ====== Binary Min-Heap for Dijkstra (zero-allocation) ======
+        const _heapX = new Int32Array(1700);
+        const _heapZ = new Int32Array(1700);
+        const _heapD = new Float64Array(1700);
+        let _heapSize = 0;
+
+        function _heapPush(x, z, d) {
+            let i = _heapSize++;
+            _heapX[i] = x; _heapZ[i] = z; _heapD[i] = d;
+            while (i > 0) {
+                const p = (i - 1) >> 1;
+                if (_heapD[p] <= _heapD[i]) break;
+                // swap
+                let tx = _heapX[i], tz = _heapZ[i], td = _heapD[i];
+                _heapX[i] = _heapX[p]; _heapZ[i] = _heapZ[p]; _heapD[i] = _heapD[p];
+                _heapX[p] = tx; _heapZ[p] = tz; _heapD[p] = td;
+                i = p;
+            }
+        }
+
+        function _heapPop() {
+            const rx = _heapX[0], rz = _heapZ[0];
+            _heapSize--;
+            if (_heapSize > 0) {
+                _heapX[0] = _heapX[_heapSize]; _heapZ[0] = _heapZ[_heapSize]; _heapD[0] = _heapD[_heapSize];
+                let i = 0;
+                while (true) {
+                    let smallest = i;
+                    const l = 2 * i + 1, r = 2 * i + 2;
+                    if (l < _heapSize && _heapD[l] < _heapD[smallest]) smallest = l;
+                    if (r < _heapSize && _heapD[r] < _heapD[smallest]) smallest = r;
+                    if (smallest === i) break;
+                    let tx = _heapX[i], tz = _heapZ[i], td = _heapD[i];
+                    _heapX[i] = _heapX[smallest]; _heapZ[i] = _heapZ[smallest]; _heapD[i] = _heapD[smallest];
+                    _heapX[smallest] = tx; _heapZ[smallest] = tz; _heapD[smallest] = td;
+                    i = smallest;
+                }
+            }
+            return { x: rx, z: rz };
+        }
+
         function computeSDF() {
             // Step 1: Initialize all values to Infinity
             for (let x = 0; x < GRID_SIZE; x++) {
@@ -284,75 +691,99 @@
             // Step 2: Set the Destination (Base Crystal) to distance 0
             sdfGrid[BASE_COORD.x][BASE_COORD.z] = 0;
 
-            // Step 3: Dijkstra BFS queue
-            let queue = [{ x: BASE_COORD.x, z: BASE_COORD.z }];
+            // Step 3: Dijkstra with binary min-heap
+            _heapSize = 0;
+            _heapPush(BASE_COORD.x, BASE_COORD.z, 0);
 
-            const neighbors = [
-                { dx: 1, dz: 0, cost: 1.0 },
-                { dx: -1, dz: 0, cost: 1.0 },
-                { dx: 0, dz: 1, cost: 1.0 },
-                { dx: 0, dz: -1, cost: 1.0 },
-                // Diagonal moves for smoother paths
-                { dx: 1, dz: 1, cost: 1.414 },
-                { dx: -1, dz: -1, cost: 1.414 },
-                { dx: 1, dz: -1, cost: 1.414 },
-                { dx: -1, dz: 1, cost: 1.414 }
-            ];
+            while (_heapSize > 0) {
+                const curr = _heapPop();
+                const currDist = sdfGrid[curr.x][curr.z];
+                const neighbors = window.Translator.getNeighbors8(curr.x, curr.z);
 
-            while (queue.length > 0) {
-                // Find node with minimum current distance in queue
-                let minIdx = 0;
-                for (let i = 1; i < queue.length; i++) {
-                    if (sdfGrid[queue[i].x][queue[i].z] < sdfGrid[queue[minIdx].x][queue[minIdx].z]) {
-                        minIdx = i;
+                for (let i = 0; i < neighbors.length; i++) {
+                    const n = neighbors[i];
+                    const nx = n.x;
+                    const nz = n.z;
+
+                    // Avoid towers and obstacles
+                    if (grid[nx][nz] === CELL_TYPES.OBSTACLE || grid[nx][nz] === CELL_TYPES.TOWER || grid[nx][nz] === CELL_TYPES.LAKE) {
+                        continue;
                     }
-                }
-                let curr = queue.splice(minIdx, 1)[0];
 
-                for (let n of neighbors) {
-                    let nx = curr.x + n.dx;
-                    let nz = curr.z + n.dz;
-
-                    // Bound checks
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        // Avoid towers and obstacles
-                        if (grid[nx][nz] === CELL_TYPES.OBSTACLE || grid[nx][nz] === CELL_TYPES.TOWER || grid[nx][nz] === CELL_TYPES.LAKE) {
-                            continue;
-                        }
-
-                        let targetDist = sdfGrid[curr.x][curr.z] + n.cost;
-                        if (targetDist < sdfGrid[nx][nz]) {
-                            sdfGrid[nx][nz] = targetDist;
-                            queue.push({ x: nx, z: nz });
-                        }
+                    const targetDist = currDist + n.cost;
+                    if (targetDist < sdfGrid[nx][nz]) {
+                        sdfGrid[nx][nz] = targetDist;
+                        _heapPush(nx, nz, targetDist);
                     }
                 }
             }
             updateSDFRadar();
         }
 
+        // Pre-allocated flat arrays for BFS reachability check
+        const _bfsVisited = new Uint8Array(GRID_SIZE * GRID_SIZE);
+        const _bfsQueueX = new Int32Array(GRID_SIZE * GRID_SIZE);
+        const _bfsQueueZ = new Int32Array(GRID_SIZE * GRID_SIZE);
+
         // Test if a temporary block would break the paths from Spawns to Base
         function validatePathways(tempX, tempZ) {
-            // Save state
-            const orig = grid[tempX][tempZ];
-            grid[tempX][tempZ] = CELL_TYPES.TOWER;
+            // Clear visited
+            _bfsVisited.fill(0);
 
-            // Run localized dry-run computation
-            computeSDF();
+            // BFS flood-fill from base, treating tempX/tempZ as blocked
+            let head = 0, tail = 0;
+            _bfsQueueX[tail] = BASE_COORD.x;
+            _bfsQueueZ[tail] = BASE_COORD.z;
+            _bfsVisited[BASE_COORD.x * GRID_SIZE + BASE_COORD.z] = 1;
+            tail++;
 
-            let viable = true;
-            for (let spawn of SPAWN_POINTS) {
-                if (sdfGrid[spawn.x][spawn.z] === Infinity) {
-                    viable = false;
-                    break;
+            while (head < tail) {
+                const cx = _bfsQueueX[head];
+                const cz = _bfsQueueZ[head];
+                head++;
+
+                const neighbors = window.Translator.getNeighbors8(cx, cz);
+                for (let i = 0; i < neighbors.length; i++) {
+                    const n = neighbors[i];
+                    const nx = n.x, nz = n.z;
+                    const idx = nx * GRID_SIZE + nz;
+
+                    if (_bfsVisited[idx]) continue;
+
+                    // Treat the candidate cell as blocked
+                    if (nx === tempX && nz === tempZ) continue;
+
+                    const cell = grid[nx][nz];
+                    if (cell === CELL_TYPES.OBSTACLE || cell === CELL_TYPES.TOWER || cell === CELL_TYPES.LAKE) continue;
+
+                    _bfsVisited[idx] = 1;
+                    _bfsQueueX[tail] = nx;
+                    _bfsQueueZ[tail] = nz;
+                    tail++;
                 }
             }
 
-            // Restore state
-            grid[tempX][tempZ] = orig;
-            computeSDF(); // Recalculate original
+            // Check all spawn points are reachable
+            for (let i = 0; i < SPAWN_POINTS.length; i++) {
+                if (!_bfsVisited[SPAWN_POINTS[i].x * GRID_SIZE + SPAWN_POINTS[i].z]) {
+                    return false;
+                }
+            }
+            return true;
+        }
 
-            return viable;
+        function getNextSDFStep(cx, cz) {
+            const neighbors = window.Translator.getNeighbors8(cx, cz);
+            let bestStep = { x: cx, z: cz };
+            let bestDist = sdfGrid[cx][cz];
+            for (let i = 0; i < neighbors.length; i++) {
+                const n = neighbors[i];
+                if (sdfGrid[n.x][n.z] < bestDist) {
+                    bestDist = sdfGrid[n.x][n.z];
+                    bestStep = n;
+                }
+            }
+            return bestStep;
         }
 
         /* ==========================================
@@ -516,6 +947,106 @@
 
         const scene = new THREE.Scene();
         window.projectileInstancer = new ProjectileInstancer(scene);
+
+        // Global Geometry Cache for high performance (zero allocations at runtime)
+        const ENEMY_GEOMS = {};
+        function initEnemyGeometries() {
+            ENEMY_GEOMS.scarab = {
+                shell: new THREE.DodecahedronGeometry(0.35, 1),
+                neon: new THREE.BoxGeometry(0.1, 0.38, 0.5),
+                leg: new THREE.BoxGeometry(0.08, 0.4, 0.08),
+                barBack: new THREE.PlaneGeometry(0.7, 0.08),
+                barFill: new THREE.PlaneGeometry(0.7, 0.08)
+            };
+            ENEMY_GEOMS.ant = {
+                abdomen: new THREE.SphereGeometry(0.24, 6, 6),
+                thorax: new THREE.SphereGeometry(0.16, 6, 6),
+                head: new THREE.SphereGeometry(0.18, 6, 6),
+                neon: new THREE.BoxGeometry(0.06, 0.1, 0.25),
+                leg: new THREE.BoxGeometry(0.05, 0.35, 0.05),
+                barBack: new THREE.PlaneGeometry(0.55, 0.06),
+                barFill: new THREE.PlaneGeometry(0.55, 0.06)
+            };
+            ENEMY_GEOMS.golem = {
+                body: new THREE.DodecahedronGeometry(0.5, 0),
+                neon: new THREE.BoxGeometry(0.2, 0.1, 0.6),
+                leg: new THREE.CylinderGeometry(0.12, 0.12, 0.5, 5),
+                barBack: new THREE.PlaneGeometry(0.8, 0.08),
+                barFill: new THREE.PlaneGeometry(0.8, 0.08)
+            };
+            ENEMY_GEOMS.wasp = {
+                abdomen: new THREE.ConeGeometry(0.18, 0.8, 5),
+                thorax: new THREE.SphereGeometry(0.15, 6, 6),
+                head: new THREE.SphereGeometry(0.14, 6, 6),
+                neon: new THREE.BoxGeometry(0.04, 0.08, 0.2),
+                wing: new THREE.BoxGeometry(0.4, 0.02, 0.15),
+                barBack: new THREE.PlaneGeometry(0.5, 0.06),
+                barFill: new THREE.PlaneGeometry(0.5, 0.06)
+            };
+            ENEMY_GEOMS.carrier = {
+                abdomen: new THREE.SphereGeometry(0.3, 8, 8),
+                thorax: new THREE.SphereGeometry(0.2, 6, 6),
+                head: new THREE.SphereGeometry(0.18, 6, 6),
+                pod: new THREE.SphereGeometry(0.1, 5, 5),
+                leg: new THREE.BoxGeometry(0.06, 0.4, 0.06),
+                barBack: new THREE.PlaneGeometry(0.7, 0.07),
+                barFill: new THREE.PlaneGeometry(0.7, 0.07)
+            };
+            ENEMY_GEOMS.ufo = {
+                body: new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10),
+                dome: new THREE.SphereGeometry(0.24, 8, 8, 0, Math.PI*2, 0, Math.PI/2),
+                thrust: new THREE.CylinderGeometry(0.15, 0.2, 0.1, 8),
+                cone: new THREE.ConeGeometry(0.35, 1.8, 8, 1, true),
+                barBack: new THREE.PlaneGeometry(0.8, 0.08),
+                barFill: new THREE.PlaneGeometry(0.8, 0.08)
+            };
+            ENEMY_GEOMS.stealth = {
+                shell: new THREE.OctahedronGeometry(0.3, 1),
+                visor: new THREE.BoxGeometry(0.12, 0.03, 0.03),
+                leg: new THREE.BoxGeometry(0.04, 0.35, 0.04),
+                barBack: new THREE.PlaneGeometry(0.55, 0.07),
+                barFill: new THREE.PlaneGeometry(0.55, 0.07)
+            };
+            ENEMY_GEOMS.ram = {
+                chassis: new THREE.BoxGeometry(0.55, 0.45, 0.65),
+                power: new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6),
+                shield: new THREE.BoxGeometry(0.16, 0.6, 0.45),
+                leg: new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6),
+                barBack: new THREE.PlaneGeometry(0.9, 0.09),
+                barFill: new THREE.PlaneGeometry(0.9, 0.09)
+            };
+            ENEMY_GEOMS.scout = {
+                jet: new THREE.ConeGeometry(0.24, 0.85, 4),
+                visor: new THREE.BoxGeometry(0.08, 0.02, 0.02),
+                thruster: new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6),
+                barBack: new THREE.PlaneGeometry(0.6, 0.07),
+                barFill: new THREE.PlaneGeometry(0.6, 0.07)
+            };
+            ENEMY_GEOMS.spike = new THREE.ConeGeometry(0.05, 0.25, 4);
+            
+            // Pre-rotate/scale cached geometries where needed
+            ENEMY_GEOMS.ram.power.rotateX(Math.PI/2);
+            ENEMY_GEOMS.scout.jet.rotateX(Math.PI/2);
+            ENEMY_GEOMS.scout.jet.scale(1.8, 0.35, 1.0);
+            ENEMY_GEOMS.scout.thruster.rotateX(Math.PI/2);
+        }
+        initEnemyGeometries();
+
+        function disposeEnemyMaterials(mesh) {
+            if (!mesh) return;
+            mesh.traverse(child => {
+                if (child.isMesh) {
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
+        }
+
         // Foggy Dark Jungle Atmosphere
         scene.background = new THREE.Color(0x010803);
         scene.fog = new THREE.FogExp2(0x010803, 0.02);
@@ -526,7 +1057,7 @@
         }
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 3000);
-        camera.position.set(0, 45, 55);
+        camera.position.set(0, 4, 25);
 
         // Orbit Controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -535,7 +1066,7 @@
         controls.maxPolarAngle = Math.PI / 2.1; // Don't look under floor
         controls.minDistance = 5;
         controls.maxDistance = 120;
-        controls.target.set(0, 0, 0);
+        controls.target.set(0, 2, -15);
 
         /* Lights Setup */
         const ambientLight = new THREE.AmbientLight(0x0a2410, 1.2);
@@ -556,6 +1087,26 @@
         dirLight.shadow.camera.bottom = -d;
         scene.add(dirLight);
 
+        // Advanced fill light for Martian rim lighting
+        const fillLight = new THREE.DirectionalLight(0xff7a59, 0.0); // Starts off, configured dynamically in loadBiome
+        fillLight.position.set(-15, 10, -10);
+        scene.add(fillLight);
+
+        // Global variable for dust storm particles
+        let marsDustParticles = null;
+        let venusAcidRainParticles = null;
+        let ufoBodyInstancedMesh = null;
+        let ufoDomeInstancedMesh = null;
+        let ufoThrustInstancedMesh = null;
+        let ambientUfoPositions = [];
+        let ambientUfoVels = [];
+        let ambientUfoScales = [];
+        let ambientUfoRotations = [];
+        let ambientUfoBombTimers = [];
+        let ambientUfoBombs = [];
+        let ufoIntroActive = true;
+        let ufoIntroTimer = 0;
+
         // Base Crystal Light source
         const baseLight = new THREE.PointLight(0xec4899, 3, 15);
         const baseWorld = gridToWorld(BASE_COORD.x, BASE_COORD.z);
@@ -564,6 +1115,28 @@
 
         /* Terrain & Safety Floor Grid */
         const textureLoader = new THREE.TextureLoader();
+        const marsGroundTexture = textureLoader.load('assets/textures/martian_soil_diffuse.png', (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(16, 16);
+            if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
+                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            }
+        }, undefined, (err) => {
+            console.error('[THREE.TextureLoader] Error loading martian_soil_diffuse.png texture:', err);
+        });
+
+        europaGroundTexture = textureLoader.load('assets/textures/europa_ice_diffuse.png', (texture) => {
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(16, 16);
+            if (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) {
+                texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            }
+        }, undefined, (err) => {
+            console.error('[THREE.TextureLoader] Error loading europa_ice_diffuse.png texture:', err);
+        });
+
         const groundTexture = textureLoader.load('assets/textures/black_sand.png', (texture) => {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
@@ -649,7 +1222,7 @@
             if (!tier || tier === 1) return;
             const color = tier === 3 ? 0xd946ef : 0x22c55e; // Magenta for Tier 3, Green for Tier 2
             const spikeMat = new THREE.MeshBasicMaterial({ color: color });
-            const spikeGeo = new THREE.ConeGeometry(0.05, 0.25, 4);
+            const spikeGeo = ENEMY_GEOMS.spike;
 
             if (tier === 2) {
                 const horn = new THREE.Mesh(spikeGeo, spikeMat);
@@ -800,6 +1373,524 @@
             plant.add(light);
 
             return plant;
+        }
+
+        /* Martian Biome Obstacle Synthesizers (Columns, Boulders & Carbon Vents) */
+        function createMartianFort() {
+            const group = new THREE.Group();
+            
+            // 1. Armored bunker base (Sloped industrial look)
+            const baseGeo = new THREE.CylinderGeometry(0.72, 0.9, 0.65, 8);
+            const baseMat = new THREE.MeshStandardMaterial({ 
+                color: 0x1e293b, // slate grey metal
+                roughness: 0.45, 
+                metalness: 0.8 
+            });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.325;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+
+            // 2. Extra sloped armor plates surrounding base
+            const plateGeo = new THREE.BoxGeometry(0.48, 0.55, 0.06);
+            const plateMat = new THREE.MeshStandardMaterial({ 
+                color: 0x7c2d12, // rusted Martian copper
+                roughness: 0.35, 
+                metalness: 0.7 
+            });
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4;
+                const plate = new THREE.Mesh(plateGeo, plateMat);
+                plate.position.set(Math.cos(angle) * 0.82, 0.275, Math.sin(angle) * 0.82);
+                plate.rotation.y = -angle + Math.PI/2;
+                plate.rotation.x = 0.18; // slightly sloped
+                plate.castShadow = true;
+                group.add(plate);
+            }
+
+            // 3. Central defense dome
+            const domeGeo = new THREE.SphereGeometry(0.38, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const domeMat = new THREE.MeshStandardMaterial({ 
+                color: 0x475569, 
+                roughness: 0.3, 
+                metalness: 0.9 
+            });
+            const domeGroup = new THREE.Group();
+            domeGroup.position.y = 0.65;
+            
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.castShadow = true;
+            domeGroup.add(dome);
+
+            // 4. Dual defense barrels
+            const barrelGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.45, 8);
+            barrelGeo.rotateX(Math.PI / 2);
+            const steelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.95, roughness: 0.15 });
+            
+            const barrelL = new THREE.Mesh(barrelGeo, steelMat);
+            barrelL.position.set(-0.1, 0.12, 0.22);
+            barrelL.castShadow = true;
+            domeGroup.add(barrelL);
+
+            const barrelR = barrelL.clone();
+            barrelR.position.x = 0.1;
+            domeGroup.add(barrelR);
+            group.add(domeGroup);
+
+            // 5. Dual side solar panels
+            const solarMat = new THREE.MeshStandardMaterial({
+                color: 0x082f49, // deep reflective blue
+                roughness: 0.05,
+                metalness: 0.9,
+                emissive: 0x0c4a6e,
+                emissiveIntensity: 0.2
+            });
+            const panelSupportGeo = new THREE.BoxGeometry(0.04, 0.04, 0.35);
+            const panelGridGeo = new THREE.BoxGeometry(0.42, 0.02, 0.62);
+
+            for (let side of [-1, 1]) {
+                const wingGroup = new THREE.Group();
+                wingGroup.position.set(side * 0.95, 0.4, 0);
+
+                const support = new THREE.Mesh(panelSupportGeo, baseMat);
+                support.position.x = -side * 0.15;
+                support.rotation.z = side * 0.25;
+                wingGroup.add(support);
+
+                const grid = new THREE.Mesh(panelGridGeo, solarMat);
+                grid.rotation.z = side * 0.4;
+                grid.rotation.y = 0.15;
+                grid.castShadow = true;
+                wingGroup.add(grid);
+
+                group.add(wingGroup);
+            }
+
+            // 6. Blinking warning beacon and point light
+            const beaconGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.1, 6);
+            const beaconMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+            beacon.position.y = 0.42;
+            domeGroup.add(beacon);
+
+            const beaconLight = new THREE.PointLight(0xef4444, 0.8, 4.0);
+            beaconLight.position.y = 0.5;
+            domeGroup.add(beaconLight);
+
+            group.userData = {
+                update: (dt) => {
+                    const time = Date.now() * 0.001;
+                    // Slow sweep back and forth
+                    domeGroup.rotation.y = Math.sin(time * 0.7) * 0.6;
+                    // Flashing red warning light
+                    beaconLight.intensity = (Math.floor(time * 2.5) % 2 === 0) ? 1.4 : 0.15;
+                }
+            };
+            
+            group.scale.set(0.9 + Math.random()*0.15, 0.9 + Math.random()*0.15, 0.9 + Math.random()*0.15);
+            return group;
+        }
+
+        function createScrapBarricade() {
+            const group = new THREE.Group();
+            
+            // 1. Two side industrial poles
+            const postGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.95, 8);
+            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.3 });
+            
+            const postL = new THREE.Mesh(postGeo, darkSteelMat);
+            postL.position.set(-0.75, 0.475, 0);
+            postL.castShadow = true;
+            group.add(postL);
+
+            const postR = postL.clone();
+            postR.position.x = 0.75;
+            group.add(postR);
+
+            // 2. Overlapping debris plates
+            const plate1Geo = new THREE.BoxGeometry(0.85, 0.58, 0.05);
+            const plate1Mat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.75, metalness: 0.6 }); // rusted brown
+            const plate1 = new THREE.Mesh(plate1Geo, plate1Mat);
+            plate1.position.set(-0.25, 0.35, 0.04);
+            plate1.rotation.set(0.12, 0.15, 0.08);
+            plate1.castShadow = true;
+            plate1.receiveShadow = true;
+            group.add(plate1);
+
+            const plate2Geo = new THREE.BoxGeometry(0.92, 0.62, 0.04);
+            const plate2Mat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8, metalness: 0.55 }); // dark rust oxide
+            const plate2 = new THREE.Mesh(plate2Geo, plate2Mat);
+            plate2.position.set(0.28, 0.38, -0.04);
+            plate2.rotation.set(-0.08, -0.18, -0.06);
+            plate2.castShadow = true;
+            plate2.receiveShadow = true;
+            group.add(plate2);
+
+            // 3. Diagonal strut brace
+            const strutGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.1, 6);
+            strutGeo.rotateZ(Math.PI / 3);
+            const strut = new THREE.Mesh(strutGeo, darkSteelMat);
+            strut.position.set(0.1, 0.45, 0.08);
+            strut.castShadow = true;
+            group.add(strut);
+
+            // 4. Glowing laser security beam between posts
+            const laserGeo = new THREE.CylinderGeometry(0.015, 0.015, 1.48, 6);
+            laserGeo.rotateZ(Math.PI / 2);
+            const laserMat = new THREE.MeshBasicMaterial({ 
+                color: 0x06b6d4, // Glowing Cyan Laser
+                transparent: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            const laser = new THREE.Mesh(laserGeo, laserMat);
+            laser.position.set(0, 0.78, 0);
+            group.add(laser);
+
+            group.userData = {
+                update: (dt) => {
+                    // Pulsing cyber barrier intensity
+                    const time = Date.now() * 0.001;
+                    laserMat.opacity = 0.5 + Math.sin(time * 15.0) * 0.3;
+                }
+            };
+            
+            group.scale.set(0.95 + Math.random()*0.15, 0.95 + Math.random()*0.15, 0.95 + Math.random()*0.15);
+            return group;
+        }
+
+        function createMartianLog() {
+            const group = new THREE.Group();
+            
+            // 1. Organic petrified log in three connected segments
+            const petrifiedBarkMat = new THREE.MeshStandardMaterial({ 
+                color: 0x431407, // scorched fossilized wood
+                roughness: 0.98,
+                flatShading: true
+            });
+            
+            const seg1Geo = new THREE.CylinderGeometry(0.2, 0.25, 0.75, 6);
+            seg1Geo.rotateZ(Math.PI / 2);
+            const seg1 = new THREE.Mesh(seg1Geo, petrifiedBarkMat);
+            seg1.position.set(-0.35, 0.22, 0.05);
+            seg1.rotation.y = 0.15;
+            seg1.castShadow = true;
+            seg1.receiveShadow = true;
+            group.add(seg1);
+
+            const seg2Geo = new THREE.CylinderGeometry(0.16, 0.2, 0.75, 6);
+            seg2Geo.rotateZ(Math.PI / 2.1);
+            const seg2 = new THREE.Mesh(seg2Geo, petrifiedBarkMat);
+            seg2.position.set(0.32, 0.2, -0.05);
+            seg2.rotation.y = -0.22;
+            seg2.castShadow = true;
+            seg2.receiveShadow = true;
+            group.add(seg2);
+
+            // 2. Splintered hollow branch
+            const branchGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.45, 5);
+            const branch = new THREE.Mesh(branchGeo, petrifiedBarkMat);
+            branch.position.set(-0.25, 0.38, -0.15);
+            branch.rotation.set(0.6, 0.3, -0.5);
+            branch.castShadow = true;
+            group.add(branch);
+
+            // 3. Protruding glowing crystal pods
+            const crystalGeo = new THREE.DodecahedronGeometry(0.065);
+            const crystalMat = new THREE.MeshStandardMaterial({
+                color: 0x10b981, // Glowing emerald lichen/crystal
+                emissive: 0x059669,
+                emissiveIntensity: 0.9,
+                roughness: 0.1,
+                metalness: 0.8
+            });
+
+            const crystals = [];
+            const posOffsets = [
+                { x: -0.15, y: 0.34, z: 0.12 },
+                { x: 0.2, y: 0.3, z: 0.08 },
+                { x: 0.45, y: 0.26, z: -0.12 }
+            ];
+
+            posOffsets.forEach(offset => {
+                const crys = new THREE.Mesh(crystalGeo, crystalMat);
+                crys.position.copy(offset);
+                crys.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                group.add(crys);
+                crystals.push(crys);
+            });
+
+            group.userData = {
+                update: (dt) => {
+                    const time = Date.now() * 0.001;
+                    crystalMat.emissiveIntensity = 0.6 + Math.sin(time * 3.8) * 0.35;
+                }
+            };
+            
+            group.scale.set(0.9 + Math.random()*0.25, 0.9 + Math.random()*0.25, 0.9 + Math.random()*0.25);
+            return group;
+        }
+
+        function createMartianColumn() {
+            const group = new THREE.Group();
+            
+            // 1. Industrial hexagonal base plate
+            const basePlateGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.18, 6);
+            const darkSteelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.88, roughness: 0.3 });
+            const base = new THREE.Mesh(basePlateGeo, darkSteelMat);
+            base.position.y = 0.09;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+
+            // 2. Central stone column core (Martian basalt obelisk)
+            const coreGeo = new THREE.CylinderGeometry(0.24, 0.28, 1.85, 6);
+            const coreMat = new THREE.MeshStandardMaterial({ 
+                color: 0x18181b, // scorched black basalt
+                roughness: 0.95, 
+                flatShading: true 
+            });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            core.position.y = 0.925;
+            core.castShadow = true;
+            core.receiveShadow = true;
+            group.add(core);
+
+            // 3. Steel reinforcing cage (four vertical support bars)
+            const barGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 4);
+            const bars = [];
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI) / 2 + Math.PI/4;
+                const bar = new THREE.Mesh(barGeo, darkSteelMat);
+                bar.position.set(Math.cos(angle) * 0.32, 0.9, Math.sin(angle) * 0.32);
+                bar.castShadow = true;
+                group.add(bar);
+            }
+
+            // 4. Rotating containment cyber-rings
+            const ringGeo = new THREE.TorusGeometry(0.36, 0.032, 6, 16);
+            ringGeo.rotateX(Math.PI / 2);
+            const brassMat = new THREE.MeshStandardMaterial({ color: 0xb45309, metalness: 0.92, roughness: 0.25 });
+            
+            const ring1 = new THREE.Mesh(ringGeo, brassMat);
+            ring1.position.y = 0.6;
+            group.add(ring1);
+
+            const ring2 = new THREE.Mesh(ringGeo, brassMat);
+            ring2.position.y = 1.35;
+            group.add(ring2);
+
+            // 5. Levitating glowing power core at the summit
+            const energyCoreGeo = new THREE.DodecahedronGeometry(0.16);
+            const energyCoreMat = new THREE.MeshStandardMaterial({
+                color: 0xeab308, // amber warning core
+                emissive: 0xd97706,
+                emissiveIntensity: 1.0,
+                roughness: 0.1,
+                metalness: 0.9
+            });
+            const energyCore = new THREE.Mesh(energyCoreGeo, energyCoreMat);
+            energyCore.position.y = 2.05;
+            group.add(energyCore);
+
+            const glowLight = new THREE.PointLight(0xd97706, 1.2, 5.0);
+            glowLight.position.y = 2.1;
+            group.add(glowLight);
+
+            group.userData = {
+                update: (dt) => {
+                    const time = Date.now() * 0.001;
+                    // Bobbing levitating core
+                    energyCore.position.y = 2.02 + Math.sin(time * 3.2) * 0.08;
+                    energyCore.rotation.y += dt * 1.6;
+                    energyCore.rotation.z += dt * 0.7;
+                    
+                    // Spin rings in opposite directions
+                    ring1.rotation.y += dt * 0.9;
+                    ring2.rotation.y -= dt * 1.2;
+
+                    // Pulsating glow intensity
+                    energyCoreMat.emissiveIntensity = 0.7 + Math.sin(time * 3.2) * 0.4;
+                    glowLight.intensity = 0.9 + Math.sin(time * 3.2) * 0.45;
+                }
+            };
+            
+            group.scale.set(0.9 + Math.random()*0.25, 0.9 + Math.random()*0.25, 0.9 + Math.random()*0.25);
+            return group;
+        }
+
+        function createMartianBoulder() {
+            const group = new THREE.Group();
+            
+            // 1. Cluster of three intersecting faceted rocks
+            const slateMat = new THREE.MeshStandardMaterial({ 
+                color: 0x431407, // scorched oxide rock red-brown
+                roughness: 0.9, 
+                flatShading: true 
+            });
+
+            const rock1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6), slateMat);
+            rock1.position.y = 0.42;
+            rock1.rotation.set(0.2, 0.5, 0.1);
+            rock1.castShadow = true;
+            rock1.receiveShadow = true;
+            group.add(rock1);
+
+            const rock2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42), slateMat);
+            rock2.position.set(0.45, 0.28, -0.2);
+            rock2.rotation.set(0.8, -0.4, 0.6);
+            rock2.castShadow = true;
+            rock2.receiveShadow = true;
+            group.add(rock2);
+
+            const rock3 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3), slateMat);
+            rock3.position.set(-0.4, 0.2, 0.35);
+            rock3.rotation.set(-0.5, 0.3, -0.8);
+            rock3.castShadow = true;
+            rock3.receiveShadow = true;
+            group.add(rock3);
+
+            // 2. Protruding sharp cybernetic crystals
+            const crystalGeo = new THREE.OctahedronGeometry(0.12, 0);
+            const crystalMat = new THREE.MeshStandardMaterial({
+                color: 0x8b5cf6, // Glowing dark violet crystals
+                emissive: 0x7c3aed,
+                emissiveIntensity: 1.1,
+                roughness: 0.15,
+                metalness: 0.8
+            });
+
+            const crystalOffsets = [
+                { pos: new THREE.Vector3(-0.15, 0.62, 0.18), rot: new THREE.Euler(0.4, 0.2, -0.5) },
+                { pos: new THREE.Vector3(0.18, 0.58, -0.22), rot: new THREE.Euler(-0.6, 0.5, 0.3) },
+                { pos: new THREE.Vector3(0.55, 0.38, 0.12), rot: new THREE.Euler(0.2, -0.8, 0.6) }
+            ];
+
+            crystalOffsets.forEach(cAttr => {
+                const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+                crystal.position.copy(cAttr.pos);
+                crystal.rotation.copy(cAttr.rot);
+                crystal.castShadow = true;
+                group.add(crystal);
+            });
+
+            // 3. Local ambient point light matching crystal hue
+            const crystalLight = new THREE.PointLight(0x7c3aed, 0.8, 3.5);
+            crystalLight.position.set(0, 0.6, 0);
+            group.add(crystalLight);
+
+            group.userData = {
+                update: (dt) => {
+                    const time = Date.now() * 0.001;
+                    crystalMat.emissiveIntensity = 0.7 + Math.sin(time * 2.8) * 0.45;
+                    crystalLight.intensity = 0.5 + Math.sin(time * 2.8) * 0.35;
+                }
+            };
+            
+            group.scale.set(0.85 + Math.random()*0.35, 0.85 + Math.random()*0.35, 0.85 + Math.random()*0.35);
+            return group;
+        }
+
+        function createCarbonIceVent() {
+            const group = new THREE.Group();
+            
+            // 1. Jagged volcanic ring structure (6 overlapping rotated cones)
+            const basaltMat = new THREE.MeshStandardMaterial({ 
+                color: 0x3b1c15, // deep oxide basalt
+                roughness: 0.92,
+                flatShading: true
+            });
+            const outerSlabGeo = new THREE.BoxGeometry(0.38, 0.65, 0.38);
+            
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3;
+                const slab = new THREE.Mesh(outerSlabGeo, basaltMat);
+                slab.position.set(Math.cos(angle) * 0.45, 0.28, Math.sin(angle) * 0.45);
+                slab.rotation.set(0.24, -angle, 0.0);
+                slab.castShadow = true;
+                group.add(slab);
+            }
+
+            // 2. Glowing inner cryo-fluid reservoir disc
+            const coreFluidGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.04, 8);
+            const coreFluidMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.05,
+                metalness: 0.1,
+                emissive: 0x06b6d4, // bright cyan cryo-fluid glow
+                emissiveIntensity: 1.2,
+                transparent: true,
+                opacity: 0.95
+            });
+            const coreFluid = new THREE.Mesh(coreFluidGeo, coreFluidMat);
+            coreFluid.position.y = 0.35;
+            group.add(coreFluid);
+
+            // 3. Dynamic rising steam particles
+            const steamCount = 8;
+            const steamSpheres = [];
+            const steamGeo = new THREE.SphereGeometry(0.045, 6, 6);
+            const steamMat = new THREE.MeshBasicMaterial({
+                color: 0x22d3ee,
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+
+            for (let i = 0; i < steamCount; i++) {
+                const steam = new THREE.Mesh(steamGeo, steamMat);
+                steam.position.set(
+                    (Math.random() - 0.5) * 0.22,
+                    0.35 + Math.random() * 0.8,
+                    (Math.random() - 0.5) * 0.22
+                );
+                const scale = 0.8 + Math.random() * 1.5;
+                steam.scale.setScalar(scale);
+                steam.userData = {
+                    speed: 0.45 + Math.random() * 0.55,
+                    startScale: scale,
+                    seed: Math.random() * 10.0
+                };
+                group.add(steam);
+                steamSpheres.push(steam);
+            }
+
+            // 4. Point light for atmospheric lighting glow
+            const ventLight = new THREE.PointLight(0x06b6d4, 0.9, 4.2);
+            ventLight.position.y = 0.5;
+            group.add(ventLight);
+
+            group.userData = {
+                update: (dt) => {
+                    const time = Date.now() * 0.001;
+                    
+                    // Animate steam particles rising
+                    steamSpheres.forEach(s => {
+                        s.position.y += dt * s.userData.speed;
+                        s.position.x += Math.sin(s.position.y * 3.5 + s.userData.seed) * 0.015;
+                        
+                        // Scale down as they rise and fade
+                        const heightPercent = (s.position.y - 0.35) / 1.15;
+                        s.scale.setScalar(s.userData.startScale * Math.max(0.0, 1.0 - heightPercent));
+                        
+                        // Reset particle at bottom
+                        if (s.position.y > 1.4) {
+                            s.position.y = 0.35;
+                            s.position.x = (Math.random() - 0.5) * 0.22;
+                            s.position.z = (Math.random() - 0.5) * 0.22;
+                            s.scale.setScalar(s.userData.startScale);
+                        }
+                    });
+
+                    // Pulsating vent light
+                    coreFluidMat.emissiveIntensity = 0.8 + Math.sin(time * 4.2) * 0.35;
+                    ventLight.intensity = 0.65 + Math.sin(time * 4.2) * 0.3;
+                }
+            };
+            
+            group.scale.set(1.05 + Math.random()*0.25, 1.05 + Math.random()*0.25, 1.05 + Math.random()*0.25);
+            return group;
         }
 
         /* Volcanic Biome Obstacle Synthesizers (Hollow Vents & Coolants) */
@@ -977,6 +2068,27 @@
             block.rotation.set(0.08 + Math.random()*0.12, Math.random()*Math.PI, 0.08 + Math.random()*0.12);
             block.castShadow = true;
             group.add(block);
+
+            const pulseGeo = new THREE.TorusGeometry(0.24, 0.03, 10, 40);
+            const pulseMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, emissive: 0xfacc15, emissiveIntensity: 0.7, roughness: 0.12, metalness: 0.55 });
+            const pulse = new THREE.Mesh(pulseGeo, pulseMat);
+            pulse.position.y = 0.4;
+            pulse.rotation.x = Math.PI / 2;
+            group.add(pulse);
+
+            const coreGem = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.16), new THREE.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xfbbf24, emissiveIntensity: 0.8, roughness: 0.1, metalness: 0.6 }));
+            coreGem.position.set(0, 1.05, 0);
+            group.add(coreGem);
+
+            group.userData.age = Math.random() * 8;
+            group.userData.update = function(dt) {
+                this.age += dt;
+                pulse.rotation.z += dt * 0.9;
+                coreGem.rotation.y += dt * 1.4;
+                const glow = 0.65 + Math.sin(this.age * 2.0) * 0.25;
+                pulse.material.emissiveIntensity = glow;
+                coreGem.material.emissiveIntensity = 0.6 + Math.sin(this.age * 3.1) * 0.2;
+            };
             
             group.scale.set(1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3);
             return group;
@@ -992,8 +2104,8 @@
             group.add(pillar);
 
             // Detailed rings
-            const ringGeo = new THREE.TorusGeometry(0.24, 0.035, 8, 24);
-            const ringMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+            const ringGeo = new THREE.TorusGeometry(0.24, 0.035, 10, 40);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.8, roughness: 0.15, metalness: 0.65 });
             const ring = new THREE.Mesh(ringGeo, ringMat);
             ring.position.y = 1.05;
             ring.rotation.x = Math.PI / 2;
@@ -1001,17 +2113,29 @@
 
             // Glowing vertical data strips
             const stripGeo = new THREE.BoxGeometry(0.02, 1.2, 0.02);
-            const stripMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+            const strips = [];
             for (let i = 0; i < 4; i++) {
+                const stripMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0xa855f7, emissiveIntensity: 0.65, roughness: 0.18, metalness: 0.55 });
                 const strip = new THREE.Mesh(stripGeo, stripMat);
                 strip.position.set(Math.cos(i * Math.PI/2)*0.202, 0.75, Math.sin(i * Math.PI/2)*0.202);
                 strip.rotation.y = i * Math.PI/2;
                 group.add(strip);
+                strips.push(strip);
             }
 
             const light = new THREE.PointLight(0xa855f7, 0.7, 3.0);
             light.position.y = 1.05;
             group.add(light);
+
+            group.userData.age = Math.random() * 8;
+            group.userData.update = function(dt) {
+                this.age += dt;
+                ring.rotation.y += dt * 0.75;
+                strips.forEach((strip, idx) => {
+                    const intensity = 0.55 + Math.sin(this.age * 2.4 + idx * 1.2) * 0.18;
+                    strip.material.emissiveIntensity = intensity;
+                });
+            };
 
             group.scale.set(1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3, 1.0 + Math.random()*0.3);
             return group;
@@ -1155,8 +2279,9 @@
                         }
                         if (isSpawnZone) continue;
 
-                        // Obstacle density probability (9%)
-                        if (Math.random() < 0.09) {
+                        // Obstacle density probability (9% general, 3% on Mars)
+                        const density = (typeof gameState !== 'undefined' && gameState.currentBiome === 'mars') ? 0.03 : 0.09;
+                        if (Math.random() < density) {
                             grid[x][z] = CELL_TYPES.OBSTACLE;
                         }
                     }
@@ -1203,7 +2328,18 @@
                     const wPos = gridToWorld(x, z);
                     let model;
 
-                    if (gameState.currentBiome === 'volcanic') {
+                    if (gameState.currentBiome === 'mars') {
+                        const r = Math.random();
+                        if (r < 0.25) {
+                            model = createMartianColumn();
+                        } else if (r < 0.5) {
+                            model = createMartianBoulder();
+                        } else if (r < 0.75) {
+                            model = createCarbonIceVent();
+                        } else {
+                            model = createMartianLog();
+                        }
+                    } else if (gameState.currentBiome === 'volcanic') {
                         const r = Math.random();
                         if (r < 0.4) {
                             model = createVolcanicVent();
@@ -1232,27 +2368,42 @@
                         }
                     }
 
-                    model.position.set(wPos.x, 0, wPos.z);
+                    const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
+                    model.position.set(wPos.x, terrainHeight, wPos.z);
                     scene.add(model);
                     obstacleMeshes.push(model);
                     Translator.optimizeMesh(model);
 
                 } else if (grid[x][z] === CELL_TYPES.LAKE) {
                     const wPos = gridToWorld(x, z);
+                    const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
 
-                    // Create blue bioluminescent water plate
-                    const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 0.1, CELL_SIZE);
-                    const waterMat = new THREE.MeshStandardMaterial({
-                        color: 0x0284c7, // sky-blue
-                        roughness: 0.12,
-                        metalness: 0.75,
-                        transparent: true,
-                        opacity: 0.7,
-                        emissive: 0x0369a1,
-                        emissiveIntensity: 0.4
-                    });
-                    const water = new THREE.Mesh(waterGeo, waterMat);
-                    water.position.set(wPos.x, 0.01, wPos.z);
+                    let water;
+                    if (gameState.currentBiome === 'mars') {
+                        // Dry basalt depression
+                        const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 0.2, CELL_SIZE);
+                        const waterMat = new THREE.MeshStandardMaterial({
+                            color: 0x1f1412,
+                            roughness: 0.9,
+                            metalness: 0.1
+                        });
+                        water = new THREE.Mesh(waterGeo, waterMat);
+                        water.position.set(wPos.x, terrainHeight - 0.05, wPos.z);
+                    } else {
+                        // Create blue bioluminescent water block (solid 5 blocks deep)
+                        const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 5.0, CELL_SIZE);
+                        const waterMat = new THREE.MeshStandardMaterial({
+                            color: 0x0284c7, // sky-blue
+                            roughness: 0.12,
+                            metalness: 0.75,
+                            transparent: true,
+                            opacity: 0.75,
+                            emissive: 0x0369a1,
+                            emissiveIntensity: 0.4
+                        });
+                        water = new THREE.Mesh(waterGeo, waterMat);
+                        water.position.set(wPos.x, -2.4, wPos.z);
+                    }
                     water.userData = { isLake: true, gridX: x, gridZ: z };
                     scene.add(water);
                     lakeMeshes.push(water);
@@ -1272,27 +2423,39 @@
                                 const edgeX = wPos.x + d.dx * (CELL_SIZE * 0.44);
                                 const edgeZ = wPos.z + d.dz * (CELL_SIZE * 0.44);
 
-                                if (Math.random() < 0.4) {
-                                    const reedCount = Math.floor(Math.random() * 2) + 1;
-                                    for (let k = 0; k < reedCount; k++) {
-                                        const rx = edgeX + (Math.random() - 0.5) * 0.18;
-                                        const rz = edgeZ + (Math.random() - 0.5) * 0.18;
-                                        const reedGeo = new THREE.CylinderGeometry(0.01, 0.018, 0.45 + Math.random() * 0.25, 4);
-                                        const reedMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.85 });
-                                        const reed = new THREE.Mesh(reedGeo, reedMat);
-                                        reed.position.set(rx, 0.2, rz);
-                                        reed.rotation.x = (Math.random() - 0.5) * 0.18;
-                                        reed.rotation.z = (Math.random() - 0.5) * 0.18;
-                                        scene.add(reed);
-                                        lakeMeshes.push(reed);
+                                if (gameState.currentBiome === 'mars') {
+                                    // spawn small red stones instead of green reeds!
+                                    if (Math.random() < 0.3) {
+                                        const rockGeo = new THREE.DodecahedronGeometry(0.06 + Math.random() * 0.06);
+                                        const rockMat = new THREE.MeshStandardMaterial({ color: 0x7c2d12, roughness: 0.9 });
+                                        const rock = new THREE.Mesh(rockGeo, rockMat);
+                                        rock.position.set(edgeX + (Math.random() - 0.5) * 0.12, terrainHeight + 0.02, edgeZ + (Math.random() - 0.5) * 0.12);
+                                        scene.add(rock);
+                                        lakeMeshes.push(rock);
                                     }
-                                } else if (Math.random() < 0.18) {
-                                    const rockGeo = new THREE.DodecahedronGeometry(0.07 + Math.random() * 0.08);
-                                    const rockMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.85 });
-                                    const rock = new THREE.Mesh(rockGeo, rockMat);
-                                    rock.position.set(edgeX + (Math.random() - 0.5) * 0.12, 0.02, edgeZ + (Math.random() - 0.5) * 0.12);
-                                    scene.add(rock);
-                                    lakeMeshes.push(rock);
+                                } else {
+                                    if (Math.random() < 0.4) {
+                                        const reedCount = Math.floor(Math.random() * 2) + 1;
+                                        for (let k = 0; k < reedCount; k++) {
+                                            const rx = edgeX + (Math.random() - 0.5) * 0.18;
+                                            const rz = edgeZ + (Math.random() - 0.5) * 0.18;
+                                            const reedGeo = new THREE.CylinderGeometry(0.01, 0.018, 0.45 + Math.random() * 0.25, 4);
+                                            const reedMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.85 });
+                                            const reed = new THREE.Mesh(reedGeo, reedMat);
+                                            reed.position.set(rx, 0.2, rz);
+                                            reed.rotation.x = (Math.random() - 0.5) * 0.18;
+                                            reed.rotation.z = (Math.random() - 0.5) * 0.18;
+                                            scene.add(reed);
+                                            lakeMeshes.push(reed);
+                                        }
+                                    } else if (Math.random() < 0.18) {
+                                        const rockGeo = new THREE.DodecahedronGeometry(0.07 + Math.random() * 0.08);
+                                        const rockMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.85 });
+                                        const rock = new THREE.Mesh(rockGeo, rockMat);
+                                        rock.position.set(edgeX + (Math.random() - 0.5) * 0.12, 0.02, edgeZ + (Math.random() - 0.5) * 0.12);
+                                        scene.add(rock);
+                                        lakeMeshes.push(rock);
+                                    }
                                 }
                             }
                         }
@@ -1441,7 +2604,7 @@
             obstacleMeshes.length = 0;
         }
 
-        function loadBiome(biomeName) {
+        function loadBiome(biomeName, isRestoringSnapshot = false, onCompleteCallback = null) {
             if (!BIOMES[biomeName]) return;
             console.log(`[Biome Engine] Loading Biome: ${biomeName}`);
             
@@ -1464,6 +2627,33 @@
                 particles.activeParticles.length = 0;
             }
 
+            // Clear ambient UFO fleet and bombs on biome transitions
+            if (ufoBodyInstancedMesh) {
+                scene.remove(ufoBodyInstancedMesh);
+                ufoBodyInstancedMesh.dispose();
+                ufoBodyInstancedMesh = null;
+            }
+            if (ufoDomeInstancedMesh) {
+                scene.remove(ufoDomeInstancedMesh);
+                ufoDomeInstancedMesh.dispose();
+                ufoDomeInstancedMesh = null;
+            }
+            if (ufoThrustInstancedMesh) {
+                scene.remove(ufoThrustInstancedMesh);
+                ufoThrustInstancedMesh.dispose();
+                ufoThrustInstancedMesh = null;
+            }
+            if (typeof ambientUfoBombs !== 'undefined') {
+                ambientUfoBombs.forEach(bomb => {
+                    scene.remove(bomb.mesh);
+                    bomb.mesh.geometry.dispose();
+                    bomb.mesh.material.dispose();
+                });
+                ambientUfoBombs.length = 0;
+            }
+            ufoIntroActive = true;
+            ufoIntroTimer = 0;
+
             gameState.isWaveActive = false;
             const waveBtn = document.getElementById('wave-btn');
             if (waveBtn) {
@@ -1478,6 +2668,56 @@
             // 2. Update colors & intensities
             if (ground && ground.material) {
                 ground.material.color.setHex(config.groundColor);
+                
+                if (biomeName === 'mars' || biomeName === 'europa' || biomeName === 'venus') {
+                    // Recreate/update displaced ground geometry
+                    if (ground.geometry !== groundGeo) {
+                        const oldGeo = ground.geometry;
+                        oldGeo.dispose();
+                    }
+                    const dispGeo = new THREE.PlaneGeometry(360, 360, 180, 180);
+                    const posAttr = dispGeo.attributes.position;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        const vx = posAttr.getX(i);
+                        const vy = posAttr.getY(i);
+                        const height = biomeName === 'mars' 
+                            ? calculateMarsHeight(vx, -vy) 
+                            : (biomeName === 'europa' ? calculateEuropaHeight(vx, -vy) : calculateVenusHeight(vx, -vy));
+                        posAttr.setZ(i, height);
+                    }
+                    dispGeo.computeVertexNormals();
+                    ground.geometry = dispGeo;
+                    
+                    if (biomeName === 'mars' && typeof generateMarsTexture === 'function') {
+                        ground.material.map = generateMarsTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.35;
+                        ground.material.needsUpdate = true;
+                    } else if (biomeName === 'europa' && typeof generateEuropaTexture === 'function') {
+                        ground.material.map = generateEuropaTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.35;
+                        ground.material.needsUpdate = true;
+                    } else if (biomeName === 'venus' && typeof generateVenusTexture === 'function') {
+                        ground.material.map = generateVenusTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.55;
+                        ground.material.needsUpdate = true;
+                    }
+                } else {
+                    // Restore original flat ground geometry
+                    if (ground.geometry !== groundGeo) {
+                        const oldGeo = ground.geometry;
+                        ground.geometry = groundGeo;
+                        oldGeo.dispose();
+                        
+                        // Restore original sand texture repeat settings
+                        ground.material.map = groundTexture;
+                        ground.material.bumpMap = groundTexture;
+                        ground.material.bumpScale = 0.035;
+                        ground.material.needsUpdate = true;
+                    }
+                }
             }
 
             scene.background.setHex(config.fogColor);
@@ -1495,6 +2735,101 @@
             if (baseLight) {
                 baseLight.color.setHex(config.baseCrystalColor);
             }
+
+            // Martian Advanced Lighting and Atmosphere Setup
+            if (biomeName === 'mars') {
+                if (fillLight) {
+                    fillLight.color.setHex(0xf97316); // Golden orange rim light
+                    fillLight.intensity = 0.75;
+                }
+                if (dirLight) {
+                    dirLight.shadow.bias = -0.0002;
+                    dirLight.shadow.mapSize.width = 4096;
+                    dirLight.shadow.mapSize.height = 4096;
+                    if (dirLight.shadow.map) {
+                        dirLight.shadow.map.dispose();
+                        dirLight.shadow.map = null;
+                    }
+                }
+                
+                // Add dust storm particles
+                if (!marsDustParticles) {
+                    const pCount = 300;
+                    const pGeo = new THREE.BufferGeometry();
+                    const pPositions = new Float32Array(pCount * 3);
+                    const pVelocities = [];
+                    for (let i = 0; i < pCount; i++) {
+                        pPositions[i * 3] = (Math.random() - 0.5) * 160;
+                        pPositions[i * 3 + 1] = Math.random() * 25 + 0.5;
+                        pPositions[i * 3 + 2] = (Math.random() - 0.5) * 160;
+                        pVelocities.push({
+                            x: -2.5 - Math.random() * 2.0, // Drifting West/Left
+                            y: (Math.random() - 0.5) * 0.4 - 0.05,
+                            z: (Math.random() - 0.5) * 1.5
+                        });
+                    }
+                    pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+                    const pMat = new THREE.PointsMaterial({
+                        color: 0xeab308, // dusty gold/amber
+                        size: 0.16,
+                        transparent: true,
+                        opacity: 0.45,
+                        blending: THREE.NormalBlending
+                    });
+                    marsDustParticles = new THREE.Points(pGeo, pMat);
+                    marsDustParticles.userData = { velocities: pVelocities };
+                }
+                scene.add(marsDustParticles);
+                } else if (biomeName === 'venus') {
+                    if (fillLight) {
+                        fillLight.color.setHex(0x65a30d); // Lime green fill light
+                        fillLight.intensity = 0.5;
+                    }
+                    if (!venusAcidRainParticles) {
+                        const pCount = 450; // Heavy acid rain
+                        const pGeo = new THREE.BufferGeometry();
+                        const pPositions = new Float32Array(pCount * 3);
+                        const pVelocities = [];
+                        for (let i = 0; i < pCount; i++) {
+                            pPositions[i * 3] = (Math.random() - 0.5) * 200;
+                            pPositions[i * 3 + 1] = Math.random() * 20 + 0.2;
+                            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+                            pVelocities.push({
+                                x: -2.0 - Math.random() * 2.0, // Drifting diagonally
+                                y: -10.0 - Math.random() * 5.0, // Fast falling rain
+                                z: (Math.random() - 0.5) * 1.5
+                            });
+                        }
+                        pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+                        const pMat = new THREE.PointsMaterial({
+                            color: 0xa3e635, // Glowing yellow-green
+                            size: 0.16,
+                            transparent: true,
+                            opacity: 0.65,
+                            blending: THREE.AdditiveBlending
+                        });
+                        venusAcidRainParticles = new THREE.Points(pGeo, pMat);
+                        venusAcidRainParticles.userData = { velocities: pVelocities };
+                    }
+                    scene.add(venusAcidRainParticles);
+                    if (ground && ground.material) {
+                        ground.material.bumpScale = 0.55;
+                        ground.material.roughness = 0.96;
+                    }
+                } else {
+                    if (fillLight) fillLight.intensity = 0.0;
+                    if (dirLight) {
+                        dirLight.shadow.bias = -0.001;
+                        dirLight.shadow.mapSize.width = 2048;
+                        dirLight.shadow.mapSize.height = 2048;
+                    }
+                    if (marsDustParticles) {
+                        scene.remove(marsDustParticles);
+                    }
+                    if (venusAcidRainParticles) {
+                        scene.remove(venusAcidRainParticles);
+                    }
+                }
 
             // Skybox Colors
             if (skyboxController && skyboxController.uniforms) {
@@ -1522,17 +2857,20 @@
                 containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300";
 
                 if (biomeName === 'volcanic') {
-                    selectEl.classList.add('border-red-500/30', 'text-red-400', 'focus:border-red-400');
-                    containerEl.classList.add('border-red-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-red-500/30 text-red-400 focus:border-red-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-red-500/20";
                 } else if (biomeName === 'europa') {
-                    selectEl.classList.add('border-cyan-500/30', 'text-cyan-400', 'focus:border-cyan-400');
-                    containerEl.classList.add('border-cyan-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-cyan-500/30 text-cyan-400 focus:border-cyan-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-cyan-500/20";
                 } else if (biomeName === 'venus') {
-                    selectEl.classList.add('border-lime-500/30', 'text-lime-400', 'focus:border-lime-400');
-                    containerEl.classList.add('border-lime-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-lime-500/30 text-lime-400 focus:border-lime-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-lime-500/20";
+                } else if (biomeName === 'mars') {
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-orange-500/30 text-orange-400 focus:border-orange-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-orange-500/20";
                 } else {
-                    selectEl.classList.add('border-emerald-500/30', 'text-emerald-400', 'focus:border-emerald-400');
-                    containerEl.classList.add('border-emerald-500/20');
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-emerald-500/30 text-emerald-400 focus:border-emerald-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-emerald-500/20";
                 }
             }
 
@@ -1547,15 +2885,17 @@
             });
 
             sequencer.enqueue("2/5 CALCULATING COGNITIVE ENVIRONMENT GRID", () => {
-                generateObstacleLayoutGrid();
+                if (!isRestoringSnapshot) {
+                    generateObstacleLayoutGrid();
+                }
                 return true;
             });
 
             let currentDrawIdx = 0;
             sequencer.enqueue("3/5 MATERIALIZING 3D ENVIRONMENT BLOCKADES", () => {
-                const finished = renderObstacles3DProgressive(currentDrawIdx, 8);
+                const finished = renderObstacles3DProgressive(currentDrawIdx, 9999);
                 if (!finished) {
-                    currentDrawIdx += 8;
+                    currentDrawIdx += 9999;
                     return false;
                 }
                 return true;
@@ -1568,12 +2908,16 @@
 
             sequencer.enqueue("5/5 ENERGIZING BIOME VEGETATION AND VEINS", () => {
                 if (window.spawnBiomeFlora) window.spawnBiomeFlora(scene, biomeName, GRID_SIZE, CELL_SIZE);
+                if (window.initArgonBubbles) window.initArgonBubbles(scene, grid, GRID_SIZE, CELL_SIZE);
                 return true;
             });
 
             sequencer.start(() => {
                 console.log(`[Biome Engine] Biome loaded smooth sequencing: ${biomeName}`);
-                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'venus' ? 'lime' : 'green');
+                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'venus' ? 'lime' : biomeName === 'mars' ? 'orange' : 'green');
+                if (onCompleteCallback) {
+                    onCompleteCallback();
+                }
             });
         }
 
@@ -1607,7 +2951,8 @@
             baseGroup = new THREE.Group();
             baseGroup.userData = { isBase: true };
             const pos = gridToWorld(BASE_COORD.x, BASE_COORD.z);
-            baseGroup.position.set(pos.x, 0, pos.z);
+            const baseHeight = window.getTerrainHeight ? window.getTerrainHeight(pos.x, pos.z) : 0;
+            baseGroup.position.set(pos.x, baseHeight, pos.z);
 
             // Dummy baseCrystal to prevent errors in update/damage flash loops
             let crystalColor = 0xec4899;
@@ -1948,6 +3293,7 @@
         computeSDF(); // Prime the pathfinder
         if (window.spawnBiomeFlora) window.spawnBiomeFlora(scene, 'jungle', GRID_SIZE, CELL_SIZE);
         if (window.spawnBiomeFauna) window.spawnBiomeFauna(scene, 'jungle', GRID_SIZE, CELL_SIZE);
+        if (window.initArgonBubbles) window.initArgonBubbles(scene, grid, GRID_SIZE, CELL_SIZE);
 
         /* ==========================================
            TOWER IMPLEMENTATION
@@ -2158,38 +3504,22 @@
                 }
             },
             drone_factory: {
-                base: {
-                    cost: 500,
-                    damage: 0,
-                    range: 0,
-                    fireRate: 0,
-                    projectileSpeed: 0,
-                    upgradeCost: 300,
-                    droneCount: 2,
-                    droneDamage: 12,
-                    droneRange: 9.0,
-                    droneFireRate: 1.4,
-                    droneSpeed: 6.0,
-                    color: 0x6366f1,
-                    bulletColor: 0xa78bfa
-                },
-                upgraded: {
-                    damage: 0,
-                    range: 0,
-                    fireRate: 0,
-                    projectileSpeed: 0,
-                    droneCount: 4,
-                    droneDamage: 25,
-                    droneRange: 12.0,
-                    droneFireRate: 0.9,
-                    droneSpeed: 8.5,
-                    color: 0x4f46e5,
-                    bulletColor: 0xc4b5fd
-                }
+                base: { cost: 500, upgradeCost: 400, sell: 250, range: 12.0, droneDamage: 12, droneSpeed: 6, droneRange: 9.0, droneFireRate: 1.4, color: 0x8b5cf6 },
+                upgraded: { cost: 400, sell: 450, range: 12.0, droneDamage: 22, droneSpeed: 7, droneRange: 10.0, droneFireRate: 1.1, color: 0x8b5cf6 }
+            },
+            supertower: {
+                base: { cost: 1000, upgradeCost: 1000, sell: 500, range: 15.0, damage: 200, fireRate: 5.0, color: 0xffffff },
+                upgraded: { cost: 1000, sell: 1000, range: 20.0, damage: 400, fireRate: 4.0, color: 0xffffff }
+            },
+            argon_harvester: {
+                base: { cost: 250, upgradeCost: 200, sell: 125, range: 0.0, damage: 0, fireRate: 0.0, color: 0x0ea5e9 },
+                upgraded: { cost: 200, sell: 225, range: 0.0, damage: 0, fireRate: 0.0, color: 0x38bdf8 }
             }
         };
     </script>
     <script src="tower.js"></script>
+    <script src="supertower.js"></script>
+    <script src="argon.js"></script>
     <script>
         // Fallback SporeTower implementation in case tower.js fails to load
         if (typeof window.SporeTower === 'undefined') {
@@ -3111,7 +4441,7 @@
                 const group = new THREE.Group();
 
                 // Scarab outer hard shell (Low Poly Capsule style)
-                const shellGeo = new THREE.DodecahedronGeometry(0.35, 1);
+                const shellGeo = ENEMY_GEOMS.scarab.shell;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x0f172a,
                     roughness: 0.1,
@@ -3124,7 +4454,7 @@
                 group.add(shell);
 
                 // Bioluminescent pattern under shell (glowing segment)
-                const neonGeo = new THREE.BoxGeometry(0.1, 0.38, 0.5);
+                const neonGeo = ENEMY_GEOMS.scarab.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
                 const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
                 neonStrip.position.y = 0.1;
@@ -3132,7 +4462,7 @@
 
                 // 6 segmented spider/insect legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.08, 0.4, 0.08);
+                const legGeo = ENEMY_GEOMS.scarab.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -3148,13 +4478,13 @@
                 }
 
                 // Add simple HP bar floating above
-                const barBackGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                const barBackGeo = ENEMY_GEOMS.scarab.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.0;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.7, 0.08);
+                const barFillGeo = ENEMY_GEOMS.scarab.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.0, 0.01);
@@ -3201,6 +4531,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -3291,31 +4622,7 @@
 
             // Inspect 8-directional neighbors and walk towards the lowest SDF value
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 },
-                    { dx: -1, dz: 0 },
-                    { dx: 0, dz: 1 },
-                    { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 },
-                    { dx: -1, dz: -1 },
-                    { dx: 1, dz: -1 },
-                    { dx: -1, dz: 1 }
-                ];
-
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -3370,7 +4677,7 @@
                 });
 
                 // 1. Abdomen
-                const abGeo = new THREE.SphereGeometry(0.24, 6, 6);
+                const abGeo = ENEMY_GEOMS.ant.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.position.set(0, 0, -0.35);
                 abdomen.scale.set(1, 0.8, 1.4);
@@ -3378,7 +4685,7 @@
                 group.add(abdomen);
 
                 // 2. Thorax
-                const thGeo = new THREE.SphereGeometry(0.16, 6, 6);
+                const thGeo = ENEMY_GEOMS.ant.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0);
                 thorax.scale.set(0.9, 0.9, 1.1);
@@ -3386,14 +4693,14 @@
                 group.add(thorax);
 
                 // 3. Head
-                const hdGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                const hdGeo = ENEMY_GEOMS.ant.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.3);
                 head.castShadow = true;
                 group.add(head);
 
                 // Bioluminescent strip (thorax top)
-                const neonGeo = new THREE.BoxGeometry(0.06, 0.1, 0.25);
+                const neonGeo = ENEMY_GEOMS.ant.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xf97316 }); // Orange neon
                 const neonStrip = new THREE.Mesh(neonGeo, this.neonMat);
                 neonStrip.position.set(0, 0.2, 0);
@@ -3401,7 +4708,7 @@
 
                 // Ant legs (6 legs)
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.05, 0.35, 0.05);
+                const legGeo = ENEMY_GEOMS.ant.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -3417,13 +4724,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                const barBackGeo = ENEMY_GEOMS.ant.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.7;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.55, 0.06);
+                const barFillGeo = ENEMY_GEOMS.ant.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xe11d48 }); // Red HP fill
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.7, 0.01);
@@ -3469,6 +4776,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -3545,23 +4853,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -3615,14 +4907,14 @@
                     flatShading: true
                 });
 
-                const bodyGeo = new THREE.DodecahedronGeometry(0.5, 0);
+                const bodyGeo = ENEMY_GEOMS.golem.body;
                 const body = new THREE.Mesh(bodyGeo, this.bodyMat);
                 body.scale.set(1.1, 0.9, 1.2);
                 body.castShadow = true;
                 group.add(body);
 
                 // Magma glows
-                const neonGeo = new THREE.BoxGeometry(0.2, 0.1, 0.6);
+                const neonGeo = ENEMY_GEOMS.golem.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xea580c }); // Magma orange
                 const magma = new THREE.Mesh(neonGeo, this.neonMat);
                 magma.position.set(0, 0.45, 0);
@@ -3630,7 +4922,7 @@
 
                 // 4 thick stubby legs
                 this.legs = [];
-                const legGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.5, 5);
+                const legGeo = ENEMY_GEOMS.golem.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.9 });
                 
                 const legOffsets = [
@@ -3649,13 +4941,13 @@
                 });
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barBackGeo = ENEMY_GEOMS.golem.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.3;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barFillGeo = ENEMY_GEOMS.golem.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xea580c });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.3, 0.01);
@@ -3701,6 +4993,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -3778,23 +5071,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -3848,7 +5125,7 @@
                 });
 
                 // Abdomen
-                const abGeo = new THREE.ConeGeometry(0.18, 0.8, 5);
+                const abGeo = ENEMY_GEOMS.wasp.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.rotation.x = -Math.PI / 3;
                 abdomen.position.set(0, 0, -0.3);
@@ -3856,27 +5133,27 @@
                 group.add(abdomen);
 
                 // Thorax
-                const thGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const thGeo = ENEMY_GEOMS.wasp.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0.1);
                 thorax.castShadow = true;
                 group.add(thorax);
 
                 // Head
-                const hdGeo = new THREE.SphereGeometry(0.14, 6, 6);
+                const hdGeo = ENEMY_GEOMS.wasp.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.25);
                 group.add(head);
 
                 // Glowing yellow stripe
-                const neonGeo = new THREE.BoxGeometry(0.04, 0.08, 0.2);
+                const neonGeo = ENEMY_GEOMS.wasp.neon;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
                 const neon = new THREE.Mesh(neonGeo, this.neonMat);
                 neon.position.set(0, 0.2, 0.1);
                 group.add(neon);
 
                 // Wing Left
-                const wingGeo = new THREE.BoxGeometry(0.4, 0.02, 0.15);
+                const wingGeo = ENEMY_GEOMS.wasp.wing;
                 const wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
                 
                 this.wingL = new THREE.Mesh(wingGeo, wingMat);
@@ -3891,13 +5168,13 @@
                 group.add(this.wingR);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.5, 0.06);
+                const barBackGeo = ENEMY_GEOMS.wasp.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.8;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.5, 0.06);
+                const barFillGeo = ENEMY_GEOMS.wasp.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.8, 0.01);
@@ -3943,6 +5220,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4020,23 +5298,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -4091,7 +5353,7 @@
                 });
 
                 // Abdomen
-                const abGeo = new THREE.SphereGeometry(0.3, 8, 8);
+                const abGeo = ENEMY_GEOMS.carrier.abdomen;
                 const abdomen = new THREE.Mesh(abGeo, this.bodyMat);
                 abdomen.scale.set(1.1, 1.0, 1.5);
                 abdomen.position.set(0, 0, -0.3);
@@ -4099,20 +5361,20 @@
                 group.add(abdomen);
 
                 // Thorax
-                const thGeo = new THREE.SphereGeometry(0.2, 6, 6);
+                const thGeo = ENEMY_GEOMS.carrier.thorax;
                 const thorax = new THREE.Mesh(thGeo, this.bodyMat);
                 thorax.position.set(0, 0.05, 0.15);
                 thorax.castShadow = true;
                 group.add(thorax);
 
                 // Head
-                const hdGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                const hdGeo = ENEMY_GEOMS.carrier.head;
                 const head = new THREE.Mesh(hdGeo, this.bodyMat);
                 head.position.set(0, 0.08, 0.4);
                 group.add(head);
 
                 // Spore pods
-                const podGeo = new THREE.SphereGeometry(0.1, 5, 5);
+                const podGeo = ENEMY_GEOMS.carrier.pod;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 
                 const pod1 = new THREE.Mesh(podGeo, this.neonMat);
@@ -4129,7 +5391,7 @@
 
                 // Legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.06, 0.4, 0.06);
+                const legGeo = ENEMY_GEOMS.carrier.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
                 
                 for (let i = 0; i < 6; i++) {
@@ -4145,13 +5407,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.7, 0.07);
+                const barBackGeo = ENEMY_GEOMS.carrier.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 1.0;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.7, 0.07);
+                const barFillGeo = ENEMY_GEOMS.carrier.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 1.0, 0.01);
@@ -4204,6 +5466,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4281,23 +5544,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -4344,7 +5591,7 @@
                 const group = new THREE.Group();
 
                 // 1. Saucer body (Flattened Cylinder)
-                const bodyGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 10);
+                const bodyGeo = ENEMY_GEOMS.ufo.body;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x334155,
                     roughness: 0.1,
@@ -4356,7 +5603,7 @@
                 group.add(saucer);
 
                 // 2. Glass Dome
-                const domeGeo = new THREE.SphereGeometry(0.24, 8, 8, 0, Math.PI*2, 0, Math.PI/2);
+                const domeGeo = ENEMY_GEOMS.ufo.dome;
                 const domeMat = new THREE.MeshStandardMaterial({
                     color: 0x0284c7,
                     transparent: true,
@@ -4369,14 +5616,14 @@
                 group.add(dome);
 
                 // 3. Central Thruster
-                const thrustGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.1, 8);
+                const thrustGeo = ENEMY_GEOMS.ufo.thrust;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
                 const thruster = new THREE.Mesh(thrustGeo, this.neonMat);
                 thruster.position.y = -0.08;
                 group.add(thruster);
 
                 // 4. Downward glowing tractor beam visual (Translucent Cone)
-                const coneGeo = new THREE.ConeGeometry(0.35, 1.8, 8, 1, true);
+                const coneGeo = ENEMY_GEOMS.ufo.cone;
                 const coneMat = new THREE.MeshBasicMaterial({
                     color: 0xa855f7,
                     transparent: true,
@@ -4389,13 +5636,13 @@
                 group.add(beam);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barBackGeo = ENEMY_GEOMS.ufo.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.6;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.8, 0.08);
+                const barFillGeo = ENEMY_GEOMS.ufo.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.6, 0.01);
@@ -4441,6 +5688,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4580,7 +5828,7 @@
                 const group = new THREE.Group();
 
                 // Stealth cloaked shell (highly translucent)
-                const shellGeo = new THREE.OctahedronGeometry(0.3, 1);
+                const shellGeo = ENEMY_GEOMS.stealth.shell;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x6b21a8,
                     transparent: true,
@@ -4594,7 +5842,7 @@
                 group.add(shell);
 
                 // Small purple glowing visor lens
-                const visorGeo = new THREE.BoxGeometry(0.12, 0.03, 0.03);
+                const visorGeo = ENEMY_GEOMS.stealth.visor;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.8 });
                 const visor = new THREE.Mesh(visorGeo, this.neonMat);
                 visor.position.set(0, 0.05, 0.25);
@@ -4602,7 +5850,7 @@
 
                 // 6 thin insect legs
                 this.legs = [];
-                const legGeo = new THREE.BoxGeometry(0.04, 0.35, 0.04);
+                const legGeo = ENEMY_GEOMS.stealth.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, roughness: 0.5, transparent: true, opacity: 0.25 });
                 for (let i = 0; i < 6; i++) {
                     const leg = new THREE.Mesh(legGeo, legMat);
@@ -4616,13 +5864,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.55, 0.07);
+                const barBackGeo = ENEMY_GEOMS.stealth.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.8;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.55, 0.07);
+                const barFillGeo = ENEMY_GEOMS.stealth.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.8, 0.01);
@@ -4662,6 +5910,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4738,23 +5987,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -4794,7 +6027,7 @@
                 group.scale.set(1.4, 1.4, 1.4);
 
                 // Heavy walker chassis box
-                const chassisGeo = new THREE.BoxGeometry(0.55, 0.45, 0.65);
+                const chassisGeo = ENEMY_GEOMS.ram.chassis;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x3f3f46,
                     roughness: 0.25,
@@ -4805,8 +6038,7 @@
                 group.add(chassis);
 
                 // Bioluminescent charging power cell
-                const powerGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.35, 6);
-                powerGeo.rotateX(Math.PI/2);
+                const powerGeo = ENEMY_GEOMS.ram.power;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0xeab308 }); // glowing amber
                 const cell = new THREE.Mesh(powerGeo, this.neonMat);
                 cell.position.y = 0.26;
@@ -4814,7 +6046,7 @@
 
                 // Dual Heavy Front Shields
                 const shieldMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.95, roughness: 0.15 });
-                const shieldGeo = new THREE.BoxGeometry(0.16, 0.6, 0.45);
+                const shieldGeo = ENEMY_GEOMS.ram.shield;
                 const shieldL = new THREE.Mesh(shieldGeo, shieldMat);
                 shieldL.position.set(-0.35, 0.05, 0.22);
                 shieldL.rotation.y = 0.2;
@@ -4827,7 +6059,7 @@
 
                 // 4 heavy thick hydraulic legs
                 this.legs = [];
-                const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 6);
+                const legGeo = ENEMY_GEOMS.ram.leg;
                 const legMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.8 });
                 for (let i = 0; i < 4; i++) {
                     const leg = new THREE.Mesh(legGeo, legMat);
@@ -4841,13 +6073,13 @@
                 }
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.9, 0.09);
+                const barBackGeo = ENEMY_GEOMS.ram.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.9;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.9, 0.09);
+                const barFillGeo = ENEMY_GEOMS.ram.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0xeab308 });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.9, 0.01);
@@ -4888,6 +6120,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -4964,23 +6197,7 @@
             }
 
             findSDFStep(cx, cz) {
-                const neighbors = [
-                    { dx: 1, dz: 0 }, { dx: -1, dz: 0 }, { dx: 0, dz: 1 }, { dx: 0, dz: -1 },
-                    { dx: 1, dz: 1 }, { dx: -1, dz: -1 }, { dx: 1, dz: -1 }, { dx: -1, dz: 1 }
-                ];
-                let bestStep = { x: cx, z: cz };
-                let bestDist = sdfGrid[cx][cz];
-                for (let n of neighbors) {
-                    let nx = cx + n.dx;
-                    let nz = cz + n.dz;
-                    if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                        if (sdfGrid[nx][nz] < bestDist) {
-                            bestDist = sdfGrid[nx][nz];
-                            bestStep = { x: nx, z: nz };
-                        }
-                    }
-                }
-                return bestStep;
+                return getNextSDFStep(cx, cz);
             }
         }
 
@@ -5018,9 +6235,7 @@
                 const group = new THREE.Group();
 
                 // Delta wing jet design
-                const jetGeo = new THREE.ConeGeometry(0.24, 0.85, 4);
-                jetGeo.rotateX(Math.PI / 2);
-                jetGeo.scale(1.8, 0.35, 1.0);
+                const jetGeo = ENEMY_GEOMS.scout.jet;
                 this.bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x064e3b,
                     metalness: 0.82,
@@ -5031,15 +6246,14 @@
                 group.add(jet);
 
                 // Mini green glow visor/lens
-                const visorGeo = new THREE.BoxGeometry(0.08, 0.02, 0.02);
+                const visorGeo = ENEMY_GEOMS.scout.visor;
                 this.neonMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 const visor = new THREE.Mesh(visorGeo, this.neonMat);
                 visor.position.set(0, 0.04, 0.42);
                 group.add(visor);
 
                 // Back green exhaust thrusters
-                const thrusterGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6);
-                thrusterGeo.rotateX(Math.PI/2);
+                const thrusterGeo = ENEMY_GEOMS.scout.thruster;
                 const thrustMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 const thrustL = new THREE.Mesh(thrusterGeo, thrustMat);
                 thrustL.position.set(-0.15, -0.02, -0.42);
@@ -5050,13 +6264,13 @@
                 group.add(thrustR);
 
                 // HP Bar
-                const barBackGeo = new THREE.PlaneGeometry(0.6, 0.07);
+                const barBackGeo = ENEMY_GEOMS.scout.barBack;
                 const barBackMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
                 this.hpBack = new THREE.Mesh(barBackGeo, barBackMat);
                 this.hpBack.position.y = 0.5;
                 group.add(this.hpBack);
 
-                const barFillGeo = new THREE.PlaneGeometry(0.6, 0.07);
+                const barFillGeo = ENEMY_GEOMS.scout.barFill;
                 this.hpFillMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
                 this.hpFill = new THREE.Mesh(barFillGeo, this.hpFillMat);
                 this.hpFill.position.set(0, 0.5, 0.01);
@@ -5096,6 +6310,7 @@
 
             cleanup() {
                 scene.remove(this.mesh);
+                disposeEnemyMaterials(this.mesh);
             }
 
             update(dt) {
@@ -5163,36 +6378,68 @@
         class ParticleSystem {
             constructor() {
                 this.activeParticles = [];
+                this.inactiveParticles = [];
                 
-                // Pooled mesh elements
-                this.geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-                this.smokeGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+                // Shared unit box geometry (to scale particles dynamically)
+                this.sharedGeo = new THREE.BoxGeometry(1.0, 1.0, 1.0);
+
+                // Pre-allocate a pool of particles to prevent allocations at runtime
+                for (let i = 0; i < 400; i++) {
+                    this.inactiveParticles.push(this.createParticleObject());
+                }
+            }
+
+            createParticleObject() {
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const mesh = new THREE.Mesh(this.sharedGeo, mat);
+                const vel = new THREE.Vector3();
+                return {
+                    mesh: mesh,
+                    vel: vel,
+                    life: 0,
+                    maxLife: 0,
+                    type: 'explosion',
+                    active: false
+                };
             }
 
             spawnExplosion(pos, colorHex, count) {
-                const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 0.85 });
                 for (let i = 0; i < count; i++) {
-                    const mesh = new THREE.Mesh(this.geo, mat.clone());
-                    mesh.position.copy(pos);
-                    mesh.position.x += (Math.random() - 0.5) * 0.4;
-                    mesh.position.y += (Math.random() - 0.5) * 0.4;
-                    mesh.position.z += (Math.random() - 0.5) * 0.4;
+                    let p = null;
+                    if (this.inactiveParticles.length > 0) {
+                        p = this.inactiveParticles.pop();
+                    } else {
+                        p = this.createParticleObject();
+                    }
 
-                    const velocity = new THREE.Vector3(
+                    p.active = true;
+                    p.type = 'explosion';
+                    
+                    const life = 0.6 + Math.random() * 0.4;
+                    p.life = life;
+                    p.maxLife = life;
+
+                    p.vel.set(
                         (Math.random() - 0.5) * 6,
                         Math.random() * 5 + 1.5,
                         (Math.random() - 0.5) * 6
                     );
 
-                    scene.add(mesh);
-                    const life = 0.6 + Math.random()*0.4;
-                    this.activeParticles.push({
-                        mesh: mesh,
-                        vel: velocity,
-                        life: life,
-                        maxLife: life,
-                        type: 'explosion'
-                    });
+                    p.mesh.position.copy(pos);
+                    p.mesh.position.x += (Math.random() - 0.5) * 0.4;
+                    p.mesh.position.y += (Math.random() - 0.5) * 0.4;
+                    p.mesh.position.z += (Math.random() - 0.5) * 0.4;
+
+                    p.mesh.scale.set(0.12, 0.12, 0.12);
+                    p.mesh.material.color.setHex(colorHex);
+                    p.mesh.material.opacity = 0.85;
+
+                    scene.add(p.mesh);
+                    this.activeParticles.push(p);
                 }
             }
 
@@ -5201,26 +6448,33 @@
             }
 
             spawnSmoke(pos) {
-                // Realistic expanding and fading smoke particle
-                const mat = new THREE.MeshBasicMaterial({ color: 0xd1d5db, transparent: true, opacity: 0.45 });
-                const mesh = new THREE.Mesh(this.smokeGeo, mat);
-                mesh.position.copy(pos);
+                let p = null;
+                if (this.inactiveParticles.length > 0) {
+                    p = this.inactiveParticles.pop();
+                } else {
+                    p = this.createParticleObject();
+                }
 
-                const velocity = new THREE.Vector3(
+                p.active = true;
+                p.type = 'smoke';
+
+                const life = 0.4 + Math.random() * 0.3;
+                p.life = life;
+                p.maxLife = life;
+
+                p.vel.set(
                     (Math.random() - 0.5) * 0.8,
-                    Math.random() * 0.5 + 0.35, // slowly float upwards
+                    Math.random() * 0.5 + 0.35,
                     (Math.random() - 0.5) * 0.8
                 );
 
-                scene.add(mesh);
-                const life = 0.4 + Math.random() * 0.3;
-                this.activeParticles.push({
-                    mesh: mesh,
-                    vel: velocity,
-                    life: life,
-                    maxLife: life,
-                    type: 'smoke'
-                });
+                p.mesh.position.copy(pos);
+                p.mesh.scale.set(0.16, 0.16, 0.16);
+                p.mesh.material.color.setHex(0xd1d5db); // smoke grey
+                p.mesh.material.opacity = 0.45;
+
+                scene.add(p.mesh);
+                this.activeParticles.push(p);
             }
 
             update(dt) {
@@ -5229,18 +6483,18 @@
                     p.life -= dt;
                     if (p.life <= 0) {
                         scene.remove(p.mesh);
-                        if (p.mesh.material) p.mesh.material.dispose();
+                        p.active = false;
                         this.activeParticles.splice(i, 1);
+                        this.inactiveParticles.push(p);
                     } else {
                         if (p.type === 'smoke') {
                             p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(1.025); // expand slightly
+                            p.mesh.scale.multiplyScalar(1.025);
                             p.mesh.material.opacity = (p.life / p.maxLife) * 0.45;
                         } else {
-                            // Gravity & Drag physics
-                            p.vel.y -= 9.8 * dt; // gravity
+                            p.vel.y -= 9.8 * dt;
                             p.mesh.position.addScaledVector(p.vel, dt);
-                            p.mesh.scale.multiplyScalar(0.96); // slowly shrink
+                            p.mesh.scale.multiplyScalar(0.96);
                             p.mesh.material.opacity = (p.life / p.maxLife) * 0.85;
                         }
                     }
@@ -5396,46 +6650,57 @@
 
                 // Handle changes in cell coordinate hovering
                 if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
-                    hoverGridCoord = gridPos;
-                    const wPos = gridToWorld(gridPos.x, gridPos.z);
-                    holographicPreview.position.set(wPos.x, 0, wPos.z);
+                    if (hoverGridCoord.x !== gridPos.x || hoverGridCoord.z !== gridPos.z || window.lastBuildModeState !== buildModeActive || window.lastActiveBuildType !== activeBuildType) {
+                        hoverGridCoord = gridPos;
+                        window.lastBuildModeState = buildModeActive;
+                        window.lastActiveBuildType = activeBuildType;
 
-                    if (buildModeActive) {
-                        holographicPreview.visible = true;
-                        
-                        // Rule Check: Can we place a tower here?
-                        // Must be empty cell AND not completely wall pathways
-                        const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
-                        let validPath = false;
-                        if (cellEmpty) {
-                            validPath = validatePathways(gridPos.x, gridPos.z);
-                        }
+                        const wPos = gridToWorld(gridPos.x, gridPos.z);
+                        const previewY = window.getTerrainHeight ? window.getTerrainHeight(wPos.x, wPos.z) : 0;
+                        holographicPreview.position.set(wPos.x, previewY, wPos.z);
 
-                        let nearLake = true;
-                        if (activeBuildType === 'water_pump') {
-                            nearLake = false;
-                            const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
-                            for (let d of checkDirs) {
-                                let nx = gridPos.x + d.dx;
-                                let nz = gridPos.z + d.dz;
-                                if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
-                                    if (grid[nx][nz] === CELL_TYPES.LAKE) {
-                                        nearLake = true;
-                                        break;
+                        if (buildModeActive) {
+                            holographicPreview.visible = true;
+                            
+                            let allowed = false;
+                            if (activeBuildType === 'argon_harvester') {
+                                allowed = grid[gridPos.x][gridPos.z] === CELL_TYPES.LAKE;
+                            } else {
+                                const cellEmpty = grid[gridPos.x][gridPos.z] === CELL_TYPES.EMPTY;
+                                let validPath = false;
+                                if (cellEmpty) {
+                                    validPath = validatePathways(gridPos.x, gridPos.z);
+                                }
+
+                                let nearLake = true;
+                                if (activeBuildType === 'water_pump') {
+                                    nearLake = false;
+                                    const checkDirs = [{dx: 1, dz: 0}, {dx: -1, dz: 0}, {dx: 0, dz: 1}, {dx: 0, dz: -1}];
+                                    for (let d of checkDirs) {
+                                        let nx = gridPos.x + d.dx;
+                                        let nz = gridPos.z + d.dz;
+                                        if (nx >= 0 && nx < GRID_SIZE && nz >= 0 && nz < GRID_SIZE) {
+                                            if (grid[nx][nz] === CELL_TYPES.LAKE) {
+                                                nearLake = true;
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
+                                allowed = cellEmpty && validPath && nearLake;
                             }
+                            setHologramColor(allowed);
+                        } else {
+                            holographicPreview.visible = false;
                         }
-                        
-                        setHologramColor(cellEmpty && validPath && nearLake);
-                    } else {
-                        holographicPreview.visible = false;
                     }
                 } else {
                     holographicPreview.visible = false;
+                    hoverGridCoord = { x: -1, z: -1 };
                 }
             } else {
                 holographicPreview.visible = false;
+                hoverGridCoord = { x: -1, z: -1 };
             }
         });
 
@@ -5491,17 +6756,25 @@
                             return;
                         }
                     } else if (topObj.userData.isLake) {
-                        const now = Date.now();
-                        if (now - (window.lastDrinkTime || 0) > 1500) {
-                            window.lastDrinkTime = now;
-                            gameState.water = Math.min(100, gameState.water + 15);
-                            window.updateSurvivalHUD();
-                            audio.playBuild(); // Sound feedback
-                            showToast("Drank from lake! (+15% Water)", "sky");
-                            return;
+                        if (buildModeActive && activeBuildType === 'argon_harvester') {
+                            const gridPos = worldToGrid(interactiveHits[0].point.x, interactiveHits[0].point.z);
+                            if (gridPos.x >= 0 && gridPos.x < GRID_SIZE && gridPos.z >= 0 && gridPos.z < GRID_SIZE) {
+                                attemptBuildTower(gridPos.x, gridPos.z);
+                                return;
+                            }
                         } else {
-                            showToast("Not thirsty yet...", "yellow");
-                            return;
+                            const now = Date.now();
+                            if (now - (window.lastDrinkTime || 0) > 1500) {
+                                window.lastDrinkTime = now;
+                                gameState.water = Math.min(100, gameState.water + 15);
+                                window.updateSurvivalHUD();
+                                audio.playBuild(); // Sound feedback
+                                showToast("Drank from lake! (+15% Water)", "sky");
+                                return;
+                            } else {
+                                showToast("Not thirsty yet...", "yellow");
+                                return;
+                            }
                         }
                     }
                 }
@@ -5552,7 +6825,7 @@
                     console.warn(`[Grid Click] out of bounds: (${gridPos.x}, ${gridPos.z})`);
                 }
             }
-        }
+        })
 
         // Add Escape key handler for intuitive control canceling, and 'O' key handler for hotkey build
         window.addEventListener('keydown', (e) => {
@@ -5623,11 +6896,19 @@
             const cost = TOWER_SPECS[activeBuildType].base.cost;
             console.log(`[Build] attemptBuildTower called for (${x}, ${z}). type=${activeBuildType}, cost=${cost}, gold=${gameState.gold}`);
 
-            if (grid[x][z] !== CELL_TYPES.EMPTY) {
-                console.error(`[Build] failed: cell occupied (type=${grid[x][z]})`);
-                showToast("Cell already occupied!", "red");
-                audio.playDenied();
-                return;
+            if (activeBuildType === 'argon_harvester') {
+                if (grid[x][z] !== CELL_TYPES.LAKE) {
+                    showToast("Argon Harvester must be placed on water!", "yellow");
+                    audio.playDenied();
+                    return;
+                }
+            } else {
+                if (grid[x][z] !== CELL_TYPES.EMPTY) {
+                    console.error(`[Build] failed: cell occupied (type=${grid[x][z]})`);
+                    showToast("Cell already occupied!", "red");
+                    audio.playDenied();
+                    return;
+                }
             }
 
             if (activeBuildType === 'water_pump') {
@@ -5672,7 +6953,14 @@
             grid[x][z] = CELL_TYPES.TOWER;
             
             console.log(`[Build] instantiating SporeTower...`);
-            const newTower = new SporeTower(x, z, activeBuildType);
+            let newTower;
+            if (activeBuildType === 'supertower') {
+                newTower = new SuperTower(x, z);
+            } else if (activeBuildType === 'argon_harvester') {
+                newTower = new ArgonHarvester(x, z);
+            } else {
+                newTower = new SporeTower(x, z, activeBuildType);
+            }
             towers.push(newTower);
 
             // Recompute real-time map distance field
@@ -5680,8 +6968,22 @@
             updateStatsUI();
             audio.playBuild();
             particles.spawnExplosion(newTower.position, TOWER_SPECS[activeBuildType].base.color, 15);
-            const nameMap = { spore: 'Gatling Turret', laser: 'Railgun Cannon', frost: 'Missile Battery' };
-            showToast(`${nameMap[activeBuildType]} Constructed`, "green");
+            const nameMap = { 
+                spore: 'Gatling Turret', 
+                laser: 'Railgun Cannon', 
+                frost: 'Missile Battery', 
+                tesla: 'Tesla Pylon', 
+                artillery: 'Plasma Artillery', 
+                thermal: 'Thermal Melter', 
+                harvester: 'Scarab Harvester', 
+                water_pump: 'Water Pump', 
+                generator: 'Power Generator', 
+                stackfarm: 'Vertical Stackfarm', 
+                drone_factory: 'Drone Factory', 
+                supertower: 'Super Tower',
+                argon_harvester: 'Argon Harvester'
+            };
+            showToast(`${nameMap[activeBuildType] || 'Tower'} Constructed`, "green");
             console.log(`[Build] SporeTower successfully placed and initialized.`);
         }
 
@@ -5825,7 +7127,11 @@
             const refund = Math.round(selectedTowerInstance.specs.cost * 0.5);
 
             gameState.gold += refund;
-            grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.EMPTY;
+            if (selectedTowerInstance.type === 'argon_harvester') {
+                grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.LAKE;
+            } else {
+                grid[selectedTowerInstance.gridX][selectedTowerInstance.gridZ] = CELL_TYPES.EMPTY;
+            }
 
             // Remove from JS storage list
             const idx = towers.indexOf(selectedTowerInstance);
@@ -5895,20 +7201,59 @@
 
             if (window.CampaignManager && window.CampaignManager.isActive) {
                 const mission = window.CampaignManager.missions[window.CampaignManager.currentMissionIndex];
-                const waveSpawns = mission.waves[gameState.wave - 1];
-                if (waveSpawns) {
-                    waveSpawns.forEach(spawnDef => {
-                        for (let i = 0; i < spawnDef.count; i++) {
-                            const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
-                            waveSpawnQueue.push({
-                                x: spawn.x,
-                                z: spawn.z,
-                                type: spawnDef.type
-                            });
-                            numEnemies++;
-                        }
-                    });
+                let waveSpawns = mission.waves[gameState.wave - 1];
+                
+                // Procedural survival wave generation if we exceed hardcoded waves
+                if (!waveSpawns) {
+                    const biomePools = {
+                        jungle: ['scarab', 'ant', 'wasp'],
+                        venus: ['scarab', 'ant', 'wasp', 'ufo', 'golem'],
+                        europa: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier'],
+                        volcanic: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'],
+                        mars: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout']
+                    };
+                    const enemyCosts = {
+                        scarab: 1.0,
+                        ant: 1.5,
+                        wasp: 2.0,
+                        ufo: 3.0,
+                        golem: 4.0,
+                        stealth: 3.5,
+                        ram: 5.0,
+                        carrier: 6.0,
+                        scout: 4.5
+                    };
+                    
+                    const pool = biomePools[mission.biome] || biomePools.jungle;
+                    const waveIndex = gameState.wave;
+                    let remainingBudget = 15 + waveIndex * 7;
+                    const spawns = {};
+                    
+                    while (remainingBudget >= 1.0) {
+                        const affordable = pool.filter(type => enemyCosts[type] <= remainingBudget);
+                        if (affordable.length === 0) break;
+                        const type = affordable[Math.floor(Math.random() * affordable.length)];
+                        spawns[type] = (spawns[type] || 0) + 1;
+                        remainingBudget -= enemyCosts[type];
+                    }
+                    
+                    waveSpawns = Object.keys(spawns).map(type => ({
+                        type: type,
+                        count: spawns[type]
+                    }));
                 }
+
+                waveSpawns.forEach(spawnDef => {
+                    for (let i = 0; i < spawnDef.count; i++) {
+                        const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
+                        waveSpawnQueue.push({
+                            x: spawn.x,
+                            z: spawn.z,
+                            type: spawnDef.type
+                        });
+                        numEnemies++;
+                    }
+                });
             } else {
                  numEnemies = getNextWaveEnemyCount();
                  for (let i = 0; i < numEnemies; i++) {
@@ -5986,6 +7331,228 @@
         }
 
         /* ==========================================
+           MAP SNAPSHOT CONTROLLERS
+           ========================================== */
+        window.triggerMenuSnapshotUpload = function() {
+            document.getElementById('load-map-input').click();
+        };
+
+        function saveMapSnapshot() {
+            const snapshot = {
+                version: "1.0",
+                savedAt: new Date().toISOString(),
+                gameState: {
+                    gold: gameState.gold,
+                    health: gameState.health,
+                    wave: gameState.wave,
+                    score: gameState.score,
+                    gameSpeed: gameState.gameSpeed,
+                    currentBiome: gameState.currentBiome,
+                    food: gameState.food,
+                    water: gameState.water,
+                    power: gameState.power,
+                    collectedFood: gameState.collectedFood,
+                    baseTier: gameState.baseTier
+                },
+                campaign: {
+                    isActive: window.CampaignManager ? window.CampaignManager.isActive : false,
+                    currentMissionIndex: window.CampaignManager ? window.CampaignManager.currentMissionIndex : 0
+                },
+                grid: JSON.parse(JSON.stringify(grid)),
+                towers: towers.map(t => ({
+                    gridX: t.gridX,
+                    gridZ: t.gridZ,
+                    type: t.type,
+                    level: t.level
+                })),
+                polyplants: (window.polyplants || []).map(p => ({
+                    gridX: p.gridX,
+                    gridZ: p.gridZ,
+                    scale: p.scale
+                }))
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snapshot, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `map_snapshot_${gameState.currentBiome}_wave_${gameState.wave}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            
+            showToast("Map snapshot saved successfully!", "green");
+            if (audio && typeof audio.playBuild === 'function') audio.playBuild();
+        }
+
+        function loadMapSnapshot(snapshot) {
+            try {
+                if (!snapshot || snapshot.version !== "1.0" || !snapshot.gameState || !snapshot.grid) {
+                    showToast("Invalid snapshot file!", "red");
+                    if (audio && typeof audio.playDenied === 'function') audio.playDenied();
+                    return;
+                }
+
+                if (gameState.inMenu) {
+                    const menuContainer = document.getElementById('main-menu-container');
+                    if (menuContainer) {
+                        menuContainer.classList.add('opacity-0', 'pointer-events-none');
+                        setTimeout(() => menuContainer.remove(), 1200);
+                    }
+                    
+                    const uiContainer = document.getElementById('ui-container');
+                    if (uiContainer) uiContainer.classList.remove('hidden');
+                    
+                    gameState.inMenu = false;
+                    if (typeof clearMenuBackground === 'function') clearMenuBackground();
+                    if (typeof startCameraTransition === 'function') startCameraTransition();
+                }
+
+                gameState.isWaveActive = false;
+                const waveBtn = document.getElementById('wave-btn');
+                if (waveBtn) {
+                    waveBtn.disabled = false;
+                    waveBtn.classList.remove('opacity-50', 'pointer-events-none');
+                }
+                const waveDesc = document.getElementById('wave-desc');
+                if (waveDesc) waveDesc.innerText = `Ready to Engage`;
+
+                enemies.forEach(e => { if (e.mesh) scene.remove(e.mesh); });
+                enemies.length = 0;
+                
+                projectiles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
+                projectiles.length = 0;
+
+                if (typeof particles !== 'undefined' && particles.activeParticles) {
+                    particles.activeParticles.forEach(p => { if (p.mesh) scene.remove(p.mesh); });
+                    particles.activeParticles.length = 0;
+                }
+
+                towers.forEach(t => {
+                    if (t.scarab && typeof t.scarab.destroy === 'function') {
+                        t.scarab.destroy();
+                    }
+                    if (t.drones) {
+                        t.drones.forEach(d => {
+                            if (d.mesh) scene.remove(d.mesh);
+                        });
+                    }
+                    if (t.mesh) {
+                        scene.remove(t.mesh);
+                    }
+                });
+                towers.length = 0;
+
+                if (window.clearPolyplants) window.clearPolyplants();
+
+                gameState.gold = snapshot.gameState.gold;
+                gameState.health = snapshot.gameState.health;
+                gameState.wave = snapshot.gameState.wave;
+                gameState.score = snapshot.gameState.score;
+                gameState.gameSpeed = snapshot.gameState.gameSpeed || 1.0;
+                gameState.currentBiome = snapshot.gameState.currentBiome;
+                gameState.food = snapshot.gameState.food !== undefined ? snapshot.gameState.food : 100;
+                gameState.water = snapshot.gameState.water !== undefined ? snapshot.gameState.water : 100;
+                gameState.power = snapshot.gameState.power !== undefined ? snapshot.gameState.power : 100;
+                gameState.collectedFood = snapshot.gameState.collectedFood !== undefined ? snapshot.gameState.collectedFood : 0;
+                gameState.baseTier = snapshot.gameState.baseTier !== undefined ? snapshot.gameState.baseTier : 1;
+
+                if (window.CampaignManager && snapshot.campaign) {
+                    window.CampaignManager.isActive = snapshot.campaign.isActive;
+                    window.CampaignManager.currentMissionIndex = snapshot.campaign.currentMissionIndex;
+                    
+                    const selectEl = document.getElementById('biome-select');
+                    if (selectEl) {
+                        if (window.CampaignManager.isActive) {
+                            selectEl.disabled = true;
+                            selectEl.classList.add('opacity-50', 'pointer-events-none');
+                        } else {
+                            selectEl.disabled = false;
+                            selectEl.classList.remove('opacity-50', 'pointer-events-none');
+                        }
+                    }
+                }
+
+                if (typeof deselectTower === 'function') deselectTower();
+
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    for (let z = 0; z < GRID_SIZE; z++) {
+                        grid[x][z] = snapshot.grid[x][z];
+                    }
+                }
+
+                loadBiome(gameState.currentBiome, true, () => {
+                    if (snapshot.towers) {
+                        snapshot.towers.forEach(tInfo => {
+                            grid[tInfo.gridX][tInfo.gridZ] = CELL_TYPES.TOWER;
+
+                            let newTower;
+                            if (tInfo.type === 'supertower') {
+                                newTower = new SuperTower(tInfo.gridX, tInfo.gridZ);
+                            } else if (tInfo.type === 'argon_harvester') {
+                                newTower = new ArgonHarvester(tInfo.gridX, tInfo.gridZ);
+                            } else {
+                                newTower = new SporeTower(tInfo.gridX, tInfo.gridZ, tInfo.type);
+                            }
+
+                            if (tInfo.level === 2) {
+                                newTower.level = 2;
+                                newTower.specs = { ...TOWER_SPECS[newTower.type].upgraded };
+
+                                if (newTower.turretHead && newTower.turretHead.children[0] && newTower.turretHead.children[0].material) {
+                                    newTower.turretHead.children[0].material.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.pulseCore && newTower.pulseCore.material) {
+                                    newTower.pulseCore.material.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.chestLight) {
+                                    newTower.chestLight.color.setHex(newTower.specs.color);
+                                }
+                                if (newTower.shards) {
+                                    newTower.shards.forEach(coil => {
+                                        if (coil.material) coil.material.color.setHex(newTower.specs.bulletColor);
+                                    });
+                                }
+                                if (newTower.muzzleFlash) newTower.muzzleFlash.color.setHex(newTower.specs.bulletColor);
+                                if (newTower.muzzleFlashMesh && newTower.muzzleFlashMesh.material) {
+                                    newTower.muzzleFlashMesh.material.color.setHex(newTower.specs.bulletColor);
+                                }
+                            }
+                            towers.push(newTower);
+                        });
+                    }
+
+                    if (snapshot.polyplants && window.Polyplant) {
+                        snapshot.polyplants.forEach(pData => {
+                            const plant = new window.Polyplant(scene, pData.gridX, pData.gridZ);
+                            plant.scale = pData.scale;
+                            if (plant.mesh) plant.mesh.scale.setScalar(pData.scale);
+                            window.polyplants.push(plant);
+                        });
+                    }
+
+                    if (typeof rebuildBase === 'function') {
+                        rebuildBase();
+                    }
+
+                    computeSDF();
+                    updateStatsUI();
+                    if (window.updateSurvivalHUD) window.updateSurvivalHUD();
+
+                    const biomeSelect = document.getElementById('biome-select');
+                    if (biomeSelect) biomeSelect.value = gameState.currentBiome;
+
+                    showToast("Map snapshot restored successfully!", "green");
+                    if (audio && typeof audio.playBuild === 'function') audio.playBuild();
+                });
+
+            } catch (err) {
+                console.error("Error restoring snapshot:", err);
+                showToast("Failed to restore snapshot!", "red");
+                if (audio && typeof audio.playDenied === 'function') audio.playDenied();
+            }
+        }
+
+        /* ==========================================
            GAME UI CONTROLLERS & EVENT LISTENERS
            ========================================== */
         function updateStatsUI() {
@@ -6031,7 +7598,9 @@
             water_pump: document.getElementById('build-water_pump'),
             generator: document.getElementById('build-generator'),
             stackfarm: document.getElementById('build-stackfarm'),
-            drone_factory: document.getElementById('build-drone_factory')
+            drone_factory: document.getElementById('build-drone_factory'),
+            supertower: document.getElementById('build-supertower'),
+            argon_harvester: document.getElementById('build-argon_harvester')
         };
 
         const dropdown = document.getElementById('construct-dropdown');
@@ -6167,7 +7736,9 @@
                 tesla: { active: 'border-indigo-500 bg-indigo-950/60', hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
                 artillery: { active: 'border-green-500 bg-green-950/60', hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
                 thermal: { active: 'border-rose-500 bg-rose-950/60', hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
-                drone_factory: { active: 'border-violet-500 bg-violet-950/60', hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' }
+                drone_factory: { active: 'border-violet-500 bg-violet-950/60', hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
+                supertower: { active: 'border-yellow-500 bg-yellow-950/60', hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
+                argon_harvester: { active: 'border-cyan-500 bg-cyan-950/60', hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
             };
 
             // Update UI Card classes
@@ -6208,7 +7779,9 @@
                 tesla: { hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
                 artillery: { hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
                 thermal: { hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
-                drone_factory: { hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' }
+                drone_factory: { hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
+                supertower: { hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
+                argon_harvester: { hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
             };
             Object.keys(buildCards).forEach(k => {
                 const card = buildCards[k];
@@ -6334,6 +7907,35 @@
             }
         });
 
+        // Map Snapshot Event Handlers
+        document.getElementById('save-map-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            saveMapSnapshot();
+        });
+
+        document.getElementById('load-map-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('load-map-input').click();
+        });
+
+        document.getElementById('load-map-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                try {
+                    const snapshot = JSON.parse(evt.target.result);
+                    loadMapSnapshot(snapshot);
+                } catch (err) {
+                    showToast("Invalid JSON file!", "red");
+                    if (audio && typeof audio.playDenied === 'function') audio.playDenied();
+                }
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        });
+
         function checkGameOver() {
             if (gameState.health <= 0 && !gameState.isGameOver) {
                 gameState.isGameOver = true;
@@ -6359,15 +7961,982 @@
         }
 
         /* ==========================================
+           MAIN MENU BACKGROUND SCENE (SDF-styled White Sailboat & Arrows)
+           ========================================== */
+        let menuGroup = new THREE.Group();
+        let menuWater = null;
+        let menuSailboat = null;
+        let menuFireParticles = [];
+        let menuArrows = [];
+        let menuUFOs = [];
+        let menuArrowTimer = 0;
+        
+        // Ants scooting across ground
+        let menuAntSwarm = null;
+        let menuAntPositions = null;
+        let menuAntVelocities = null;
+        const antCount = 120;
+
+        // Ponds with rising bubbles
+        let menuPonds = [];
+
+        // Harvester Bunker, Harvester Robot, and Flowers
+        let harvesterBunker = null;
+        let harvesterRobot = null;
+        let menuFlowers = [];
+        let harvesterState = 0; // 0: crawl to flowers, 1: harvest, 2: return, 3: unload
+        let harvesterTimer = 0;
+
+        function createMenuUFO() {
+            const group = new THREE.Group();
+            
+            // Saucer disk base
+            const discGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.16, 8);
+            const discMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, metalness: 0.9, roughness: 0.2 });
+            const disc = new THREE.Mesh(discGeo, discMat);
+            disc.castShadow = true;
+            group.add(disc);
+
+            // Glowing green dome
+            const domeGeo = new THREE.SphereGeometry(0.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+            const domeMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.y = 0.08;
+            group.add(dome);
+
+            // Light beacons underneath
+            const beaconMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6 });
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI) / 2;
+                const beaconGeo = new THREE.SphereGeometry(0.06, 4, 4);
+                const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+                beacon.position.set(Math.cos(angle) * 0.6, -0.08, Math.sin(angle) * 0.6);
+                group.add(beacon);
+            }
+
+            return group;
+        }
+
+        function initMenuBackground() {
+            // Populate bricks as absolute-positioned divs with physics data
+            const brickGrid = document.getElementById('menu-brick-grid');
+            window._brickPhysics = [];
+            window._brickDebris = [];
+            window._bricksExploded = false;
+            if (brickGrid) {
+                brickGrid.innerHTML = '';
+                const cols = 14;
+                const rows = 7;
+                const bw = 820 / cols;
+                const bh = 500 / rows;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const brick = document.createElement('div');
+                        brick.className = 'grid-brick';
+                        brick.style.left = (c * bw) + 'px';
+                        brick.style.top = (r * bh) + 'px';
+                        brick.style.width = bw + 'px';
+                        brick.style.height = bh + 'px';
+                        brickGrid.appendChild(brick);
+                        window._brickPhysics.push({
+                            el: brick,
+                            x: c * bw, y: r * bh,
+                            origX: c * bw, origY: r * bh,
+                            vx: 0, vy: 0, vr: 0, rotation: 0,
+                            alive: true, scale: 1, opacity: 1,
+                            cx: c * bw + bw / 2, cy: r * bh + bh / 2
+                        });
+                    }
+                }
+
+                // Shockwave listener — explode bricks from cursor position
+                brickGrid.style.pointerEvents = 'auto';
+                brickGrid.addEventListener('mousemove', function onBrickHover(e) {
+                    if (window._bricksExploded) return;
+                    window._bricksExploded = true;
+                    brickGrid.style.pointerEvents = 'none';
+
+                    const rect = brickGrid.getBoundingClientRect();
+                    const mx = e.clientX - rect.left;
+                    const my = e.clientY - rect.top;
+
+                    window._brickPhysics.forEach(b => {
+                        const dx = b.cx - mx;
+                        const dy = b.cy - my;
+                        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const force = Math.max(0, 1 - dist / 600);
+                        const angle = Math.atan2(dy, dx);
+                        b.vx = Math.cos(angle) * force * (800 + Math.random() * 600);
+                        b.vy = Math.sin(angle) * force * (600 + Math.random() * 400) - 200;
+                        b.vr = (Math.random() - 0.5) * 15;
+                        // Stagger by distance
+                        b._delay = dist * 0.002;
+                        b._timer = 0;
+                    });
+
+                    // Spawn debris sparks per brick
+                    window._brickPhysics.forEach(b => {
+                        for (let s = 0; s < 4; s++) {
+                            const spark = document.createElement('div');
+                            spark.className = 'brick-debris';
+                            const sz = 2 + Math.random() * 4;
+                            spark.style.width = sz + 'px';
+                            spark.style.height = sz + 'px';
+                            spark.style.left = b.cx + 'px';
+                            spark.style.top = b.cy + 'px';
+                            brickGrid.appendChild(spark);
+                            window._brickDebris.push({
+                                el: spark,
+                                x: b.cx, y: b.cy,
+                                vx: (Math.random() - 0.5) * 500,
+                                vy: (Math.random() - 0.5) * 500 - 100,
+                                life: 0.6 + Math.random() * 0.4,
+                                opacity: 1
+                            });
+                        }
+                    });
+
+                    // Start physics animation loop
+                    startBrickPhysicsLoop();
+                });
+            }
+
+            // Dark ocean plane
+            const waterGeo = new THREE.PlaneGeometry(150, 150);
+            const waterMat = new THREE.MeshStandardMaterial({
+                color: 0x050f24,
+                roughness: 0.25,
+                metalness: 0.8
+            });
+            menuWater = new THREE.Mesh(waterGeo, waterMat);
+            menuWater.rotation.x = -Math.PI / 2;
+            menuWater.position.y = -0.5;
+            menuGroup.add(menuWater);
+
+            // Procedural White Sailboat
+            menuSailboat = new THREE.Group();
+            menuSailboat.position.set(0, 0.4, -15);
+            
+            // White Hull
+            const hullGeo = new THREE.ConeGeometry(1.2, 4.0, 4);
+            hullGeo.rotateX(Math.PI / 2);
+            hullGeo.scale(1.0, 0.6, 2.2);
+            const whiteMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.1,
+                metalness: 0.1,
+                flatShading: true
+            });
+            const hull = new THREE.Mesh(hullGeo, whiteMat);
+            hull.castShadow = true;
+            menuSailboat.add(hull);
+
+            // Mast
+            const mastGeo = new THREE.CylinderGeometry(0.06, 0.06, 4.5, 6);
+            const mast = new THREE.Mesh(mastGeo, whiteMat);
+            mast.position.set(0, 2.25, -0.2);
+            mast.castShadow = true;
+            menuSailboat.add(mast);
+
+            // Sails
+            const sailShape1 = new THREE.BufferGeometry();
+            const sVertices1 = new Float32Array([
+                0, 0.5, -0.2,
+                0, 4.2, -0.2,
+                1.4, 0.8, -0.2
+            ]);
+            sailShape1.setAttribute('position', new THREE.BufferAttribute(sVertices1, 3));
+            sailShape1.computeVertexNormals();
+            const sailMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                roughness: 0.4
+            });
+            const sail1 = new THREE.Mesh(sailShape1, sailMat);
+            menuSailboat.add(sail1);
+
+            const sailShape2 = new THREE.BufferGeometry();
+            const sVertices2 = new Float32Array([
+                0, 0.8, 0.1,
+                0, 3.8, 0.1,
+                -1.1, 0.9, 0.1
+            ]);
+            sailShape2.setAttribute('position', new THREE.BufferAttribute(sVertices2, 3));
+            sailShape2.computeVertexNormals();
+            const sail2 = new THREE.Mesh(sailShape2, sailMat);
+            menuSailboat.add(sail2);
+
+            menuGroup.add(menuSailboat);
+
+            // Spawn Hovering Alien UFOs
+            const ufoCoords = [
+                { x: -7, y: 3.5, z: -18, timeOffset: 0 },
+                { x: 7, y: 4.8, z: -21, timeOffset: Math.PI / 2 },
+                { x: -2, y: 6.0, z: -25, timeOffset: Math.PI }
+            ];
+            menuUFOs = [];
+            ufoCoords.forEach(c => {
+                const ufo = createMenuUFO();
+                ufo.position.set(c.x, c.y, c.z);
+                ufo.userData = { startY: c.y, timeOffset: c.timeOffset };
+                menuGroup.add(ufo);
+                menuUFOs.push(ufo);
+            });
+
+            // Ant Particle Swarm scooting across ground
+            const antGeo = new THREE.BufferGeometry();
+            menuAntPositions = new Float32Array(antCount * 3);
+            menuAntVelocities = new Float32Array(antCount);
+            
+            for (let i = 0; i < antCount; i++) {
+                menuAntPositions[i * 3] = (Math.random() - 0.5) * 80;
+                menuAntPositions[i * 3 + 1] = -0.4;
+                menuAntPositions[i * 3 + 2] = (Math.random() - 0.5) * 60 - 15;
+                menuAntVelocities[i] = 4.0 + Math.random() * 6.0;
+            }
+            
+            antGeo.setAttribute('position', new THREE.BufferAttribute(menuAntPositions, 3));
+            
+            const antMat = new THREE.PointsMaterial({
+                color: 0xec4899,
+                size: 0.15,
+                transparent: true,
+                opacity: 0.85
+            });
+            menuAntSwarm = new THREE.Points(antGeo, antMat);
+            menuGroup.add(menuAntSwarm);
+
+            // Spawning ponds all around with bubbles
+            menuPonds = [];
+            const pondLocations = [
+                { x: -14, z: -10, r: 2.8 },
+                { x: 12, z: -9, r: 2.2 },
+                { x: -8, z: -22, r: 2.5 },
+                { x: 9, z: -24, r: 3.0 },
+                { x: 0, z: -30, r: 3.5 }
+            ];
+            pondLocations.forEach(loc => {
+                const pondGeo = new THREE.CylinderGeometry(loc.r, loc.r, 0.05, 16);
+                const pondMat = new THREE.MeshStandardMaterial({
+                    color: 0x06b6d4,
+                    emissive: 0x0891b2,
+                    emissiveIntensity: 1.5,
+                    transparent: true,
+                    opacity: 0.65
+                });
+                const pond = new THREE.Mesh(pondGeo, pondMat);
+                pond.position.set(loc.x, -0.45, loc.z);
+                menuGroup.add(pond);
+
+                menuPonds.push({
+                    mesh: pond,
+                    x: loc.x,
+                    z: loc.z,
+                    r: loc.r,
+                    bubbles: [],
+                    bubbleTimer: 0
+                });
+            });
+
+            // Harvester Bunker building at (-9, -0.4, -18)
+            const bunkerGroup = new THREE.Group();
+            bunkerGroup.position.set(-9, -0.4, -18);
+            
+            const wallGeo = new THREE.BoxGeometry(2.0, 1.4, 2.0);
+            const bunkerMat = new THREE.MeshStandardMaterial({ color: 0x374151, metalness: 0.8, roughness: 0.3 });
+            const walls = new THREE.Mesh(wallGeo, bunkerMat);
+            walls.position.y = 0.7;
+            bunkerGroup.add(walls);
+
+            // glowing gate door
+            const gateGeo = new THREE.PlaneGeometry(0.8, 1.0);
+            const gateMat = new THREE.MeshBasicMaterial({ color: 0xeab308 });
+            const gate = new THREE.Mesh(gateGeo, gateMat);
+            gate.position.set(1.01, 0.5, 0);
+            gate.rotation.y = Math.PI / 2;
+            bunkerGroup.add(gate);
+
+            menuGroup.add(bunkerGroup);
+            harvesterBunker = bunkerGroup;
+
+            // Spawn Flower Patch at (6, -0.4, -18)
+            menuFlowers = [];
+            const flowerCoords = [
+                { x: 6.0, z: -17.5 },
+                { x: 6.5, z: -18.5 },
+                { x: 5.5, z: -19.0 }
+            ];
+            flowerCoords.forEach(c => {
+                const flower = new THREE.Group();
+                flower.position.set(c.x, -0.4, c.z);
+                
+                const stalkGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.5, 4);
+                const greenMat = new THREE.MeshStandardMaterial({ color: 0x10b981 });
+                const stalk = new THREE.Mesh(stalkGeo, greenMat);
+                stalk.position.y = 0.25;
+                flower.add(stalk);
+
+                const tipGeo = new THREE.ConeGeometry(0.18, 0.3, 4);
+                const tipMat = new THREE.MeshStandardMaterial({
+                    color: 0xec4899,
+                    emissive: 0xdb2777,
+                    emissiveIntensity: 1.5
+                });
+                const tip = new THREE.Mesh(tipGeo, tipMat);
+                tip.position.y = 0.45;
+                flower.add(tip);
+
+                menuGroup.add(flower);
+                menuFlowers.push(flower);
+            });
+
+            // Harvester Crawler Robot
+            harvesterRobot = new THREE.Group();
+            harvesterRobot.position.set(-9, -0.4, -18);
+            
+            // body
+            const bodyGeo = new THREE.BoxGeometry(0.7, 0.4, 0.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xeab308, metalness: 0.5 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.35;
+            harvesterRobot.add(body);
+
+            // arm
+            const armGeo = new THREE.BoxGeometry(0.3, 0.08, 0.08);
+            const arm = new THREE.Mesh(armGeo, bodyMat);
+            arm.position.set(0.3, 0.35, 0);
+            harvesterRobot.add(arm);
+
+            // legs
+            const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 4);
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x111827 });
+            for (let i = 0; i < 4; i++) {
+                const leg = new THREE.Mesh(legGeo, legMat);
+                leg.position.set(
+                    (i < 2 ? 0.22 : -0.22),
+                    0.1,
+                    (i % 2 === 0 ? 0.2 : -0.2)
+                );
+                harvesterRobot.add(leg);
+            }
+
+            menuGroup.add(harvesterRobot);
+            harvesterState = 0;
+            harvesterTimer = 0;
+
+            // Menu Light (dimly lit blue moon light)
+            const menuLight = new THREE.DirectionalLight(0x1e3a8a, 0.45);
+            menuLight.position.set(-10, 25, 15);
+            menuGroup.add(menuLight);
+
+            const fireGlow = new THREE.PointLight(0xf97316, 2.2, 18);
+            fireGlow.position.set(0, 1.2, -15);
+            menuGroup.add(fireGlow);
+
+            // Dimly lit night sky colors
+            if (skyboxController && skyboxController.uniforms) {
+                skyboxController.uniforms.topColor.value.setHex(0x020617);
+                skyboxController.uniforms.bottomColor.value.setHex(0x0f172a);
+                skyboxController.uniforms.skyCloudColor.value.setHex(0x1e293b);
+            }
+
+            scene.add(menuGroup);
+
+            // Hide main board initially
+            if (ground) ground.visible = false;
+            if (baseGroup) baseGroup.visible = false;
+            if (window.floraInstancedMeshes) {
+                window.floraInstancedMeshes.forEach(mesh => mesh.visible = false);
+            }
+        }
+
+        function updateMenuBackground(dt) {
+            const time = Date.now() * 0.001;
+
+            if (menuSailboat) {
+                menuSailboat.rotation.z = Math.sin(time * 1.5) * 0.035;
+                menuSailboat.rotation.x = Math.cos(time * 1.1) * 0.02;
+            }
+
+            // Bob and spin hovering UFOs
+            menuUFOs.forEach(ufo => {
+                ufo.position.y = ufo.userData.startY + Math.sin(time * 2.0 + ufo.userData.timeOffset) * 0.25;
+                ufo.rotation.y += dt * 1.8;
+            });
+
+            // Ant particle swarm scooting across water
+            if (menuAntSwarm) {
+                const posAttr = menuAntSwarm.geometry.attributes.position;
+                for (let i = 0; i < antCount; i++) {
+                    menuAntPositions[i * 3] += menuAntVelocities[i] * dt;
+                    if (menuAntPositions[i * 3] > 40) {
+                        menuAntPositions[i * 3] = -40;
+                        menuAntPositions[i * 3 + 2] = (Math.random() - 0.5) * 60 - 15;
+                    }
+                    posAttr.setX(i, menuAntPositions[i * 3]);
+                    posAttr.setZ(i, menuAntPositions[i * 3 + 2]);
+                }
+                posAttr.needsUpdate = true;
+            }
+
+            // Update Ponds (bubbles)
+            menuPonds.forEach(p => {
+                p.bubbleTimer -= dt;
+                if (p.bubbleTimer <= 0) {
+                    p.bubbleTimer = 0.2 + Math.random() * 0.4;
+                    const bubbleGeo = new THREE.SphereGeometry(0.06 + Math.random() * 0.06, 4, 4);
+                    const bubbleMat = new THREE.MeshBasicMaterial({
+                        color: 0x22d3ee,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+                    const bubbleMesh = new THREE.Mesh(bubbleGeo, bubbleMat);
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = Math.random() * p.r * 0.8;
+                    bubbleMesh.position.set(
+                        p.x + Math.cos(angle) * dist,
+                        -0.4,
+                        p.z + Math.sin(angle) * dist
+                    );
+                    menuGroup.add(bubbleMesh);
+                    p.bubbles.push({
+                        mesh: bubbleMesh,
+                        speedY: 0.5 + Math.random() * 0.8,
+                        life: 1.2
+                    });
+                }
+
+                for (let i = p.bubbles.length - 1; i >= 0; i--) {
+                    const b = p.bubbles[i];
+                    b.mesh.position.y += b.speedY * dt;
+                    b.life -= dt;
+                    b.mesh.position.x += Math.sin(b.mesh.position.y * 10) * 0.01;
+                    if (b.life <= 0) {
+                        menuGroup.remove(b.mesh);
+                        b.mesh.geometry.dispose();
+                        b.mesh.material.dispose();
+                        p.bubbles.splice(i, 1);
+                    }
+                }
+            });
+
+            // Animate Harvester Crawler
+            if (harvesterRobot) {
+                const isMoving = (harvesterState === 0 || harvesterState === 2);
+                if (isMoving) {
+                    harvesterRobot.children.forEach((child, idx) => {
+                        if (idx >= 2 && idx < 6) {
+                            child.rotation.z = Math.sin(time * 15.0 + idx) * 0.3;
+                        }
+                    });
+                } else {
+                    harvesterRobot.children.forEach((child, idx) => {
+                        if (idx >= 2 && idx < 6) child.rotation.z = 0;
+                    });
+                }
+
+                if (harvesterState === 0) {
+                    const targetX = 5.0;
+                    const diffX = targetX - harvesterRobot.position.x;
+                    if (Math.abs(diffX) > 0.1) {
+                        harvesterRobot.position.x += Math.sign(diffX) * 2.0 * dt;
+                        harvesterRobot.rotation.y = 0;
+                    } else {
+                        harvesterState = 1;
+                        harvesterTimer = 2.0;
+                    }
+                } else if (harvesterState === 1) {
+                    harvesterTimer -= dt;
+                    const armMesh = harvesterRobot.children[1];
+                    if (armMesh) {
+                        armMesh.rotation.z = Math.sin(time * 20.0) * 0.4;
+                    }
+                    menuFlowers.forEach(f => {
+                        if (f.scale.x > 0.1) {
+                            f.scale.subScalar(dt * 0.45);
+                        }
+                    });
+                    if (harvesterTimer <= 0) {
+                        harvesterState = 2;
+                    }
+                } else if (harvesterState === 2) {
+                    const targetX = -9.0;
+                    const diffX = targetX - harvesterRobot.position.x;
+                    if (Math.abs(diffX) > 0.1) {
+                        harvesterRobot.position.x += Math.sign(diffX) * 2.0 * dt;
+                        harvesterRobot.rotation.y = Math.PI;
+                    } else {
+                        harvesterState = 3;
+                        harvesterTimer = 2.0;
+                    }
+                } else if (harvesterState === 3) {
+                    harvesterTimer -= dt;
+                    if (harvesterTimer <= 0) {
+                        menuFlowers.forEach(f => f.scale.set(1, 1, 1));
+                        harvesterState = 0;
+                    }
+                }
+            }
+
+            // Spawn fire particles
+            if (menuSailboat && Math.random() < 0.35) {
+                const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: Math.random() < 0.6 ? 0xef4444 : 0xf97316,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const p = new THREE.Mesh(geo, mat);
+                const rx = (Math.random() - 0.5) * 0.6;
+                const rz = (Math.random() - 0.5) * 2.8 - 15;
+                p.position.set(rx, 0.5, rz);
+                
+                const speedY = 1.2 + Math.random() * 1.5;
+                const speedX = (Math.random() - 0.5) * 0.6;
+                
+                menuGroup.add(p);
+                menuFireParticles.push({
+                    mesh: p,
+                    velX: speedX,
+                    velY: speedY,
+                    life: 1.0
+                });
+            }
+
+            // Update fire particles
+            for (let i = menuFireParticles.length - 1; i >= 0; i--) {
+                const p = menuFireParticles[i];
+                p.mesh.position.y += p.velY * dt;
+                p.mesh.position.x += p.velX * dt;
+                p.mesh.scale.multiplyScalar(0.95);
+                p.life -= dt;
+                if (p.life <= 0) {
+                    menuGroup.remove(p.mesh);
+                    p.mesh.geometry.dispose();
+                    p.mesh.material.dispose();
+                    menuFireParticles.splice(i, 1);
+                }
+            }
+
+            // Spawn flying glowing fire arrows
+            menuArrowTimer -= dt;
+            if (menuArrowTimer <= 0) {
+                menuArrowTimer = 0.4 + Math.random() * 0.8;
+                
+                const arrowGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 4);
+                arrowGeo.rotateX(Math.PI / 2);
+                const arrowMat = new THREE.MeshBasicMaterial({ color: 0xff4500 }); // glowing red-orange arrow
+                const arrow = new THREE.Mesh(arrowGeo, arrowMat);
+                
+                // Add a small glowing yellow tip
+                const tipGeo = new THREE.ConeGeometry(0.06, 0.15, 4);
+                tipGeo.rotateX(Math.PI / 2);
+                const tipMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+                const tip = new THREE.Mesh(tipGeo, tipMat);
+                tip.position.z = 0.45;
+                arrow.add(tip);
+                
+                const startX = -20;
+                const startY = 5 + Math.random() * 6;
+                const startZ = -22 - Math.random() * 10;
+                arrow.position.set(startX, startY, startZ);
+                
+                arrow.rotation.y = Math.PI / 2.3;
+                arrow.rotation.x = -0.15;
+                
+                menuGroup.add(arrow);
+                menuArrows.push({
+                    mesh: arrow,
+                    velX: 25.0 + Math.random() * 10.0,
+                    velY: -2.0,
+                    velZ: 1.0,
+                    life: 2.0
+                });
+            }
+
+            // Update flying arrows with fire trails
+            for (let i = menuArrows.length - 1; i >= 0; i--) {
+                const arrow = menuArrows[i];
+                const oldPos = arrow.mesh.position.clone();
+                
+                arrow.mesh.position.x += arrow.velX * dt;
+                arrow.mesh.position.y += arrow.velY * dt;
+                arrow.mesh.position.z += arrow.velZ * dt;
+                
+                // Spawn fire trail particle
+                if (Math.random() < 0.8) {
+                    const trailGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+                    const trailMat = new THREE.MeshBasicMaterial({
+                        color: Math.random() < 0.5 ? 0xff8c00 : 0xff3300,
+                        transparent: true,
+                        opacity: 0.9
+                    });
+                    const tr = new THREE.Mesh(trailGeo, trailMat);
+                    tr.position.copy(oldPos);
+                    menuGroup.add(tr);
+                    
+                    menuFireParticles.push({
+                        mesh: tr,
+                        velX: (Math.random() - 0.5) * 0.4,
+                        velY: (Math.random() - 0.5) * 0.4,
+                        life: 0.5
+                    });
+                }
+                
+                arrow.life -= dt;
+                if (arrow.life <= 0) {
+                    menuGroup.remove(arrow.mesh);
+                    arrow.mesh.traverse(c => {
+                        if (c.geometry) c.geometry.dispose();
+                        if (c.material) c.material.dispose();
+                    });
+                    menuArrows.splice(i, 1);
+                }
+            }
+        }
+
+        function clearMenuBackground() {
+            scene.remove(menuGroup);
+            menuGroup.traverse(child => {
+                if (child.isMesh || child.isPoints) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                        else child.material.dispose();
+                    }
+                }
+            });
+            menuFireParticles = [];
+            menuArrows = [];
+            menuUFOs = [];
+            menuAntSwarm = null;
+            
+            menuPonds.forEach(p => {
+                p.bubbles.forEach(b => {
+                    b.mesh.geometry.dispose();
+                    b.mesh.material.dispose();
+                });
+            });
+            menuPonds = [];
+
+            if (harvesterBunker) harvesterBunker = null;
+            if (harvesterRobot) harvesterRobot = null;
+            menuFlowers = [];
+            
+            // Show main board
+            if (ground) ground.visible = true;
+            if (baseGroup) baseGroup.visible = true;
+            if (window.floraInstancedMeshes) {
+                window.floraInstancedMeshes.forEach(mesh => mesh.visible = true);
+            }
+        }
+
+        // Camera Sweep Transition
+        let cameraTransitionProgress = 1.0;
+        const startCamPos = new THREE.Vector3(0, 4, 25);
+        const startTarget = new THREE.Vector3(0, 2, -15);
+        const endCamPos = new THREE.Vector3(0, 45, 55);
+        const endTarget = new THREE.Vector3(0, 0, 0);
+
+        function startCameraTransition() {
+            cameraTransitionProgress = 0.0;
+            controls.enabled = false;
+        }
+
+        function updateCameraTransition(dt) {
+            if (cameraTransitionProgress < 1.0) {
+                cameraTransitionProgress += dt * 0.8;
+                if (cameraTransitionProgress >= 1.0) {
+                    cameraTransitionProgress = 1.0;
+                    controls.enabled = true;
+                    camera.position.copy(endCamPos);
+                    controls.target.copy(endTarget);
+                } else {
+                    const t = cameraTransitionProgress;
+                    const smoothT = t * t * (3 - 2 * t);
+                    camera.position.lerpVectors(startCamPos, endCamPos, smoothT);
+                    const curTarget = new THREE.Vector3();
+                    curTarget.lerpVectors(startTarget, endTarget, smoothT);
+                    controls.target.copy(curTarget);
+                }
+            }
+        }
+
+        // Map Selection Trigger
+        window.selectMenuMap = function(biomeName) {
+            const menuContainer = document.getElementById('main-menu-container');
+            if (menuContainer) {
+                menuContainer.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => menuContainer.remove(), 1200);
+            }
+            
+            // Reveal game UI
+            const uiContainer = document.getElementById('ui-container');
+            if (uiContainer) uiContainer.classList.remove('hidden');
+            
+            gameState.inMenu = false;
+            clearMenuBackground();
+            
+            // Load selected biome
+            loadBiome(biomeName);
+            
+            // Sync HUD dropdown selection
+            const biomeSelect = document.getElementById('biome-select');
+            if (biomeSelect) biomeSelect.value = biomeName;
+            
+            startCameraTransition();
+        };
+
+        /* ==========================================
            MAIN GAME CYCLE
            ========================================== */
         const clock = new THREE.Clock();
+
+        function updateAmbientUfoFleet(dt) {
+            if (gameState.inMenu) return;
+
+            const count = 45; // "massive amount"
+
+            // 1. Initialize instanced meshes if not yet created
+            if (!ufoBodyInstancedMesh) {
+                const bodyMat = new THREE.MeshStandardMaterial({
+                    color: 0x1e293b,
+                    roughness: 0.2,
+                    metalness: 0.85
+                });
+                ufoBodyInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.body, bodyMat, count);
+                ufoBodyInstancedMesh.castShadow = true;
+                ufoBodyInstancedMesh.receiveShadow = true;
+                scene.add(ufoBodyInstancedMesh);
+
+                const domeMat = new THREE.MeshStandardMaterial({
+                    color: 0x0ea5e9,
+                    transparent: true,
+                    opacity: 0.65,
+                    roughness: 0.05
+                });
+                ufoDomeInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.dome, domeMat, count);
+                scene.add(ufoDomeInstancedMesh);
+
+                const neonMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                ufoThrustInstancedMesh = new THREE.InstancedMesh(ENEMY_GEOMS.ufo.thrust, neonMat, count);
+                scene.add(ufoThrustInstancedMesh);
+
+                // Initialize individual state lists
+                ambientUfoPositions = [];
+                ambientUfoVels = [];
+                ambientUfoScales = [];
+                ambientUfoRotations = [];
+                ambientUfoBombTimers = [];
+
+                // West-to-East cinematic swarm initial setup
+                for (let i = 0; i < count; i++) {
+                    // Start far West (negative X) offscreen/out-of-bounds
+                    const rx = -180.0 - Math.random() * 80.0;
+                    // Spread along Z axis (narrower spread so they are closer to the centerline)
+                    const rz = (Math.random() - 0.5) * 60.0;
+                    // Very low flight height to zoom extremely close past the base crystal (base crystal is at y=1.8)
+                    const ry = 2.8 + Math.random() * 3.2;
+                    ambientUfoPositions.push(new THREE.Vector3(rx, ry, rz));
+
+                    // Direct trajectory towards a point very close to the base crystal (0, ry, targetZ)
+                    const targetZ = (Math.random() - 0.5) * 12.0;
+                    const dx = 0.0 - rx;
+                    const dz = targetZ - rz;
+                    const dist = Math.sqrt(dx*dx + dz*dz);
+                    
+                    const speed = 120.0 + Math.random() * 40.0; // extremely rapid flyover
+                    const vx = (dx / dist) * speed;
+                    const vz = (dz / dist) * speed;
+
+                    ambientUfoVels.push(new THREE.Vector2(vx, vz));
+
+                    // Scale
+                    ambientUfoScales.push(0.65 + Math.random() * 0.7);
+
+                    // Spinning animation rotation speed
+                    ambientUfoRotations.push({
+                        y: Math.random() * Math.PI * 2,
+                        speed: 1.5 + Math.random() * 2.0
+                    });
+
+                    // Random initial bomb timer (only used post-cinematic by index 0)
+                    ambientUfoBombTimers.push(Math.random() * 6 + 3);
+                }
+
+                ufoIntroActive = true;
+                ufoIntroTimer = 0;
+            }
+
+            const dummy = new THREE.Object3D();
+
+            if (ufoIntroActive) {
+                // Intro Swarming phase: Move all UFOs fast West-to-East
+                ufoIntroTimer += dt;
+
+                for (let i = 0; i < count; i++) {
+                    const pos = ambientUfoPositions[i];
+                    const vel = ambientUfoVels[i];
+                    const scale = ambientUfoScales[i];
+                    const rot = ambientUfoRotations[i];
+
+                    // High speed cinematic movement
+                    pos.x += vel.x * dt;
+                    pos.z += vel.y * dt;
+                    rot.y += rot.speed * dt;
+
+                    // Update matrix
+                    dummy.position.copy(pos);
+                    dummy.rotation.set(0, rot.y, 0);
+                    dummy.scale.set(scale * 1.5, scale * 0.8, scale * 1.5);
+                    dummy.updateMatrix();
+                    ufoBodyInstancedMesh.setMatrixAt(i, dummy.matrix);
+
+                    dummy.position.set(pos.x, pos.y + 0.08 * scale, pos.z);
+                    dummy.scale.set(scale * 1.25, scale * 1.25, scale * 1.25);
+                    dummy.updateMatrix();
+                    ufoDomeInstancedMesh.setMatrixAt(i, dummy.matrix);
+
+                    dummy.position.set(pos.x, pos.y - 0.06 * scale, pos.z);
+                    dummy.scale.set(scale, scale, scale);
+                    dummy.updateMatrix();
+                    ufoThrustInstancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+
+                // Transition to single harasser mode after fly-by completes
+                if (ufoIntroTimer >= 3.0) {
+                    ufoIntroActive = false;
+                    
+                    // Reposition instance 0 to hover slowly over map center
+                    ambientUfoPositions[0].set(0, 32, 0);
+                    ambientUfoVels[0].set((Math.random() - 0.5) * 15.0, (Math.random() - 0.5) * 15.0);
+                    ambientUfoBombTimers[0] = Math.random() * 5.0 + 3.0; // short initial timer
+                }
+            } else {
+                // Harassment phase: Only instance 0 updates and wanders
+                const pos = ambientUfoPositions[0];
+                const vel = ambientUfoVels[0];
+                const scale = ambientUfoScales[0];
+                const rot = ambientUfoRotations[0];
+
+                pos.x += vel.x * dt;
+                pos.z += vel.y * dt;
+                rot.y += rot.speed * dt;
+
+                // Wrap boundaries
+                if (pos.x < -140) pos.x = 140;
+                if (pos.x > 140) pos.x = -140;
+                if (pos.z < -140) pos.z = 140;
+                if (pos.z > 140) pos.z = -140;
+
+                // Mega-bomb dropping check
+                ambientUfoBombTimers[0] -= dt;
+                if (ambientUfoBombTimers[0] <= 0) {
+                    ambientUfoBombTimers[0] = Math.random() * 8.0 + 5.0; // drops every 5-13s
+
+                    // Spawn 3x larger mega bomb
+                    const bombGeo = new THREE.DodecahedronGeometry(0.35, 1);
+                    const bombMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+                    const bomb = new THREE.Mesh(bombGeo, bombMat);
+                    bomb.position.copy(pos);
+                    // Scale bomb 3x larger!
+                    bomb.scale.set(3.0, 3.0, 3.0);
+                    scene.add(bomb);
+
+                    // 3x higher intensity/range point light
+                    const bombLight = new THREE.PointLight(0xef4444, 3.6, 18.0);
+                    bomb.add(bombLight);
+
+                    ambientUfoBombs.push({
+                        mesh: bomb,
+                        light: bombLight,
+                        fallSpeed: 8.0 + Math.random() * 7.0,
+                        isMega: true
+                    });
+                }
+
+                // Set active matrix for instance 0 (slightly larger boss scale)
+                dummy.position.copy(pos);
+                dummy.rotation.set(0, rot.y, 0);
+                dummy.scale.set(scale * 1.5 * 1.3, scale * 0.8 * 1.3, scale * 1.5 * 1.3);
+                dummy.updateMatrix();
+                ufoBodyInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                dummy.position.set(pos.x, pos.y + 0.08 * scale * 1.3, pos.z);
+                dummy.scale.set(scale * 1.25 * 1.3, scale * 1.25 * 1.3, scale * 1.25 * 1.3);
+                dummy.updateMatrix();
+                ufoDomeInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                dummy.position.set(pos.x, pos.y - 0.06 * scale * 1.3, pos.z);
+                dummy.scale.set(scale * 1.3, scale * 1.3, scale * 1.3);
+                dummy.updateMatrix();
+                ufoThrustInstancedMesh.setMatrixAt(0, dummy.matrix);
+
+                // Set all other instances (1 to 44) to scale 0 to hide them completely
+                for (let i = 1; i < count; i++) {
+                    dummy.position.set(9999, 9999, 9999);
+                    dummy.scale.set(0, 0, 0);
+                    dummy.updateMatrix();
+                    ufoBodyInstancedMesh.setMatrixAt(i, dummy.matrix);
+                    ufoDomeInstancedMesh.setMatrixAt(i, dummy.matrix);
+                    ufoThrustInstancedMesh.setMatrixAt(i, dummy.matrix);
+                }
+            }
+
+            // Flag matrices as dirty to send to GPU
+            ufoBodyInstancedMesh.instanceMatrix.needsUpdate = true;
+            ufoDomeInstancedMesh.instanceMatrix.needsUpdate = true;
+            ufoThrustInstancedMesh.instanceMatrix.needsUpdate = true;
+
+            // 3. Update falling bombs
+            for (let i = ambientUfoBombs.length - 1; i >= 0; i--) {
+                const bomb = ambientUfoBombs[i];
+                bomb.mesh.position.y -= bomb.fallSpeed * dt;
+                bomb.mesh.rotation.x += dt * 1.8;
+                bomb.mesh.rotation.y += dt * 1.2;
+
+                const currentTargetY = window.getTerrainHeight ? window.getTerrainHeight(bomb.mesh.position.x, bomb.mesh.position.z) : 0;
+                if (bomb.mesh.position.y <= currentTargetY) {
+                    if (particles && typeof particles.spawnExplosion === 'function') {
+                        const explodePos = bomb.mesh.position.clone();
+                        explodePos.y = currentTargetY;
+                        // Mega bombs trigger massive 3x larger explosions (80 particles instead of 25)
+                        const pCount = bomb.isMega ? 80 : 25;
+                        particles.spawnExplosion(explodePos, 0xef4444, pCount);
+                        
+                        if (audio && typeof audio.playExplosion === 'function') {
+                            audio.playExplosion();
+                        }
+                    }
+
+                    scene.remove(bomb.mesh);
+                    bomb.mesh.geometry.dispose();
+                    bomb.mesh.material.dispose();
+                    if (bomb.light) {
+                        bomb.mesh.remove(bomb.light);
+                        bomb.light.dispose();
+                    }
+
+                    ambientUfoBombs.splice(i, 1);
+                }
+            }
+        }
 
         function animate() {
             requestAnimationFrame(animate);
 
             let dt = clock.getDelta() * gameState.gameSpeed;
             if (gameState.isGameOver) dt = 0;
+
+            if (gameState.inMenu) {
+                updateMenuBackground(dt);
+                controls.update();
+                renderer.render(scene, camera);
+                return;
+            }
+
+            updateCameraTransition(dt);
 
             if (window.inSpaceFlightMode) {
                 updateSpaceFlight(dt);
@@ -6378,11 +8947,85 @@
             // Update skybox shader time
             if (skyboxController) skyboxController.update(dt);
 
+            // Update ambient UFO fleet and falling bombs
+            updateAmbientUfoFleet(dt);
+
             // 1. Core Rotating animations for Base Temple Core (Organic levitating)
             if (baseCrystal) {
                 baseCrystal.rotation.y += dt * 0.8;
                 baseCrystal.rotation.x = Math.sin(clock.getElapsedTime()) * 0.3;
                 baseCrystal.position.y = 1.8 + Math.sin(clock.getElapsedTime() * 2.0) * 0.15;
+            }
+
+            // Martian dust particle drift and pulsing lights
+            if (gameState.currentBiome === 'mars') {
+                if (marsDustParticles && marsDustParticles.parent) {
+                    const posAttr = marsDustParticles.geometry.attributes.position;
+                    const vels = marsDustParticles.userData.velocities;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        let px = posAttr.getX(i) + vels[i].x * dt;
+                        let py = posAttr.getY(i) + vels[i].y * dt;
+                        let pz = posAttr.getZ(i) + vels[i].z * dt;
+
+                        // Wrap boundaries
+                        if (px < -80) px = 80;
+                        if (py < 0.2) py = 25;
+                        if (py > 25) py = 0.2;
+                        if (pz < -80) pz = 80;
+                        if (pz > 80) pz = -80;
+
+                        posAttr.setXYZ(i, px, py, pz);
+                    }
+                    posAttr.needsUpdate = true;
+                }
+
+                if (baseLight) {
+                    // Pulsating base energy core light
+                    const elapsed = clock.getElapsedTime();
+                    baseLight.intensity = 2.5 + Math.sin(elapsed * 2.5) * 1.2;
+                }
+            }
+
+            if (gameState.currentBiome === 'venus') {
+                if (venusAcidRainParticles && venusAcidRainParticles.parent) {
+                    const posAttr = venusAcidRainParticles.geometry.attributes.position;
+                    const vels = venusAcidRainParticles.userData.velocities;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        let px = posAttr.getX(i) + vels[i].x * dt;
+                        let py = posAttr.getY(i) + vels[i].y * dt;
+                        let pz = posAttr.getZ(i) + vels[i].z * dt;
+
+                        if (px < -100) px = 100;
+                        if (px > 100) px = -100;
+                        if (py < 0.1) py = 20.0;
+                        if (py > 20.0) py = 0.1;
+                        if (pz < -100) pz = 100;
+                        if (pz > 100) pz = -100;
+
+                        posAttr.setXYZ(i, px, py, pz);
+                    }
+                    posAttr.needsUpdate = true;
+                }
+
+                if (ground && ground.material && ground.material.map) {
+                    ground.material.map.offset.x += dt * 0.0006;
+                    ground.material.map.offset.y += dt * 0.0009;
+                    ground.material.map.needsUpdate = true;
+                }
+
+                if (baseLight) {
+                    const elapsed = clock.getElapsedTime();
+                    baseLight.intensity = 2.5 + Math.sin(elapsed * 3.0) * 1.0;
+                }
+            }
+
+            // Update custom obstacle animations (steam, core bobs, solar sweeps)
+            if (typeof obstacleMeshes !== 'undefined') {
+                obstacleMeshes.forEach(obj => {
+                    if (obj.userData && typeof obj.userData.update === 'function') {
+                        obj.userData.update(dt);
+                    }
+                });
             }
 
             // 2. Wave Spawning controller loop
@@ -6414,10 +9057,34 @@
             }
 
             // 3. Update active elements
-            // Update enemies (going backward to allow safe splicing)
             for (let i = enemies.length - 1; i >= 0; i--) {
                 const enemy = enemies[i];
+                
+                // Temporarily reset Y to default flat coordinates so pathfinding distance checks inside update() do not fail
+                const cName = enemy.constructor.name;
+                let defaultY = 0.25;
+                if (cName === 'WaspEnemy' || cName === 'UfoEnemy' || cName === 'CarrierEnemy' || cName === 'StealthEnemy') {
+                    defaultY = 1.0;
+                } else if (cName === 'ScoutEnemy') {
+                    defaultY = 0.85;
+                }
+                enemy.position.y = defaultY;
+
                 enemy.update(dt);
+
+                if (window.getTerrainHeight) {
+                    let offset = 0.25;
+                    if (cName === 'WaspEnemy' || cName === 'UfoEnemy' || cName === 'CarrierEnemy' || cName === 'StealthEnemy') {
+                        offset = 1.6;
+                    } else if (cName === 'ScoutEnemy') {
+                        offset = 0.85;
+                    }
+                    enemy.position.y = window.getTerrainHeight(enemy.position.x, enemy.position.z) + offset;
+                    if (enemy.mesh) {
+                        enemy.mesh.position.y = enemy.position.y;
+                    }
+                }
+
                 if (enemy.isDead) {
                     enemies.splice(i, 1);
                 }
@@ -6441,6 +9108,7 @@
             // Update flora swaying & fauna ambient loops
             if (window.updateFlora) window.updateFlora(dt);
             if (window.updateFauna) window.updateFauna(dt, GRID_SIZE, CELL_SIZE);
+            if (window.updateArgonBubbles) window.updateArgonBubbles(dt);
 
             // Update Polyplants and Scarab Harvesters
             if (window.updatePolyplants) window.updatePolyplants(dt);
@@ -6472,6 +9140,8 @@
                         gameState.water = Math.min(100, gameState.water + 0.5 * dt);
                     } else if (t.type === 'generator') {
                         gameState.power = Math.min(100, gameState.power + 0.6 * dt);
+                    } else if (t.type === 'argon_harvester') {
+                        gameState.power = Math.min(100, gameState.power + 1.2 * dt);
                     }
                 });
 
@@ -7168,18 +9838,7 @@
             if (window.odyseeModelTemplate) {
                 shipMesh = window.odyseeModelTemplate.clone();
             } else {
-                shipMesh = new THREE.Group();
-                const bodyGeo = new THREE.ConeGeometry(0.6, 2.5, 5);
-                bodyGeo.rotateX(Math.PI / 2);
-                const bodyMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9, roughness: 0.1 });
-                const body = new THREE.Mesh(bodyGeo, bodyMat);
-                shipMesh.add(body);
-
-                const wingGeo = new THREE.BoxGeometry(2.0, 0.08, 0.6);
-                const wingMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, metalness: 0.8, roughness: 0.2 });
-                const wings = new THREE.Mesh(wingGeo, wingMat);
-                wings.position.set(0, -0.1, -0.4);
-                shipMesh.add(wings);
+                shipMesh = createProceduralSpaceShip({ type: 'player' });
             }
 
             const thrusterLight = new THREE.PointLight(0x06b6d4, 2.0, 5.0);
@@ -7248,32 +9907,94 @@
             showFlightToast("ORBIT SECTOR REACHED: ENGINE SYSTEMS ONLINE", "cyan");
         };
 
+        function createProceduralSpaceShip(options = {}) {
+            const type = options.type || 'pirate';
+            const scale = options.scale || (type === 'player' ? 1.3 : 0.85 + Math.random() * 0.65);
+            const palette = type === 'player'
+                ? { body: 0x8dd3ff, accent: 0x06b6d4, glow: 0x38bdf8 }
+                : { body: Math.min(0xffffff, 0xe11d48 + Math.floor(Math.random() * 0x002200)), accent: 0xf97316, glow: 0xff6f61 };
+
+            const ship = new THREE.Group();
+            ship.castShadow = true;
+
+            const bodyShape = Math.random() < 0.5 ? 'box' : 'cylinder';
+            let body;
+            if (bodyShape === 'box') {
+                const bodyGeo = new THREE.BoxGeometry(1.9 * scale, 0.34 * scale, 0.72 * scale);
+                body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({
+                    color: palette.body,
+                    metalness: 0.9,
+                    roughness: 0.18,
+                    emissive: 0x000000
+                }));
+            } else {
+                const bodyGeo = new THREE.CylinderGeometry(0.28 * scale, 0.24 * scale, 1.8 * scale, 10, 1, true);
+                bodyGeo.rotateX(Math.PI / 2);
+                body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({
+                    color: palette.body,
+                    metalness: 0.9,
+                    roughness: 0.18,
+                    emissive: 0x000000
+                }));
+            }
+            body.castShadow = true;
+            ship.add(body);
+
+            const noseGeo = new THREE.ConeGeometry(0.28 * scale, 0.7 * scale, 10);
+            noseGeo.rotateX(Math.PI / 2);
+            const nose = new THREE.Mesh(noseGeo, new THREE.MeshStandardMaterial({
+                color: palette.accent,
+                metalness: 0.95,
+                roughness: 0.1,
+                emissive: palette.glow * 0.25
+            }));
+            nose.position.set(0, 0, 0.98 * scale);
+            nose.castShadow = true;
+            ship.add(nose);
+
+            const wingMat = new THREE.MeshStandardMaterial({ color: palette.accent, metalness: 0.85, roughness: 0.18 });
+            const wing = new THREE.Mesh(new THREE.BoxGeometry(1.55 * scale, 0.06 * scale, 0.28 * scale), wingMat);
+            wing.position.set(0, -0.08 * scale, 0.0);
+            ship.add(wing);
+
+            const rearWing = wing.clone();
+            rearWing.scale.set(0.75, 1.0, 0.85);
+            rearWing.position.set(0, 0.02 * scale, -0.68 * scale);
+            ship.add(rearWing);
+
+            if (Math.random() > 0.35) {
+                const finGeo = new THREE.BoxGeometry(0.14 * scale, 0.45 * scale, 0.07 * scale);
+                const fin = new THREE.Mesh(finGeo, wingMat);
+                fin.position.set(0, 0.22 * scale, -0.2 * scale);
+                ship.add(fin);
+            }
+
+            const engineBody = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * scale, 0.2 * scale, 0.5 * scale, 8), new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                metalness: 0.75,
+                roughness: 0.24
+            }));
+            engineBody.rotateX(Math.PI / 2);
+            engineBody.position.set(0, 0, -1.0 * scale);
+            ship.add(engineBody);
+
+            const engineGlow = new THREE.PointLight(palette.glow, type === 'player' ? 2.4 : 1.4, 6 * scale);
+            engineGlow.position.set(0, 0, -1.25 * scale);
+            ship.add(engineGlow);
+
+            return ship;
+        }
+
         function spawnSpacePirate() {
             if (!window.spaceFlightGroup) return;
-            const pirateGroup = new THREE.Group();
-            
-            const coneGeo = new THREE.ConeGeometry(0.5, 2.0, 4);
-            coneGeo.rotateX(Math.PI / 2);
-            const cone = new THREE.Mesh(coneGeo, new THREE.MeshStandardMaterial({
-                color: 0xe11d48,
-                metalness: 0.8,
-                roughness: 0.2
-            }));
-            pirateGroup.add(cone);
-
-            const wings = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.5), new THREE.MeshStandardMaterial({ color: 0xf97316 }));
-            wings.position.set(0, -0.1, -0.3);
-            pirateGroup.add(wings);
-
-            const engineGlow = new THREE.PointLight(0xef4444, 1.5, 4);
-            engineGlow.position.set(0, 0, -1.2);
-            pirateGroup.add(engineGlow);
+            const pirateGroup = createProceduralSpaceShip({ type: 'pirate' });
 
             const angle = Math.random() * Math.PI * 2;
             const dist = 75 + Math.random() * 150;
             const px = Math.sin(angle) * dist;
             const pz = Math.cos(angle) * dist;
             pirateGroup.position.set(px, 0, pz);
+            pirateGroup.rotation.y = Math.random() * Math.PI * 2;
 
             window.spaceFlightGroup.add(pirateGroup);
             window.spacePirates.push({
@@ -7706,23 +10427,260 @@
             }
         });
 
-        // Simulated loader visual timeout on start
-        window.onload = function() {
-            let progress = 0;
-            const progressEl = document.getElementById('loader-progress');
-            const interval = setInterval(() => {
-                progress += 20;
-                progressEl.style.width = `${progress}%`;
-                if (progress >= 100) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        document.getElementById('loader').classList.add('transition-all', 'opacity-0', 'pointer-events-none');
-                        updateStatsUI();
-                        // Run animation loops
-                        animate();
-                        // Initialize Animated Favicon
-                        initAnimatedFavicon();
-                    }, 400);
+        /* ==========================================
+           CINEMATIC ENTRANCE ENGINE
+           ========================================== */
+
+        // === PHASE 1: CRT BOOT TERMINAL ===
+        const CRT_LINES = [
+            "ORBITAL DEFENSE SYSTEMS v2.7.1",
+            "Copyright (c) 2087 United Terran Defense Bureau",
+            "",
+            "> INITIALIZING KERNEL .............................. [OK]",
+            "> LINKING SATELLITE UPLINK ......................... [OK]",
+            "> SCANNING ORBITAL DEFENSE GRID ................... [OK]",
+            "> LOADING TERRAIN DATABASE (5 biomes) ............. [OK]",
+            "> COMPILING PROCEDURAL CANOPY SHADER .............. [OK]",
+            "> DEPLOYING HARVESTER NEURAL NET .................. [OK]",
+            "> CALIBRATING ANTI-XENO TURRET ARRAYS ............ [OK]",
+            "> VERIFYING PATHFINDING SDF MESH .................. [OK]",
+            "",
+            "> ALL SUBSYSTEMS NOMINAL",
+            "",
+            "[SYSTEM READY] — AWAITING COMMANDER INPUT"
+        ];
+
+        function runCRTBoot(callback) {
+            const crtLoader = document.getElementById('crt-loader');
+            const crtLog = document.getElementById('crt-log');
+            const crtCursor = document.getElementById('crt-cursor');
+            let lineIdx = 0;
+            let charIdx = 0;
+            let currentLineEl = null;
+            let glitchCount = 0;
+
+            // Glitch flicker effect
+            const glitchInterval = setInterval(() => {
+                if (Math.random() < 0.15) {
+                    crtLoader.classList.add('glitch');
+                    setTimeout(() => crtLoader.classList.remove('glitch'), 50 + Math.random() * 50);
                 }
-            }, 100);
+                glitchCount++;
+                if (glitchCount > 80) clearInterval(glitchInterval);
+            }, 120);
+
+            function typeLine() {
+                if (lineIdx >= CRT_LINES.length) {
+                    // Boot complete — fade out
+                    crtCursor.style.display = 'none';
+                    clearInterval(glitchInterval);
+                    setTimeout(() => {
+                        crtLoader.style.transition = 'opacity 0.6s ease';
+                        crtLoader.style.opacity = '0';
+                        setTimeout(() => {
+                            crtLoader.style.display = 'none';
+                            callback();
+                        }, 600);
+                    }, 600);
+                    return;
+                }
+
+                const line = CRT_LINES[lineIdx];
+                if (charIdx === 0) {
+                    currentLineEl = document.createElement('div');
+                    currentLineEl.className = 'crt-line';
+                    if (lineIdx === CRT_LINES.length - 1) currentLineEl.classList.add('system-ready');
+                    crtLog.appendChild(currentLineEl);
+                    // Auto-scroll
+                    crtLog.scrollTop = crtLog.scrollHeight;
+                }
+
+                if (charIdx < line.length) {
+                    currentLineEl.textContent = line.substring(0, charIdx + 1);
+                    charIdx++;
+                    const speed = line.includes('[OK]') && charIdx > line.indexOf('[') ? 8 : (12 + Math.random() * 8);
+                    setTimeout(typeLine, speed);
+                } else {
+                    lineIdx++;
+                    charIdx = 0;
+                    setTimeout(typeLine, line === '' ? 80 : 140);
+                }
+            }
+
+            typeLine();
+        }
+
+        // === PHASE 2: PHYSICS BRICK EXPLOSION LOOP ===
+        function startBrickPhysicsLoop() {
+            const gravity = 1800;
+            let lastT = performance.now();
+            let allDead = false;
+            let revealStarted = false;
+
+            function tick(now) {
+                if (allDead) return;
+                const dt = Math.min((now - lastT) / 1000, 0.05);
+                lastT = now;
+
+                let aliveCount = 0;
+
+                // Update bricks
+                window._brickPhysics.forEach(b => {
+                    if (!b.alive) return;
+                    b._timer += dt;
+                    if (b._timer < b._delay) { aliveCount++; return; }
+
+                    b.vy += gravity * dt;
+                    b.x += b.vx * dt;
+                    b.y += b.vy * dt;
+                    b.rotation += b.vr * dt;
+                    b.scale = Math.max(0, b.scale - dt * 0.8);
+                    b.opacity = Math.max(0, b.opacity - dt * 1.2);
+
+                    b.el.style.transform = `translate(${b.x - b.origX}px, ${b.y - b.origY}px) rotate(${b.rotation}rad) scale(${b.scale})`;
+                    b.el.style.opacity = b.opacity;
+
+                    if (b.opacity <= 0 || b.y > 1200) {
+                        b.alive = false;
+                        b.el.style.display = 'none';
+                    } else {
+                        aliveCount++;
+                    }
+                });
+
+                // Update debris sparks
+                window._brickDebris.forEach(d => {
+                    if (d.life <= 0) return;
+                    d.vy += 600 * dt;
+                    d.x += d.vx * dt;
+                    d.y += d.vy * dt;
+                    d.life -= dt;
+                    d.opacity = Math.max(0, d.life / 0.8);
+                    d.el.style.transform = `translate(${d.x - parseFloat(d.el.style.left)}px, ${d.y - parseFloat(d.el.style.top)}px)`;
+                    d.el.style.opacity = d.opacity;
+                    if (d.life <= 0) d.el.style.display = 'none';
+                });
+
+                // Fade out the black background as bricks clear
+                const clearRatio = 1 - (aliveCount / window._brickPhysics.length);
+                const brickGrid = document.getElementById('menu-brick-grid');
+                if (brickGrid) {
+                    brickGrid.style.backgroundColor = `rgba(0,0,0,${1 - clearRatio})`;
+                }
+
+                // Start reveal sequence when 60% of bricks are gone
+                if (clearRatio > 0.6 && !revealStarted) {
+                    revealStarted = true;
+                    startLaserReveal();
+                }
+
+                if (aliveCount > 0 || window._brickDebris.some(d => d.life > 0)) {
+                    requestAnimationFrame(tick);
+                } else {
+                    // Remove grid entirely
+                    if (brickGrid) brickGrid.style.display = 'none';
+                }
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        // === PHASE 3: LASER BEAM REVEAL ===
+        function startLaserReveal() {
+            const panel = document.getElementById('map-selection-panel');
+            const frame = document.getElementById('menu-card-frame');
+            if (!panel || !frame) return;
+
+            panel.style.opacity = '1';
+
+            // Create laser beam element
+            const beam = document.createElement('div');
+            beam.className = 'laser-beam';
+            beam.style.top = '0px';
+            frame.appendChild(beam);
+
+            const duration = 1200;
+            const startTime = performance.now();
+
+            function sweepBeam(now) {
+                const elapsed = now - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const yPos = progress * 500;
+
+                beam.style.top = yPos + 'px';
+
+                // Reveal content with clip-path following the beam
+                const clipBottom = Math.max(0, 100 - progress * 100);
+                panel.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
+
+                if (progress < 1) {
+                    requestAnimationFrame(sweepBeam);
+                } else {
+                    // Remove beam
+                    beam.style.transition = 'opacity 0.4s';
+                    beam.style.opacity = '0';
+                    setTimeout(() => beam.remove(), 400);
+                    panel.style.clipPath = 'none';
+                    panel.style.pointerEvents = 'auto';
+
+                    // Start card rise + subtitle type
+                    startCardRise();
+                    typeSubtitle();
+                }
+            }
+
+            requestAnimationFrame(sweepBeam);
+        }
+
+        // === PHASE 4: CARD RISE FROM BELOW ===
+        function startCardRise() {
+            const cards = document.querySelectorAll('.holo-card');
+            cards.forEach((card, i) => {
+                setTimeout(() => {
+                    card.style.transition = 'opacity 0.5s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, i * 120);
+            });
+
+            // 3D cursor-tracked tilt
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5;
+                    const y = (e.clientY - rect.top) / rect.height - 0.5;
+                    card.style.transform = `perspective(600px) rotateY(${x * 12}deg) rotateX(${-y * 12}deg) scale(1.05)`;
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(600px) rotateY(0) rotateX(0) scale(1)';
+                });
+            });
+        }
+
+        // === SUBTITLE TYPEWRITER ===
+        function typeSubtitle() {
+            const el = document.getElementById('menu-subtitle');
+            if (!el) return;
+            const text = 'SELECT YOUR COORDINATES TO DEPLOY THE DEFENSE HQ';
+            let i = 0;
+            function typeChar() {
+                if (i < text.length) {
+                    el.textContent = text.substring(0, i + 1);
+                    i++;
+                    setTimeout(typeChar, 25);
+                }
+            }
+            typeChar();
+        }
+
+        // === BOOT ENTRY POINT ===
+        window.onload = function() {
+            // Skip CRT boot animation — load immediately
+            const crtLoader = document.getElementById('crt-loader');
+            if (crtLoader) { crtLoader.style.display = 'none'; }
+            initMenuBackground();
+            updateStatsUI();
+            animate();
+            if (typeof initAnimatedFavicon === 'function') initAnimatedFavicon();
         };
+
