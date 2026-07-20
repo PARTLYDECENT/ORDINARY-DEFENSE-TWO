@@ -6,7 +6,7 @@
         window.clearFlora(scene);
         console.log(`[Flora System] Spawning instanced scenery for biome: ${biomeName}`);
 
-        const count = biomeName === 'mars' ? 12 : 35;
+        const count = biomeName === 'mars' ? 12 : (biomeName === 'backrooms' ? 25 : 35);
         const dummy = new THREE.Object3D();
 
         // Precompute random transforms
@@ -253,6 +253,104 @@
 
             scene.add(trapMesh);
             window.floraInstancedMeshes.push(trapMesh);
+
+        } else if (biomeName === 'backrooms') {
+            // 5 sub-meshes: ceiling tile, exposed pipe, chair seat, chair stem, chair backrest
+            
+            // 1. Fallen ceiling tile - Flat box (0.3 x 0.02 x 0.3), off-white (0xd4d4d4)
+            const tileGeo = new THREE.BoxGeometry(0.3, 0.02, 0.3);
+            const tileMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.85 });
+            const tileMesh = new THREE.InstancedMesh(tileGeo, tileMat, count);
+            tileMesh.castShadow = true;
+            tileMesh.receiveShadow = true;
+
+            // 2. Exposed pipe - Cylinder (radius 0.03, height 0.6, 6 segments), rusty brown (0x78350f)
+            const pipeGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.6, 6);
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x78350f, metalness: 0.7, roughness: 0.5 });
+            const pipeMesh = new THREE.InstancedMesh(pipeGeo, pipeMat, count);
+            pipeMesh.castShadow = true;
+            pipeMesh.receiveShadow = true;
+
+            // 3. Old office chair (simplified) - 3 parts
+            // Seat: Small box seat (0.12 x 0.04 x 0.12) dark gray (0x27272a)
+            const seatGeo = new THREE.BoxGeometry(0.12, 0.04, 0.12);
+            const seatMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.8 });
+            const chairSeatMesh = new THREE.InstancedMesh(seatGeo, seatMat, count);
+            chairSeatMesh.castShadow = true;
+            chairSeatMesh.receiveShadow = true;
+
+            // Stem: Thin cylinder stem (radius 0.015, height 0.12)
+            const stemGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.8, roughness: 0.2 });
+            const chairStemMesh = new THREE.InstancedMesh(stemGeo, stemMat, count);
+            chairStemMesh.castShadow = true;
+
+            // Backrest: Backrest box (0.12 x 0.1 x 0.02)
+            const backGeo = new THREE.BoxGeometry(0.12, 0.1, 0.02);
+            const chairBackrestMesh = new THREE.InstancedMesh(backGeo, seatMat, count);
+            chairBackrestMesh.castShadow = true;
+            chairBackrestMesh.receiveShadow = true;
+
+            for (let i = 0; i < count; i++) {
+                const t = transforms[i];
+
+                // 1. Fallen ceiling tile (placed on ground at slight random tilt angles)
+                const tileTiltX = (Math.random() - 0.5) * 0.15;
+                const tileTiltZ = (Math.random() - 0.5) * 0.15;
+                dummy.position.set(-0.15 * t.scale, 0.01 * t.scale, 0.15 * t.scale);
+                dummy.position.applyEuler(new THREE.Euler(0, t.rotY, 0));
+                dummy.position.add(new THREE.Vector3(t.x, 0, t.z));
+                dummy.rotation.set(tileTiltX, t.rotY, tileTiltZ);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                tileMesh.setMatrixAt(i, dummy.matrix);
+
+                // 2. Exposed pipe (slightly tilted at random angles)
+                const pipeTiltX = (Math.random() - 0.5) * 0.25;
+                const pipeTiltZ = (Math.random() - 0.5) * 0.25;
+                dummy.position.set(0.18 * t.scale, 0.3 * t.scale, -0.12 * t.scale);
+                dummy.position.applyEuler(new THREE.Euler(0, t.rotY, 0));
+                dummy.position.add(new THREE.Vector3(t.x, 0, t.z));
+                dummy.rotation.set(pipeTiltX, t.rotY, pipeTiltZ);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                pipeMesh.setMatrixAt(i, dummy.matrix);
+
+                // 3. Old office chair
+                // Stem
+                dummy.position.set(-0.05 * t.scale, 0.06 * t.scale, -0.15 * t.scale);
+                dummy.position.applyEuler(new THREE.Euler(0, t.rotY, 0));
+                dummy.position.add(new THREE.Vector3(t.x, 0, t.z));
+                dummy.rotation.set(0, t.rotY, 0);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                chairStemMesh.setMatrixAt(i, dummy.matrix);
+
+                // Seat
+                dummy.position.set(-0.05 * t.scale, 0.14 * t.scale, -0.15 * t.scale);
+                dummy.position.applyEuler(new THREE.Euler(0, t.rotY, 0));
+                dummy.position.add(new THREE.Vector3(t.x, 0, t.z));
+                dummy.rotation.set(0, t.rotY, 0);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                chairSeatMesh.setMatrixAt(i, dummy.matrix);
+
+                // Backrest
+                dummy.position.set(-0.05 * t.scale, 0.21 * t.scale, -0.2 * t.scale);
+                dummy.position.applyEuler(new THREE.Euler(0, t.rotY, 0));
+                dummy.position.add(new THREE.Vector3(t.x, 0, t.z));
+                dummy.rotation.set(0, t.rotY, 0);
+                dummy.scale.set(t.scale, t.scale, t.scale);
+                dummy.updateMatrix();
+                chairBackrestMesh.setMatrixAt(i, dummy.matrix);
+            }
+
+            scene.add(tileMesh);
+            scene.add(pipeMesh);
+            scene.add(chairSeatMesh);
+            scene.add(chairStemMesh);
+            scene.add(chairBackrestMesh);
+            window.floraInstancedMeshes.push(tileMesh, pipeMesh, chairSeatMesh, chairStemMesh, chairBackrestMesh);
 
         } else { // jungle
             // 4 sub-meshes: camo crate, metal band, oil barrel, yellow stripe

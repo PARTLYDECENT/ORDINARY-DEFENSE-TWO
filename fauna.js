@@ -347,9 +347,140 @@
         return group;
     }
 
+    // Helper to create tall dark box humanoid silhouette (Backrooms)
+    function createShadowFigure() {
+        const group = new THREE.Group();
+        group.name = 'shadowFigure';
+
+        // Body: tall dark box (0.12, 0.7, 0.08, color 0x1a1a1a)
+        const bodyGeo = new THREE.BoxGeometry(0.12, 0.7, 0.08);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.35;
+        body.castShadow = true;
+        group.add(body);
+
+        // Head: small sphere (radius 0.06, color 0x1a1a1a)
+        const headGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(0, 0.76, 0);
+        head.castShadow = true;
+        group.add(head);
+
+        // Eyes: two glowing tiny white eye spheres (0.015 radius) at the front of the head (0.02, 0.02, 0.05)
+        const eyeGeo = new THREE.SphereGeometry(0.015, 6, 6);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.02, 0.02, 0.05);
+        head.add(leftEye);
+
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.02, 0.02, 0.05);
+        head.add(rightEye);
+
+        return group;
+    }
+
+    // Helper to create a skin crawler (Backrooms)
+    function createSkinCrawler() {
+        const group = new THREE.Group();
+        group.name = 'skinCrawler';
+
+        // Body: low flat orange-peach flesh box (0.2, 0.04, 0.12, color 0xfed7aa)
+        const bodyGeo = new THREE.BoxGeometry(0.2, 0.04, 0.12);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xfed7aa });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.05;
+        body.castShadow = true;
+        group.add(body);
+
+        // 6 tiny cylinder legs/spikes (0.01 radius, 0.08 height) sticking down diagonally from its sides
+        const legGeo = new THREE.CylinderGeometry(0.01, 0.01, 0.08, 6);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0xfed7aa });
+
+        const zOffsets = [0.04, 0, -0.04];
+        for (let side = -1; side <= 1; side += 2) { // -1 = left, 1 = right
+            for (let zIdx = 0; zIdx < 3; zIdx++) {
+                const i = (side === -1 ? 0 : 3) + zIdx;
+                const leg = new THREE.Mesh(legGeo, legMat);
+                leg.name = `leg_${i}`;
+                leg.castShadow = true;
+                
+                const lx = side * 0.09;
+                const lz = zOffsets[zIdx];
+                leg.position.set(lx, 0.02, lz);
+                
+                leg.rotation.z = side * 0.5;
+
+                group.add(leg);
+            }
+        }
+
+        return group;
+    }
+
+    // Helper to create a floating orb (Backrooms)
+    function createFloatingOrb() {
+        const geo = new THREE.SphereGeometry(0.08, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({
+            color: 0xfbbf24,
+            transparent: true,
+            opacity: 0.9
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.name = 'floatingOrb';
+        return mesh;
+    }
+
     window.spawnBiomeFauna = function(scene, biomeName, grid_size, cell_size) {
         window.clearFauna(scene);
         console.log(`[Fauna System] Spawning ambient fauna for biome: ${biomeName}`);
+
+        if (biomeName === 'backrooms') {
+            const mix = [
+                { type: 'shadowFigure', count: 3, creator: createShadowFigure, yOffset: 0.01 },
+                { type: 'skinCrawler', count: 8, creator: createSkinCrawler, yOffset: 0.01 },
+                { type: 'floatingOrb', count: 9, creator: createFloatingOrb, yOffset: 1.5 }
+            ];
+
+            for (const item of mix) {
+                for (let i = 0; i < item.count; i++) {
+                    const rx = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
+                    const rz = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
+                    const mesh = item.creator();
+
+                    const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(rx, rz) : 0;
+                    const yPos = terrainHeight + item.yOffset;
+                    mesh.position.set(rx, yPos, rz);
+
+                    mesh.userData = mesh.userData || {};
+                    mesh.userData.type = item.type;
+                    mesh.userData.uniqueId = Math.random() * 1000;
+                    mesh.userData.rx = rx;
+                    mesh.userData.rz = rz;
+                    mesh.userData.y = yPos;
+                    mesh.userData.yPosition = yPos;
+                    mesh.userData.y_position = yPos;
+                    mesh.userData.startX = rx;
+                    mesh.userData.startZ = rz;
+                    mesh.userData.startY = yPos;
+
+                    if (item.type === 'skinCrawler') {
+                        mesh.userData.velX = (Math.random() - 0.5) * 2.5;
+                        mesh.userData.velZ = (Math.random() - 0.5) * 2.5;
+                        mesh.userData.changeTimer = 0.4 + Math.random() * 0.8;
+                    } else if (item.type === 'shadowFigure') {
+                        mesh.userData.teleportTimer = 8 + Math.random() * 4;
+                    }
+
+                    scene.add(mesh);
+                    window.faunaObjects.push(mesh);
+                }
+            }
+            return;
+        }
 
         const count = biomeName === 'mars' ? 8 : 25;
         for (let i = 0; i < count; i++) {
@@ -460,7 +591,84 @@
 
         window.faunaObjects.forEach(obj => {
             const data = obj.userData;
-            if (data.type === 'dustDevil') {
+            if (data.type === 'shadowFigure') {
+                if (typeof camera !== 'undefined' && camera) {
+                    obj.lookAt(camera.position.x, obj.position.y, camera.position.z);
+                }
+
+                if (data.teleportTimer === undefined) {
+                    data.teleportTimer = 8 + Math.random() * 4;
+                }
+                data.teleportTimer -= dt;
+                if (data.teleportTimer <= 0) {
+                    const rx = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
+                    const rz = (Math.random() - 0.5) * (grid_size * cell_size - 4.0);
+                    const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(rx, rz) : 0;
+                    const yPos = terrainHeight + 0.01;
+                    obj.position.set(rx, yPos, rz);
+                    data.rx = rx;
+                    data.rz = rz;
+                    data.y = yPos;
+                    data.yPosition = yPos;
+                    data.y_position = yPos;
+                    data.startX = rx;
+                    data.startZ = rz;
+                    data.startY = yPos;
+                    data.teleportTimer = 8 + Math.random() * 4;
+                }
+            } else if (data.type === 'skinCrawler') {
+                if (data.changeTimer === undefined) {
+                    data.changeTimer = 0.4 + Math.random() * 0.8;
+                }
+                if (data.velX === undefined || data.velZ === undefined) {
+                    data.velX = (Math.random() - 0.5) * 2.5;
+                    data.velZ = (Math.random() - 0.5) * 2.5;
+                }
+
+                data.changeTimer -= dt;
+                if (data.changeTimer <= 0) {
+                    data.velX = (Math.random() - 0.5) * 2.5;
+                    data.velZ = (Math.random() - 0.5) * 2.5;
+                    data.changeTimer = 0.4 + Math.random() * 0.8;
+                }
+
+                obj.position.x += data.velX * dt;
+                obj.position.z += data.velZ * dt;
+                const terrainHeight = window.getTerrainHeight ? window.getTerrainHeight(obj.position.x, obj.position.z) : 0;
+                obj.position.y = terrainHeight + 0.01;
+
+                const angle = Math.atan2(data.velX, data.velZ);
+                obj.rotation.y = angle;
+
+                const speedMag = Math.sqrt(data.velX * data.velX + data.velZ * data.velZ);
+                const legSwing = Math.sin(time * 18.0) * 0.45 * speedMag;
+                for (let j = 0; j < 6; j++) {
+                    const leg = obj.getObjectByName(`leg_${j}`);
+                    if (leg) {
+                        const phase = (j % 2 === 0 ? 1 : -1);
+                        leg.rotation.x = legSwing * phase;
+                    }
+                }
+
+                if (Math.abs(obj.position.x) > bound - 1) data.velX *= -1;
+                if (Math.abs(obj.position.z) > bound - 1) data.velZ *= -1;
+            } else if (data.type === 'floatingOrb') {
+                obj.position.y = data.startY + Math.sin(time * 2.0 + data.uniqueId) * 0.3;
+                obj.position.x += Math.sin(time * 0.5 + data.uniqueId) * 0.01;
+                obj.position.z += Math.cos(time * 0.4 + data.uniqueId) * 0.01;
+
+                obj.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.transparent = true;
+                        child.material.opacity = 0.3 + Math.sin(time * 3.0 + data.uniqueId) * 0.6;
+                    }
+                });
+
+                if (obj.position.x < -bound) obj.position.x = bound;
+                if (obj.position.x > bound) obj.position.x = -bound;
+                if (obj.position.z < -bound) obj.position.z = bound;
+                if (obj.position.z > bound) obj.position.z = -bound;
+            } else if (data.type === 'dustDevil') {
                 // Swirl and drift dust devils
                 obj.position.x += Math.sin(time * 0.4 + data.uniqueId) * 0.02;
                 obj.position.z += Math.cos(time * 0.3 + data.uniqueId) * 0.02;

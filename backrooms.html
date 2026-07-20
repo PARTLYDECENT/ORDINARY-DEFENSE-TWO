@@ -1,0 +1,2470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Backrooms - Survival Game (Level 0)</title>
+    <!-- Tailwind CSS for modern responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            user-select: none;
+        }
+
+        #viewport-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        #canvas3d {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+        }
+        
+        #canvas3d:active {
+            cursor: grabbing;
+        }
+
+        /* CRT monitor filters */
+        .vhs-scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.3) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .vhs-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 120px rgba(0,0,0,0.9);
+            background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
+            pointer-events: none;
+            z-index: 11;
+        }
+
+        @keyframes crt-flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1.0; }
+            100% { opacity: 0.98; }
+        }
+        .crt-flicker-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(18, 16, 16, 0.02);
+            animation: crt-flicker 0.15s infinite;
+            pointer-events: none;
+            z-index: 12;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .blink {
+            animation: blink 1s step-start infinite;
+        }
+
+        /* Virtual Joypad styling for mobile devices */
+        .mobile-touch-joystick {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen select-none overflow-hidden">
+
+    <div id="viewport-container" class="relative overflow-hidden w-full h-full">
+        
+        <!-- 3D Game Render View -->
+        <canvas id="canvas3d"></canvas>
+
+        <!-- Glitch Overlay Canvas for static disruption -->
+        <canvas id="glitch-canvas" class="absolute top-0 left-0 w-full h-full pointer-events-none z-20"></canvas>
+
+        <!-- Retro Screen Shaders -->
+        <div class="vhs-scanlines"></div>
+        <div class="vhs-vignette"></div>
+        <div class="crt-flicker-overlay"></div>
+
+        <!-- Survival HUD Overlay -->
+        <div id="hud" class="absolute inset-0 p-4 sm:p-8 flex flex-col justify-between pointer-events-none z-30 font-mono tracking-wider opacity-90 text-yellow-300 text-xs sm:text-sm" style="text-shadow: 1px 1px 2px #000;">
+            
+            <!-- HUD Top Header -->
+            <div class="flex justify-between items-start w-full">
+                <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2">
+                        <span id="rec-dot" class="inline-block w-3 h-3 rounded-full bg-red-600 blink"></span>
+                        <span class="text-white font-bold">REC</span>
+                    </div>
+                    <div>PLAY</div>
+                    <div id="tape-objective" class="text-white font-bold mt-1 bg-black/40 px-2 py-1 border border-yellow-500/20 rounded">
+                        TAPES: <span id="tape-count" class="text-yellow-400">0</span> / 8
+                    </div>
+                    <div id="biome-indicator" class="text-xs text-yellow-500 bg-black/50 px-2 py-0.5 border border-yellow-500/20 rounded mt-1 font-bold inline-block w-max">
+                        ZONE: LEVEL 0
+                    </div>
+                    <div id="escape-prompt" class="text-red-500 font-extrabold hidden blink mt-1 bg-black/60 px-2 py-1 border border-red-500/30 rounded">
+                        🚨 FIND THE ESCAPE PORTAL!
+                    </div>
+                </div>
+
+                <!-- Survival Status Bars -->
+                <div class="flex flex-col items-end gap-1.5 w-48 sm:w-64">
+                    <!-- Flashlight Battery Status -->
+                    <div class="w-full flex items-center justify-between gap-2">
+                        <span class="w-10">BATT</span>
+                        <div class="flex-1 bg-black/50 border border-yellow-500/30 h-2.5 rounded overflow-hidden p-[1px]">
+                            <div id="bar-battery" class="bg-yellow-500 h-full w-full rounded-sm transition-all duration-300"></div>
+                        </div>
+                        <span id="txt-battery" class="w-10 text-right text-xs">100%</span>
+                    </div>
+                    <!-- Sanity Status -->
+                    <div class="w-full flex items-center justify-between gap-2">
+                        <span class="w-10">MIND</span>
+                        <div class="flex-1 bg-black/50 border border-yellow-500/30 h-2.5 rounded overflow-hidden p-[1px]">
+                            <div id="bar-sanity" class="bg-blue-500 h-full w-full rounded-sm transition-all duration-300"></div>
+                        </div>
+                        <span id="txt-sanity" class="w-10 text-right text-xs">100%</span>
+                    </div>
+                    <!-- Stamina Status -->
+                    <div class="w-full flex items-center justify-between gap-2">
+                        <span class="w-10">STAM</span>
+                        <div class="flex-1 bg-black/50 border border-yellow-500/30 h-2.5 rounded overflow-hidden p-[1px]">
+                            <div id="bar-stamina" class="bg-emerald-500 h-full w-full rounded-sm transition-all duration-100"></div>
+                        </div>
+                        <span id="txt-stamina" class="w-10 text-right text-xs">100%</span>
+                    </div>
+                    <!-- Hunger Status -->
+                    <div class="w-full flex items-center justify-between gap-2">
+                        <span class="w-10">FOOD</span>
+                        <div class="flex-1 bg-black/50 border border-yellow-500/30 h-2.5 rounded overflow-hidden p-[1px]">
+                            <div id="bar-hunger" class="bg-orange-500 h-full w-full rounded-sm transition-all duration-300"></div>
+                        </div>
+                        <span id="txt-hunger" class="w-10 text-right text-xs">100%</span>
+                    </div>
+                    <!-- Thirst Status -->
+                    <div class="w-full flex items-center justify-between gap-2">
+                        <span class="w-10">WATR</span>
+                        <div class="flex-1 bg-black/50 border border-yellow-500/30 h-2.5 rounded overflow-hidden p-[1px]">
+                            <div id="bar-thirst" class="bg-cyan-500 h-full w-full rounded-sm transition-all duration-300"></div>
+                        </div>
+                        <span id="txt-thirst" class="w-10 text-right text-xs">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context interaction helper text -->
+            <div id="interaction-overlay" class="absolute top-2/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center hidden">
+                <div class="bg-black/80 border-2 border-yellow-500 text-yellow-400 font-extrabold px-6 py-3 rounded-lg shadow-2xl text-sm sm:text-base tracking-widest uppercase animate-bounce pointer-events-auto cursor-pointer" id="btn-interact">
+                    Press [E] or Left Click to Grab
+                </div>
+            </div>
+
+            <!-- Interstitial Alert Message -->
+            <div id="glitch-text" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-600 font-extrabold text-lg sm:text-2xl tracking-widest hidden blink text-center bg-black/80 p-4 border border-red-600/50 rounded-lg">
+                WARNING: SANITY COLLAPSE - RUN!
+            </div>
+
+            <!-- HUD Footer Section -->
+            <div class="flex justify-between items-end w-full">
+                <div class="flex flex-col gap-1 text-[11px] sm:text-xs">
+                    <div id="timestamp-date">MAR. 12 1991</div>
+                    <div id="timestamp-time">AM 11:42:05</div>
+                </div>
+                <div class="flex flex-col items-end text-right">
+                    <div class="text-[10px] text-yellow-500 uppercase">LEVEL 0-2 INTERSTITIAL DISPLACEMENT</div>
+                    <div id="recording-counter">0:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pointer Lock Center Crosshair -->
+        <div id="crosshair" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-30 hidden">
+            <div class="w-1.5 h-1.5 bg-yellow-500 rounded-full opacity-60 border border-black"></div>
+        </div>
+
+        <!-- MOBILE ON-SCREEN VIRTUAL JOYSTICK LAYOUT -->
+        <div id="mobile-controls" class="absolute inset-x-0 bottom-12 px-6 flex justify-between items-end pointer-events-none z-40 md:hidden">
+            <!-- Left joystick for walking -->
+            <div id="joystick-left" class="mobile-touch-joystick w-28 h-28 rounded-full bg-white/10 border-2 border-white/30 backdrop-blur-sm pointer-events-auto flex items-center justify-center relative">
+                <div id="joystick-left-handle" class="w-10 h-10 rounded-full bg-yellow-500/80 shadow-md absolute pointer-events-none"></div>
+            </div>
+            
+            <!-- Right action area buttons (Sprint / Flashlight toggle) -->
+            <div class="flex flex-col gap-4 pointer-events-auto">
+                <button id="btn-mobile-flashlight" class="w-14 h-14 rounded-full bg-yellow-600/50 border border-yellow-500/50 flex items-center justify-center text-xl text-yellow-200 shadow-lg active:scale-95 transition-all">
+                    🔦
+                </button>
+                <button id="btn-mobile-sprint" class="w-14 h-14 rounded-full bg-emerald-600/50 border border-emerald-500/50 flex items-center justify-center font-bold text-xs text-emerald-200 shadow-lg active:scale-95 transition-all">
+                    RUN
+                </button>
+            </div>
+        </div>
+
+        <!-- DESKTOP INTERACTION CONTROLS LIST -->
+        <div class="absolute right-4 top-1/3 -translate-y-1/2 hidden md:flex flex-col gap-3 bg-black/70 border border-yellow-500/30 p-4 rounded-lg z-40 backdrop-blur-md pointer-events-auto w-48">
+            <h3 class="text-yellow-400 font-bold text-center border-b border-yellow-500/20 pb-2 mb-1 text-xs uppercase tracking-widest">Options</h3>
+            
+            <button id="btn-audio" class="px-3 py-1.5 rounded bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500/40 text-yellow-200 text-xs font-bold transition-all">
+                🔊 MUTE HUM
+            </button>
+            <button id="btn-flashlight-toggle" class="px-3 py-1.5 rounded bg-yellow-600/30 hover:bg-yellow-600/50 border border-yellow-500/40 text-yellow-200 text-xs font-bold transition-all">
+                🔦 TOGGLE BEAM
+            </button>
+
+            <div class="text-[10px] text-gray-400 border-t border-yellow-500/20 pt-2 mt-1">
+                <span class="block text-yellow-500 font-bold mb-1">FPS CONTROLS</span>
+                WASD: Move around<br>
+                Shift: Sprint (Fast)<br>
+                F: Toggle Flashlight<br>
+                E / Left-Click: GRAB item<br>
+                Click screen to LOCK pointer & steer camera
+            </div>
+        </div>
+
+        <!-- INTRO POPUP MODAL -->
+        <div id="intro-screen" class="absolute inset-0 bg-black flex flex-col justify-center items-center z-50 p-6 text-center">
+            <div class="max-w-xl border-2 border-yellow-600/40 bg-[#12110c] p-6 sm:p-8 rounded-lg shadow-2xl relative animate-pulse">
+                <div class="absolute -top-3 left-10 bg-[#12110c] px-3 text-yellow-500 text-xs font-bold border border-yellow-600/40 uppercase tracking-widest">ASYNC Archives</div>
+                
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-yellow-500 mb-1 tracking-widest uppercase">BACKROOMS SURVIVAL</h1>
+                <p class="text-xs text-yellow-600/80 mb-4 font-mono">MISSION LOG: MULTI-BIOME DISPLACEMENT</p>
+                
+                <p class="text-sm text-gray-300 leading-relaxed mb-4 font-sans text-left">
+                    Your exploration team noclipped through multiple boundaries. You are lost in a shifting maze spanning three levels (Lvl 0, Lvl 1, and Lvl 2). To escape:
+                </p>
+
+                <ul class="text-xs sm:text-sm text-yellow-300 text-left list-disc list-inside space-y-1.5 bg-black/50 p-3 rounded border border-yellow-500/20 mb-4 font-mono">
+                    <li>Find <strong class="text-white">8 lost research VHS tapes</strong> (glowing red) scattered across all zones.</li>
+                    <li>Gather <strong class="text-emerald-400">Batteries</strong> (glowing green) to fuel your flashlight.</li>
+                    <li>Drink <strong class="text-cyan-400">Almond Water</strong> & eat <strong class="text-orange-400">Food Rations</strong> to survive.</li>
+                    <li>Watch your <strong class="text-white">Hazel Grabber Arm</strong> react, bob, and shake depending on your fear and movement. Click or press [E] to grab!</li>
+                    <li>Locate the glowing <strong class="text-red-500">Exit Rift portal</strong> that opens inside the Pipe Biome once all tapes are collected.</li>
+                </ul>
+
+                <button id="btn-start" class="w-full py-4 bg-yellow-500 hover:bg-yellow-400 text-black font-extrabold text-lg uppercase rounded shadow-lg transition-all tracking-widest flex justify-center items-center gap-2">
+                    PLAY SURVIVAL FEED 🎮
+                </button>
+            </div>
+        </div>
+
+        <!-- VHS Blue Screen SIGNAL LOST (Player Died Screen) -->
+        <div id="signal-lost" class="p-10 text-center font-mono select-none hidden">
+            <h1 class="text-4xl sm:text-5xl font-extrabold bg-white text-blue-800 px-4 py-2 mb-6 tracking-wider">GAME OVER</h1>
+            <p class="text-xl mb-2">SIGNAL TERMINATED - EXPLORER LOST</p>
+            <p id="death-reason" class="text-yellow-400 text-sm mb-8 uppercase tracking-widest">CAPTURED BY THE SPINE ENTITY</p>
+            <div class="flex items-center gap-3 justify-center mb-8">
+                <span class="inline-block w-4 h-4 bg-white blink rounded-full"></span>
+                <span class="text-base sm:text-lg">RE-ESTABLISHING SIGNAL INTERFACE...</span>
+            </div>
+            <button id="btn-reboot" class="px-6 py-3 border-2 border-white bg-transparent hover:bg-white hover:text-blue-800 transition-all font-bold text-sm tracking-widest uppercase rounded">
+                RE-ENTER MAZE
+            </button>
+        </div>
+
+        <!-- ESCAPED VICTORY SCREEN -->
+        <div id="escaped-screen" class="absolute inset-0 bg-green-950/90 text-center font-mono select-none hidden flex-col justify-center items-center p-6 z-50">
+            <div class="max-w-md border-2 border-emerald-500 bg-black/90 p-8 rounded-lg shadow-2xl">
+                <h1 class="text-4xl font-extrabold text-emerald-400 mb-2 tracking-widest">SUCCESSFUL</h1>
+                <p class="text-xl text-white mb-6 uppercase">EXTRUSION ESCAPE SECURED</p>
+                
+                <p class="text-sm text-gray-300 leading-relaxed mb-6 font-sans">
+                    You gathered all lost data cassettes and successfully stepped back into physical alignment bounds. Your reports are being compiled at ASYNC labs.
+                </p>
+
+                <div class="bg-emerald-950/50 border border-emerald-500/30 p-4 rounded mb-6 text-left text-xs text-emerald-300">
+                    <strong>MISSION REPORT SUMMARY:</strong><br>
+                    • Status: Returned safely<br>
+                    • Recovered: 8 / 8 Cassettes<br>
+                    • System Calibration: Stable
+                </div>
+
+                <button id="btn-win-restart" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-md uppercase rounded tracking-widest transition-all">
+                    VENTURE AGAIN
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN JAVASCRIPT GAME LOGIC -->
+    <script>
+        // HTML Interfaces
+        const introScreen = document.getElementById('intro-screen');
+        const startBtn = document.getElementById('btn-start');
+        const rebootBtn = document.getElementById('btn-reboot');
+        const winRestartBtn = document.getElementById('btn-win-restart');
+        const signalLostScreen = document.getElementById('signal-lost');
+        const escapedScreen = document.getElementById('escaped-screen');
+        
+        // HUD dynamic pointers
+        const countDisplay = document.getElementById('recording-counter');
+        const timeDisplay = document.getElementById('timestamp-time');
+        const recDot = document.getElementById('rec-dot');
+        const tapeCountTxt = document.getElementById('tape-count');
+        const escapePrompt = document.getElementById('escape-prompt');
+        const interactionOverlay = document.getElementById('interaction-overlay');
+        const btnInteract = document.getElementById('btn-interact');
+        const biomeIndicator = document.getElementById('biome-indicator');
+
+        // Status bars
+        const barBattery = document.getElementById('bar-battery');
+        const txtBattery = document.getElementById('txt-battery');
+        const barSanity = document.getElementById('bar-sanity');
+        const txtSanity = document.getElementById('txt-sanity');
+        const barStamina = document.getElementById('bar-stamina');
+        const txtStamina = document.getElementById('txt-stamina');
+        const barHunger = document.getElementById('bar-hunger');
+        const txtHunger = document.getElementById('txt-hunger');
+        const barThirst = document.getElementById('bar-thirst');
+        const txtThirst = document.getElementById('txt-thirst');
+
+        // Buttons
+        const btnAudio = document.getElementById('btn-audio');
+        const btnFlashlightToggle = document.getElementById('btn-flashlight-toggle');
+
+        // Simulation parameters
+        let playAudio = true;
+        let autoCamera = false; 
+        let flashlightOn = true;
+        let isScaredState = false;
+        let isGameWon = false;
+
+        // Dynamic motion parameters
+        let moveTimer = 0;
+        let footstepCooldown = 0;
+        let lightsFlickerTrigger = 0;
+
+        // Player Core Attributes
+        const playerStats = {
+            battery: 100,
+            sanity: 100,
+            stamina: 100,
+            hunger: 100,
+            thirst: 100,
+            tapesCollected: 0,
+            sprinting: false
+        };
+
+        // Grabber Hand State Machine
+        let grabState = "IDLE"; // IDLE, REACHING, RETRACTING
+        let grabTimer = 0;
+
+        // Timestamp configuration
+        let simStartTime = Date.now();
+        function updateCounter() {
+            if (isScaredState || isGameWon) return;
+            const elapsed = Math.floor((Date.now() - simStartTime) / 1000);
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = elapsed % 60;
+            countDisplay.innerText = `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            const now = new Date();
+            timeDisplay.innerText = `AM ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+        }
+        setInterval(updateCounter, 1000);
+
+        // ====================================================================
+        // UPGRADED GAME WEB AUDIO SYNTHESIZER
+        // ====================================================================
+        class GameAudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.masterVolume = null;
+                this.humOsc = null;
+                this.buzzOsc = null;
+                this.whiteNoise = null;
+                this.heartbeatOsc = null;
+                this.heartbeatInterval = null;
+                this.isActive = false;
+            }
+
+            init() {
+                if (this.isActive) return;
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.masterVolume = this.ctx.createGain();
+                    this.masterVolume.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    this.masterVolume.connect(this.ctx.destination);
+
+                    // Fluorescent Lights Hum (60Hz sine waves)
+                    this.humOsc = this.ctx.createOscillator();
+                    this.humOsc.type = 'sine';
+                    this.humOsc.frequency.setValueAtTime(60, this.ctx.currentTime);
+                    const humVolume = this.ctx.createGain();
+                    humVolume.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                    this.humOsc.connect(humVolume).connect(this.masterVolume);
+
+                    // Buzz Saw Harmonic (120Hz)
+                    this.buzzOsc = this.ctx.createOscillator();
+                    this.buzzOsc.type = 'sawtooth';
+                    this.buzzOsc.frequency.setValueAtTime(120.3, this.ctx.currentTime);
+                    
+                    const buzzFilter = this.ctx.createBiquadFilter();
+                    buzzFilter.type = 'lowpass';
+                    buzzFilter.frequency.setValueAtTime(150, this.ctx.currentTime);
+
+                    const buzzVolume = this.ctx.createGain();
+                    buzzVolume.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    this.buzzOsc.connect(buzzFilter).connect(buzzVolume).connect(this.masterVolume);
+
+                    // White Noise for texture
+                    const bufferSize = this.ctx.sampleRate * 2;
+                    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+                    this.whiteNoise = this.ctx.createBufferSource();
+                    this.whiteNoise.buffer = noiseBuffer;
+                    this.whiteNoise.loop = true;
+
+                    const noiseFilter = this.ctx.createBiquadFilter();
+                    noiseFilter.type = 'bandpass';
+                    noiseFilter.frequency.setValueAtTime(8200, this.ctx.currentTime);
+                    noiseFilter.Q.setValueAtTime(12, this.ctx.currentTime);
+
+                    const noiseVolume = this.ctx.createGain();
+                    noiseVolume.gain.setValueAtTime(0.015, this.ctx.currentTime);
+
+                    this.whiteNoise.connect(noiseFilter).connect(noiseVolume).connect(this.masterVolume);
+
+                    this.humOsc.start();
+                    this.buzzOsc.start();
+                    this.whiteNoise.start();
+
+                    this.isActive = true;
+                    this.updateMuteState();
+
+                    // Begin Dynamic Tension Heartbeat
+                    this.startHeartbeatLoop();
+                } catch (e) {
+                    console.error("Audio Synth failed to initialize:", e);
+                }
+            }
+
+            updateMuteState() {
+                if (!this.masterVolume) return;
+                this.masterVolume.gain.setValueAtTime(playAudio ? 0.12 : 0, this.ctx.currentTime);
+            }
+
+            playFootstep(sprint = false) {
+                if (!this.isActive || !playAudio) return;
+                try {
+                    const squishOsc = this.ctx.createOscillator();
+                    const squishGain = this.ctx.createGain();
+                    squishOsc.type = 'sine';
+                    squishOsc.frequency.setValueAtTime(sprint ? 110 : 80, this.ctx.currentTime);
+                    squishOsc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + (sprint ? 0.1 : 0.15));
+
+                    const squishFilter = this.ctx.createBiquadFilter();
+                    squishFilter.type = 'lowpass';
+                    squishFilter.frequency.setValueAtTime(120, this.ctx.currentTime);
+
+                    squishGain.gain.setValueAtTime(sprint ? 0.45 : 0.3, this.ctx.currentTime);
+                    squishGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + (sprint ? 0.1 : 0.15));
+
+                    squishOsc.connect(squishFilter).connect(squishGain).connect(this.masterVolume);
+                    squishOsc.start();
+                    squishOsc.stop(this.ctx.currentTime + 0.16);
+                } catch (err) {}
+            }
+
+            playPickupSound() {
+                if (!this.isActive || !playAudio) return;
+                try {
+                    // Quick vintage digital beep double tone
+                    const now = this.ctx.currentTime;
+                    
+                    const osc1 = this.ctx.createOscillator();
+                    const gainNode = this.ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, now); // A5
+                    osc1.frequency.setValueAtTime(1320, now + 0.1); // E6
+                    
+                    gainNode.gain.setValueAtTime(0.2, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    
+                    osc1.connect(gainNode).connect(this.masterVolume);
+                    osc1.start();
+                    osc1.stop(now + 0.3);
+                } catch (e) {}
+            }
+
+            playScareEffect() {
+                if (!this.isActive || !playAudio) return;
+                try {
+                    const screechOsc = this.ctx.createOscillator();
+                    const screechGain = this.ctx.createGain();
+                    screechOsc.type = 'sawtooth';
+                    screechOsc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                    screechOsc.frequency.linearRampToValueAtTime(1600, this.ctx.currentTime + 1.2);
+
+                    const screechFilter = this.ctx.createBiquadFilter();
+                    screechFilter.type = 'bandpass';
+                    screechFilter.frequency.setValueAtTime(700, this.ctx.currentTime);
+                    screechFilter.Q.setValueAtTime(1.5, this.ctx.currentTime);
+
+                    screechGain.gain.setValueAtTime(1.5, this.ctx.currentTime);
+                    screechGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.3);
+
+                    screechOsc.connect(screechFilter).connect(screechGain).connect(this.ctx.destination);
+                    screechOsc.start();
+                    screechOsc.stop(this.ctx.currentTime + 1.4);
+                } catch (err) {}
+            }
+
+            startHeartbeatLoop() {
+                // Generates dynamic low-end heartbeat pulses based on threat distance
+                const pulse = () => {
+                    if (!this.isActive || !playAudio || isGameWon) return;
+                    
+                    // Base rate calculation based on monster distance threat scale
+                    let dist = camera.position.distanceTo(Enemy.mesh.position);
+                    let rate = 1200; // default slow rate
+                    
+                    if (dist < 15) rate = 700;
+                    if (dist < 8) rate = 400;
+                    if (dist < 4) rate = 250;
+
+                    try {
+                        const now = this.ctx.currentTime;
+                        const beatOsc = this.ctx.createOscillator();
+                        const beatGain = this.ctx.createGain();
+                        
+                        beatOsc.type = 'triangle';
+                        beatOsc.frequency.setValueAtTime(55, now);
+                        beatOsc.frequency.exponentialRampToValueAtTime(10, now + 0.2);
+                        
+                        beatGain.gain.setValueAtTime(0.4, now);
+                        beatGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        
+                        beatOsc.connect(beatGain).connect(this.masterVolume);
+                        beatOsc.start();
+                        beatOsc.stop(now + 0.3);
+                    } catch (e) {}
+
+                    setTimeout(pulse, rate);
+                };
+                
+                setTimeout(pulse, 1000);
+            }
+        }
+
+        const SoundSynth = new GameAudioSynth();
+
+        btnAudio.addEventListener('click', () => {
+            playAudio = !playAudio;
+            btnAudio.innerHTML = playAudio ? `🔊 MUTE HUM` : `🔇 UNMUTE HUM`;
+            btnAudio.classList.toggle('bg-red-800/30', !playAudio);
+            btnAudio.classList.toggle('border-red-500/40', !playAudio);
+            SoundSynth.updateMuteState();
+        });
+
+        // ====================================================================
+        // PROCEDURAL CANVAS TEXTURE GENERATORS
+        // ====================================================================
+        function generateWallpaperTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#dbcca0';
+            ctx.fillRect(0, 0, 512, 512);
+
+            ctx.strokeStyle = '#c5b487';
+            ctx.lineWidth = 4;
+            for (let i = 0; i < 512; i += 16) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, 512);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#dfd2af';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < 512; x += 32) {
+                for (let y = 0; y < 512; y += 32) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + 16, y);
+                    ctx.lineTo(x + 32, y + 16);
+                    ctx.lineTo(x + 16, y + 32);
+                    ctx.lineTo(x, y + 16);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+
+            ctx.fillStyle = 'rgba(84, 73, 50, 0.25)';
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const radius = Math.random() * 45 + 10;
+                const gradient = ctx.createRadialGradient(x, y, 1, x, y, radius);
+                gradient.addColorStop(0, 'rgba(64, 53, 30, 0.35)');
+                gradient.addColorStop(0.5, 'rgba(84, 73, 50, 0.15)');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const imgData = ctx.getImageData(0, 0, 512, 512);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 12;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+                data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(1, 1);
+            return tex;
+        }
+
+        function generateCarpetTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#655437'; 
+            ctx.fillRect(0, 0, 256, 256);
+
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const radius = Math.random() * 35 + 5;
+                const gradient = ctx.createRadialGradient(x, y, 1, x, y, radius);
+                gradient.addColorStop(0, 'rgba(38, 29, 14, 0.7)');
+                gradient.addColorStop(0.5, 'rgba(54, 43, 25, 0.3)');
+                gradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            for (let i = 0; i < 8000; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const shade = (Math.random() - 0.5) * 45;
+                ctx.fillStyle = `rgba(${90 + shade}, ${78 + shade}, ${55 + shade}, 0.7)`;
+                ctx.fillRect(x, y, 1.5, 1.5);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 2);
+            return tex;
+        }
+
+        function generateCeilingTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#dbd9cb';
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.fillStyle = 'rgba(70, 68, 60, 0.45)';
+            for (let i = 0; i < 250; i++) {
+                const w = Math.random() * 3 + 1;
+                const h = Math.random() * 3 + 1;
+                ctx.fillRect(Math.random() * 256, Math.random() * 256, w, h);
+            }
+
+            for (let i = 0; i < 4; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const rad = Math.random() * 40 + 10;
+                const grad = ctx.createRadialGradient(x, y, 1, x, y, rad);
+                grad.addColorStop(0, 'rgba(100, 95, 75, 0.35)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, rad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.strokeStyle = '#aeaca1';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 256, 256);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(1, 1);
+            return tex;
+        }
+
+        // ====================================================================
+        // NEW ADVANCED PROCEDURAL VISUAL BIOME GENERATORS
+        // ====================================================================
+        function generateConcreteWallTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4a4d4c'; // Sterile industrial concrete grey
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Large visual stains
+            for (let i = 0; i < 8; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const radius = Math.random() * 80 + 30;
+                const grad = ctx.createRadialGradient(x, y, 10, x, y, radius);
+                grad.addColorStop(0, 'rgba(25, 25, 25, 0.45)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Concrete expansion cracks
+            ctx.strokeStyle = '#1e201f';
+            ctx.lineWidth = 2.5;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                let curX = Math.random() * 512;
+                let curY = 0;
+                ctx.moveTo(curX, curY);
+                while (curY < 512) {
+                    curX += (Math.random() - 0.5) * 35;
+                    curY += Math.random() * 80 + 20;
+                    ctx.lineTo(curX, curY);
+                }
+                ctx.stroke();
+            }
+
+            // Fine grit noise
+            const imgData = ctx.getImageData(0, 0, 512, 512);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 16;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+                data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function generateWetConcreteFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#2c2e2d'; // Damp slate grey
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Water puddles / Wet spots
+            for (let i = 0; i < 6; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const rad = Math.random() * 45 + 10;
+                const grad = ctx.createRadialGradient(x, y, 2, x, y, rad);
+                grad.addColorStop(0, 'rgba(10, 15, 12, 0.7)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, rad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Floor panel joints
+            ctx.strokeStyle = '#181a19';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 256, 256);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function generateRustWallTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#3a2318'; // Corroded dark iron oxide
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Bright heavy rust bubbles splotches
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const radius = Math.random() * 60 + 15;
+                const grad = ctx.createRadialGradient(x, y, 1, x, y, radius);
+                grad.addColorStop(0, '#803c14'); // Corrosive bright red-orange rust
+                grad.addColorStop(0.6, '#522b13');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Metal panel rivets details
+            ctx.fillStyle = '#1c100a';
+            for (let y = 30; y < 512; y += 120) {
+                for (let x = 30; x < 512; x += 120) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Heavy gritty noise
+            const imgData = ctx.getImageData(0, 0, 512, 512);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 35;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise * 0.7)); // keep red tint higher
+                data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise * 0.4));
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function generateRustFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1e1c18'; // Flooded dark steel grid
+            ctx.fillRect(0, 0, 256, 256);
+
+            // Heavy dark grates look
+            ctx.strokeStyle = '#2b1b11';
+            ctx.lineWidth = 5;
+            for (let i = 0; i < 256; i += 32) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(256, i); ctx.stroke();
+            }
+
+            // Slime / reflective puddle splotches
+            for (let i = 0; i < 4; i++) {
+                const x = Math.random() * 256;
+                const y = Math.random() * 256;
+                const rad = Math.random() * 50 + 15;
+                const grad = ctx.createRadialGradient(x, y, 1, x, y, rad);
+                grad.addColorStop(0, 'rgba(84, 50, 20, 0.8)');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, rad, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        // ====================================================================
+        // MAZE SETUP AND OBJECT SCATTERING
+        // ====================================================================
+        const GRID_CELL_SIZE = 4.0;
+        const GRID_COUNT = 32;
+        const grid = [];
+
+        function initMazeGrid() {
+            for (let x = 0; x < GRID_COUNT; x++) {
+                grid[x] = [];
+                for (let z = 0; z < GRID_COUNT; z++) {
+                    if (x === 0 || x === GRID_COUNT - 1 || z === 0 || z === GRID_COUNT - 1) {
+                        grid[x][z] = 1;
+                    } else {
+                        grid[x][z] = 0;
+                    }
+                }
+            }
+
+            for (let x = 2; x < GRID_COUNT - 2; x += 4) {
+                for (let z = 2; z < GRID_COUNT - 2; z += 4) {
+                    const rnd = Math.sin(x * 12.3 + z * 54.2) * 0.5 + 0.5;
+                    
+                    if (rnd < 0.22) {
+                        grid[x][z] = 1;
+                        grid[x+1][z] = 1;
+                        grid[x][z+1] = 1;
+                        grid[x+1][z+1] = 1;
+                    } else if (rnd < 0.48) {
+                        grid[x][z] = 1;
+                        grid[x+1][z] = 1;
+                        grid[x+2][z] = 1;
+                    } else if (rnd < 0.72) {
+                        grid[x][z] = 1;
+                        grid[x][z+1] = 1;
+                        grid[x][z+2] = 1;
+                    } else {
+                        grid[x+1][z+1] = 1;
+                    }
+                }
+            }
+        }
+
+        const canvas3D = document.getElementById('canvas3d');
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas3D, antialias: false, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2('#1a170f', 0.095);
+
+        const camera = new THREE.PerspectiveCamera(65, 4 / 3, 0.1, 100);
+        camera.rotation.order = 'YXZ'; // FPS CAMERA ROTATION CRITICAL SETTING
+        camera.position.set(4, 1.7, 4);
+
+        function resizeViewport() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            let renderWidth = width;
+            let renderHeight = width * (3 / 4);
+            
+            if (renderHeight > height) {
+                renderHeight = height;
+                renderWidth = height * (4 / 3);
+            }
+            
+            renderWidth = Math.max(1, Math.floor(renderWidth));
+            renderHeight = Math.max(1, Math.floor(renderHeight));
+
+            renderer.setSize(renderWidth, renderHeight);
+            camera.aspect = renderWidth / renderHeight;
+            camera.updateProjectionMatrix();
+
+            const glitchCanvas = document.getElementById('glitch-canvas');
+            if (glitchCanvas) {
+                glitchCanvas.width = renderWidth;
+                glitchCanvas.height = renderHeight;
+            }
+        }
+
+        resizeViewport();
+
+        // Load procedural textures to standard materials
+        // 1. Biome 0 - Classic Level 0
+        const wallTexture0 = generateWallpaperTexture();
+        const wallMaterial0 = new THREE.MeshStandardMaterial({ map: wallTexture0, roughness: 0.85, metalness: 0.01 });
+        const carpetTexture = generateCarpetTexture();
+        const carpetMaterial = new THREE.MeshStandardMaterial({ map: carpetTexture, roughness: 0.98, metalness: 0.0 });
+        const ceilingTexture0 = generateCeilingTexture();
+        const ceilingMaterial0 = new THREE.MeshStandardMaterial({ map: ceilingTexture0, roughness: 0.7, metalness: 0.02 });
+
+        // 2. Biome 1 - Level 1 Industrial Concrete
+        const wallTexture1 = generateConcreteWallTexture();
+        const wallMaterial1 = new THREE.MeshStandardMaterial({ map: wallTexture1, roughness: 0.9, metalness: 0.05 });
+        const concreteFloorTex = generateWetConcreteFloorTexture();
+        const concreteFloorMat = new THREE.MeshStandardMaterial({ map: concreteFloorTex, roughness: 0.6, metalness: 0.1 });
+        const ceilingMaterial1 = new THREE.MeshStandardMaterial({ color: '#333534', roughness: 0.85 });
+
+        // 3. Biome 2 - Level 2 Rusted Pipe Nightmare
+        const wallTexture2 = generateRustWallTexture();
+        const wallMaterial2 = new THREE.MeshStandardMaterial({ map: wallTexture2, roughness: 0.8, metalness: 0.15 });
+        const rustFloorTex = generateRustFloorTexture();
+        const rustFloorMat = new THREE.MeshStandardMaterial({ map: rustFloorTex, roughness: 0.45, metalness: 0.4 });
+        const ceilingMaterial2 = new THREE.MeshStandardMaterial({ color: '#211510', roughness: 0.9 });
+
+        const lightEmissionMaterial = new THREE.MeshBasicMaterial({ color: '#fffaec' });
+        const lightEmissionRedMaterial = new THREE.MeshBasicMaterial({ color: '#ff2200' });
+        const lightFixtureChassisMaterial = new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.5 });
+
+        // Pipe construction material
+        const pipeMaterial = new THREE.MeshStandardMaterial({ color: '#666666', roughness: 0.35, metalness: 0.7 });
+        const pipeRustMaterial = new THREE.MeshStandardMaterial({ color: '#4a2512', roughness: 0.8, metalness: 0.2 });
+
+        // Initialize structural maze grid contents
+        initMazeGrid();
+
+        // Building Segments of floors and ceilings representing each visual biome
+        const mazeExtent = GRID_COUNT * GRID_CELL_SIZE;
+
+        // BIOME 0 Plane (Columns x: 0 to 11)
+        const sizeB0 = 11 * GRID_CELL_SIZE;
+        const floorGeo0 = new THREE.PlaneGeometry(sizeB0, mazeExtent);
+        floorGeo0.rotateX(-Math.PI / 2);
+        const floorMesh0 = new THREE.Mesh(floorGeo0, carpetMaterial);
+        floorMesh0.position.set(sizeB0/2 - GRID_CELL_SIZE/2, 0, mazeExtent/2 - GRID_CELL_SIZE/2);
+        floorMesh0.receiveShadow = true;
+        scene.add(floorMesh0);
+        carpetTexture.repeat.set(11 * 4, GRID_COUNT * 4);
+
+        const ceilingGeo0 = new THREE.PlaneGeometry(sizeB0, mazeExtent);
+        ceilingGeo0.rotateX(Math.PI / 2);
+        const ceilingMesh0 = new THREE.Mesh(ceilingGeo0, ceilingMaterial0);
+        ceilingMesh0.position.set(sizeB0/2 - GRID_CELL_SIZE/2, 3.2, mazeExtent/2 - GRID_CELL_SIZE/2);
+        ceilingMesh0.receiveShadow = true;
+        scene.add(ceilingMesh0);
+        ceilingTexture0.repeat.set(11 * 2, GRID_COUNT * 2);
+
+        // BIOME 1 Plane (Columns x: 11 to 21)
+        const sizeB1 = 10 * GRID_CELL_SIZE;
+        const floorGeo1 = new THREE.PlaneGeometry(sizeB1, mazeExtent);
+        floorGeo1.rotateX(-Math.PI / 2);
+        const floorMesh1 = new THREE.Mesh(floorGeo1, concreteFloorMat);
+        floorMesh1.position.set(sizeB0 + sizeB1/2 - GRID_CELL_SIZE/2, 0, mazeExtent/2 - GRID_CELL_SIZE/2);
+        floorMesh1.receiveShadow = true;
+        scene.add(floorMesh1);
+        concreteFloorTex.repeat.set(10 * 4, GRID_COUNT * 4);
+
+        const ceilingGeo1 = new THREE.PlaneGeometry(sizeB1, mazeExtent);
+        ceilingGeo1.rotateX(Math.PI / 2);
+        const ceilingMesh1 = new THREE.Mesh(ceilingGeo1, ceilingMaterial1);
+        ceilingMesh1.position.set(sizeB0 + sizeB1/2 - GRID_CELL_SIZE/2, 3.2, mazeExtent/2 - GRID_CELL_SIZE/2);
+        ceilingMesh1.receiveShadow = true;
+        scene.add(ceilingMesh1);
+
+        // BIOME 2 Plane (Columns x: 22 to 31)
+        const sizeB2 = 11 * GRID_CELL_SIZE;
+        const floorGeo2 = new THREE.PlaneGeometry(sizeB2, mazeExtent);
+        floorGeo2.rotateX(-Math.PI / 2);
+        const floorMesh2 = new THREE.Mesh(floorGeo2, rustFloorMat);
+        floorMesh2.position.set(sizeB0 + sizeB1 + sizeB2/2 - GRID_CELL_SIZE/2, 0, mazeExtent/2 - GRID_CELL_SIZE/2);
+        floorMesh2.receiveShadow = true;
+        scene.add(floorMesh2);
+        rustFloorTex.repeat.set(11 * 4, GRID_COUNT * 4);
+
+        const ceilingGeo2 = new THREE.PlaneGeometry(sizeB2, mazeExtent);
+        ceilingGeo2.rotateX(Math.PI / 2);
+        const ceilingMesh2 = new THREE.Mesh(ceilingGeo2, ceilingMaterial2);
+        ceilingMesh2.position.set(sizeB0 + sizeB1 + sizeB2/2 - GRID_CELL_SIZE/2, 3.2, mazeExtent/2 - GRID_CELL_SIZE/2);
+        ceilingMesh2.receiveShadow = true;
+        scene.add(ceilingMesh2);
+
+        // Wall Group builder looping checking and assigning materials based on cells location
+        const wallBoxGeo = new THREE.BoxGeometry(GRID_CELL_SIZE, 3.2, GRID_CELL_SIZE);
+        const wallGroup = new THREE.Group();
+        scene.add(wallGroup);
+
+        const lightFixtures = [];
+
+        for (let x = 0; x < GRID_COUNT; x++) {
+            for (let z = 0; z < GRID_COUNT; z++) {
+                // Determine Biome Index of the cell
+                let biomeIdx = 0;
+                if (x >= 11 && x < 22) biomeIdx = 1;
+                else if (x >= 22) biomeIdx = 2;
+
+                const mat = biomeIdx === 0 ? wallMaterial0 : (biomeIdx === 1 ? wallMaterial1 : wallMaterial2);
+
+                if (grid[x][z] === 1) {
+                    const wallBox = new THREE.Mesh(wallBoxGeo, mat);
+                    wallBox.position.set(x * GRID_CELL_SIZE, 1.6, z * GRID_CELL_SIZE);
+                    wallBox.castShadow = true;
+                    wallBox.receiveShadow = true;
+                    wallGroup.add(wallBox);
+
+                    // Procedural Industrial Wall Pipes for Biomes 1 & 2
+                    if (biomeIdx > 0 && Math.sin(x * 15 + z * 8) > 0.1) {
+                        const pipeRadius = 0.05 + Math.random() * 0.04;
+                        const pipeGeo = new THREE.CylinderGeometry(pipeRadius, pipeRadius, GRID_CELL_SIZE, 6);
+                        pipeGeo.rotateZ(Math.PI / 2); // run horizontal
+
+                        const pipeMat = biomeIdx === 1 ? pipeMaterial : pipeRustMaterial;
+                        const pipeMesh = new THREE.Mesh(pipeGeo, pipeMat);
+                        // running slightly jutted out from the wall face
+                        pipeMesh.position.set(x * GRID_CELL_SIZE, 2.7, z * GRID_CELL_SIZE + (GRID_CELL_SIZE/2 + pipeRadius));
+                        scene.add(pipeMesh);
+                    }
+                } else {
+                    // Spawn Ceiling fixtures based on Biome parameters
+                    if (x % 3 === 0 && z % 3 === 0) {
+                        const fixtureGroup = new THREE.Group();
+                        fixtureGroup.position.set(x * GRID_CELL_SIZE, 3.14, z * GRID_CELL_SIZE);
+
+                        const chassisGeo = new THREE.BoxGeometry(1.6, 0.02, 0.8);
+                        const chassis = new THREE.Mesh(chassisGeo, lightFixtureChassisMaterial);
+                        fixtureGroup.add(chassis);
+
+                        const tubeGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.4);
+                        tubeGeo.rotateZ(Math.PI / 2);
+                        
+                        // Ominous warning red tubes for Biome 2
+                        const emissionMat = biomeIdx === 2 ? lightEmissionRedMaterial : lightEmissionMaterial;
+
+                        const tube1 = new THREE.Mesh(tubeGeo, emissionMat);
+                        tube1.position.set(0, -0.02, -0.15);
+                        fixtureGroup.add(tube1);
+
+                        const tube2 = new THREE.Mesh(tubeGeo, emissionMat);
+                        tube2.position.set(0, -0.02, 0.15);
+                        fixtureGroup.add(tube2);
+
+                        scene.add(fixtureGroup);
+                        lightFixtures.push({
+                            group: fixtureGroup,
+                            biomeIdx: biomeIdx
+                        });
+                    }
+                }
+            }
+        }
+
+        const LIGHT_POOL_SIZE = 4;
+        const activeLightsPool = [];
+
+        for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+            const light = new THREE.PointLight('#fffadd', 1.1, 10);
+            light.castShadow = true;
+            light.shadow.mapSize.width = 512;
+            light.shadow.mapSize.height = 512;
+            light.shadow.bias = -0.005;
+            light.shadow.camera.near = 0.5;
+            light.shadow.camera.far = 12;
+            scene.add(light);
+            activeLightsPool.push(light);
+        }
+
+        const globalAmbient = new THREE.AmbientLight('#2b291d', 0.28);
+        scene.add(globalAmbient);
+
+        const cameraFlashlight = new THREE.SpotLight('#fffaeb', 1.8, 18, Math.PI / 5, 0.5, 1.0);
+        cameraFlashlight.castShadow = true;
+        cameraFlashlight.shadow.mapSize.width = 512;
+        cameraFlashlight.shadow.mapSize.height = 512;
+        cameraFlashlight.shadow.bias = -0.002;
+        cameraFlashlight.visible = flashlightOn;
+        scene.add(cameraFlashlight);
+        scene.add(cameraFlashlight.target);
+
+        // ====================================================================
+        // DYNAMIC GAMEPLAY ITEMS SPAWNER (Tapes, Batteries, Food, Water)
+        // ====================================================================
+        const itemsList = [];
+        let exitRiftPortal = null; // Spawns once all 8 tapes are collected
+
+        function spawnSurvivalItems() {
+            // Remove existing items if any
+            itemsList.forEach(item => scene.remove(item.mesh));
+            itemsList.length = 0;
+            if (exitRiftPortal) {
+                scene.remove(exitRiftPortal);
+                exitRiftPortal = null;
+            }
+
+            // Generate an array of empty coordinates
+            const emptyCells = [];
+            for (let x = 2; x < GRID_COUNT - 2; x++) {
+                for (let z = 2; z < GRID_COUNT - 2; z++) {
+                    if (grid[x][z] === 0 && !(x < 4 && z < 4)) { // exclude player spawning quadrant
+                        emptyCells.push({x, z});
+                    }
+                }
+            }
+
+            // Shuffle cells
+            emptyCells.sort(() => Math.random() - 0.5);
+
+            // 1. Scatter exactly 8 VHS Tapes (Glowing Red Outline details)
+            const tapeBoxGeo = new THREE.BoxGeometry(0.3, 0.08, 0.18);
+            const tapeMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.7 });
+            const tapeEmissionMat = new THREE.MeshBasicMaterial({ color: '#ff1111' }); // red glowing stripe
+
+            for (let i = 0; i < 8; i++) {
+                if (emptyCells.length === 0) break;
+                const cell = emptyCells.pop();
+
+                const tapeGroup = new THREE.Group();
+                const mainBox = new THREE.Mesh(tapeBoxGeo, tapeMat);
+                mainBox.castShadow = true;
+                tapeGroup.add(mainBox);
+
+                // Small blinking red active ledger light
+                const labelLightGeo = new THREE.BoxGeometry(0.1, 0.02, 0.02);
+                const labelLight = new THREE.Mesh(labelLightGeo, tapeEmissionMat);
+                labelLight.position.set(0.08, 0.041, 0.05);
+                tapeGroup.add(labelLight);
+
+                // Elevate item above ground so it's noticeable
+                tapeGroup.position.set(cell.x * GRID_CELL_SIZE, 0.15, cell.z * GRID_CELL_SIZE);
+                
+                // Add tiny green point light for easier locating in dark
+                const pointLight = new THREE.PointLight('#ff1111', 0.8, 2.0);
+                pointLight.position.set(0, 0.1, 0);
+                tapeGroup.add(pointLight);
+
+                scene.add(tapeGroup);
+
+                itemsList.push({
+                    type: 'tape',
+                    mesh: tapeGroup,
+                    gridX: cell.x,
+                    gridZ: cell.z,
+                    radius: 1.5, // pickup reach
+                    light: labelLight
+                });
+            }
+
+            // 2. Scatter exactly 6 Flashlight Batteries (Glowing Green outline)
+            const battGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.15, 6);
+            const battBodyMat = new THREE.MeshStandardMaterial({ color: '#1a1a1a', metalness: 0.8, roughness: 0.2 });
+            const battChargeMat = new THREE.MeshBasicMaterial({ color: '#00ff33' });
+
+            for (let i = 0; i < 6; i++) {
+                if (emptyCells.length === 0) break;
+                const cell = emptyCells.pop();
+
+                const battGroup = new THREE.Group();
+                const body = new THREE.Mesh(battGeo, battBodyMat);
+                body.castShadow = true;
+                battGroup.add(body);
+
+                // Glowing green charge stripe
+                const stripeGeo = new THREE.CylinderGeometry(0.062, 0.062, 0.03, 6);
+                const stripe = new THREE.Mesh(stripeGeo, battChargeMat);
+                stripe.position.set(0, 0.03, 0);
+                battGroup.add(stripe);
+
+                battGroup.position.set(cell.x * GRID_CELL_SIZE, 0.1, cell.z * GRID_CELL_SIZE);
+
+                const pointLight = new THREE.PointLight('#00ff33', 0.8, 2.0);
+                pointLight.position.set(0, 0.1, 0);
+                battGroup.add(pointLight);
+
+                scene.add(battGroup);
+
+                itemsList.push({
+                    type: 'battery',
+                    mesh: battGroup,
+                    gridX: cell.x,
+                    gridZ: cell.z,
+                    radius: 1.5
+                });
+            }
+
+            // 3. Scatter exactly 6 Almond Waters (Cylinder with light blue stripe & cyan light)
+            const waterGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.16, 8);
+            const waterMat = new THREE.MeshStandardMaterial({ color: '#cccccc', metalness: 0.9, roughness: 0.1 });
+            const waterStripeMat = new THREE.MeshBasicMaterial({ color: '#00ccff' });
+
+            for (let i = 0; i < 6; i++) {
+                if (emptyCells.length === 0) break;
+                const cell = emptyCells.pop();
+
+                const waterGroup = new THREE.Group();
+                const can = new THREE.Mesh(waterGeo, waterMat);
+                can.castShadow = true;
+                waterGroup.add(can);
+
+                // Blue label stripe
+                const labelGeo = new THREE.CylinderGeometry(0.052, 0.052, 0.05, 8);
+                const label = new THREE.Mesh(labelGeo, waterStripeMat);
+                label.position.set(0, 0.01, 0);
+                waterGroup.add(label);
+
+                waterGroup.position.set(cell.x * GRID_CELL_SIZE, 0.1, cell.z * GRID_CELL_SIZE);
+
+                const pointLight = new THREE.PointLight('#00ccff', 0.8, 2.0);
+                pointLight.position.set(0, 0.1, 0);
+                waterGroup.add(pointLight);
+
+                scene.add(waterGroup);
+
+                itemsList.push({
+                    type: 'water',
+                    mesh: waterGroup,
+                    gridX: cell.x,
+                    gridZ: cell.z,
+                    radius: 1.5
+                });
+            }
+
+            // 4. Scatter exactly 6 Food Rations (Box with orange details & orange light)
+            const foodGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+            const foodMat = new THREE.MeshStandardMaterial({ color: '#8b5a2b', roughness: 0.9 });
+            const foodDetailMat = new THREE.MeshBasicMaterial({ color: '#ff6600' });
+
+            for (let i = 0; i < 6; i++) {
+                if (emptyCells.length === 0) break;
+                const cell = emptyCells.pop();
+
+                const foodGroup = new THREE.Group();
+                const box = new THREE.Mesh(foodGeo, foodMat);
+                box.castShadow = true;
+                foodGroup.add(box);
+
+                // Small orange strip details
+                const stripGeo = new THREE.BoxGeometry(0.142, 0.02, 0.142);
+                const strip = new THREE.Mesh(stripGeo, foodDetailMat);
+                foodGroup.add(strip);
+
+                foodGroup.position.set(cell.x * GRID_CELL_SIZE, 0.1, cell.z * GRID_CELL_SIZE);
+
+                const pointLight = new THREE.PointLight('#ff6600', 0.8, 2.0);
+                pointLight.position.set(0, 0.1, 0);
+                foodGroup.add(pointLight);
+
+                scene.add(foodGroup);
+
+                itemsList.push({
+                    type: 'food',
+                    mesh: foodGroup,
+                    gridX: cell.x,
+                    gridZ: cell.z,
+                    radius: 1.5
+                });
+            }
+        }
+
+        // Spawns the exit dimensional rift
+        function spawnExitPortal() {
+            if (exitRiftPortal) return;
+            
+            // Place exit portal near the far corner of the maze map (Deep within Biome 2 Pipe nightmare)
+            let targetX = GRID_COUNT - 3;
+            let targetZ = GRID_COUNT - 3;
+            
+            // Adjust if wall sits on targeted sector
+            while (grid[targetX][targetZ] === 1 && targetX > 22) {
+                targetX--;
+                targetZ--;
+            }
+
+            const portalGroup = new THREE.Group();
+            
+            // Dimensional glowing red torus ring
+            const ringGeo = new THREE.TorusGeometry(0.8, 0.1, 8, 32);
+            const ringMat = new THREE.MeshBasicMaterial({ color: '#ff2200' });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.y = 1.2;
+            portalGroup.add(ring);
+
+            // Exit bright white light shaft
+            const lightShaftGeo = new THREE.CylinderGeometry(0.3, 0.3, 2.4, 16, 1, true);
+            const lightShaftMat = new THREE.MeshBasicMaterial({ 
+                color: '#ffffff', 
+                transparent: true, 
+                opacity: 0.6, 
+                side: THREE.DoubleSide 
+            });
+            const shaft = new THREE.Mesh(lightShaftGeo, lightShaftMat);
+            shaft.position.y = 1.2;
+            portalGroup.add(shaft);
+
+            const activeLight = new THREE.PointLight('#ff3300', 2.0, 8.0);
+            activeLight.position.set(0, 1.2, 0);
+            portalGroup.add(activeLight);
+
+            portalGroup.position.set(targetX * GRID_CELL_SIZE, 0, targetZ * GRID_CELL_SIZE);
+            scene.add(portalGroup);
+
+            exitRiftPortal = portalGroup;
+            escapePrompt.classList.remove('hidden');
+        }
+
+        const dustCount = 80;
+        const dustGeo = new THREE.BufferGeometry();
+        const dustPositions = new Float32Array(dustCount * 3);
+        for (let i = 0; i < dustCount * 3; i += 3) {
+            dustPositions[i] = (Math.random() - 0.5) * 16;
+            dustPositions[i+1] = Math.random() * 3.0;
+            dustPositions[i+2] = (Math.random() - 0.5) * 16;
+        }
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+        const dustMat = new THREE.PointsMaterial({
+            color: '#ffebbd',
+            size: 0.035,
+            transparent: true,
+            opacity: 0.65,
+            blending: THREE.AdditiveBlending
+        });
+        const dustParticles = new THREE.Points(dustGeo, dustMat);
+        scene.add(dustParticles);
+
+        function updateDustParticles() {
+            const posAttr = dustParticles.geometry.attributes.position;
+            const p = camera.position;
+            for (let i = 0; i < dustCount; i++) {
+                const ix = i * 3;
+                const iy = i * 3 + 1;
+                const iz = i * 3 + 2;
+
+                posAttr.array[iy] -= 0.005;
+
+                const dx = posAttr.array[ix] - p.x;
+                const dy = posAttr.array[iy] - p.y;
+                const dz = posAttr.array[iz] - p.z;
+
+                if (Math.abs(dx) > 8) posAttr.array[ix] = p.x + (Math.random() - 0.5) * 16;
+                if (posAttr.array[iy] < 0) posAttr.array[iy] = 3.0;
+                if (Math.abs(dz) > 8) posAttr.array[iz] = p.z + (Math.random() - 0.5) * 16;
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        // ====================================================================
+        // PROMINENT RETRO 3D GRABBER HAND (VIEWMODEL SPACE)
+        // ====================================================================
+        const handGroup = new THREE.Group();
+        
+        // Sleeve (ASYNC Hazmat Yellow cylinder)
+        const sleeveGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.5, 8);
+        sleeveGeo.rotateX(Math.PI / 2);
+        const sleeveMat = new THREE.MeshStandardMaterial({ color: '#d89b2c', roughness: 0.7, metalness: 0.05 });
+        const sleeveMesh = new THREE.Mesh(sleeveGeo, sleeveMat);
+        sleeveMesh.position.set(0, 0, 0.25);
+        handGroup.add(sleeveMesh);
+
+        // Palm (Dark gray rubber glove)
+        const gloveMat = new THREE.MeshStandardMaterial({ color: '#1c1e1d', roughness: 0.9, metalness: 0.01 });
+        const palmGeo = new THREE.BoxGeometry(0.18, 0.07, 0.2);
+        const palmMesh = new THREE.Mesh(palmGeo, gloveMat);
+        palmMesh.position.set(0, 0, -0.05);
+        handGroup.add(palmMesh);
+
+        // Fingers (Segmented, Prominent, and Chunky)
+        const fingersList = [];
+        const fingerMat = gloveMat;
+        const fingerSegmentGeo = new THREE.CylinderGeometry(0.024, 0.024, 0.08, 6);
+        fingerSegmentGeo.rotateX(Math.PI / 2);
+
+        // Define 4 finger bases (Index, Middle, Pinky, Thumb)
+        const fingerBases = [
+            { x: -0.06, y: 0.02, z: -0.15, rotY: 0.1 },  // Index
+            { x: -0.01, y: 0.02, z: -0.16, rotY: 0.0 },  // Middle
+            { x: 0.04, y: 0.02, z: -0.15, rotY: -0.1 },  // Pinky
+            { x: 0.07, y: -0.01, z: -0.08, rotY: -0.65 }  // Thumb
+        ];
+
+        fingerBases.forEach((fBase, idx) => {
+            const joint1 = new THREE.Mesh(fingerSegmentGeo, fingerMat);
+            joint1.position.set(fBase.x, fBase.y, fBase.z);
+            joint1.rotation.y = fBase.rotY;
+
+            const joint2 = new THREE.Mesh(fingerSegmentGeo, fingerMat);
+            joint2.position.set(0, 0, -0.06);
+            joint2.rotation.x = -0.3; // slightly curled
+            joint1.add(joint2);
+
+            handGroup.add(joint1);
+            fingersList.push({ base: joint1, tip: joint2, initialRotX: joint1.rotation.x, initialRotY: joint1.rotation.y });
+        });
+
+        // Add handGroup as parented viewport element under the camera!
+        camera.add(handGroup);
+        scene.add(camera); // critical so camera children render correctly
+
+        // Default resting position (Large, placed on lower right hand side)
+        const handRestPos = new THREE.Vector3(0.35, -0.28, -0.58);
+        handGroup.position.copy(handRestPos);
+
+        function animateGrabberHand(delta, isMoving) {
+            // 1. Walking bob sway
+            let swayX = 0;
+            let swayY = 0;
+            if (isMoving && !isScaredState) {
+                const multiplier = playerStats.sprinting ? 12.0 : 7.5;
+                swayX = Math.sin(moveTimer * 0.5) * 0.045;
+                swayY = Math.abs(Math.cos(moveTimer)) * 0.035;
+            }
+
+            // 2. Sanity trembling calculations
+            let trembleX = 0;
+            let trembleY = 0;
+            if (playerStats.sanity < 50 && !isScaredState) {
+                const intensity = (1.0 - (playerStats.sanity / 50.0)) * 0.018;
+                trembleX = (Math.random() - 0.5) * intensity;
+                trembleY = (Math.random() - 0.5) * intensity;
+            } else if (isScaredState) {
+                // Gentle shaking on capture (greatly reduced from 0.06 for comfort)
+                trembleX = (Math.random() - 0.5) * 0.015;
+                trembleY = (Math.random() - 0.5) * 0.015;
+            }
+
+            // 3. Grabbing Reach Animation Timeline
+            let grabZOffset = 0;
+            let grabYOffset = 0;
+            let fingerCurl = 0;
+
+            if (grabState === "REACHING") {
+                grabTimer += delta * 7.0; // Reach speed
+                if (grabTimer >= 1.0) {
+                    grabTimer = 1.0;
+                    grabState = "RETRACTING";
+                }
+                // Ease out
+                const t = grabTimer;
+                grabZOffset = -0.35 * Math.sin(t * Math.PI / 2);
+                grabYOffset = 0.08 * Math.sin(t * Math.PI / 2);
+                fingerCurl = 0.8 * Math.sin(t * Math.PI / 2); // curl fingers on grasp
+            } 
+            else if (grabState === "RETRACTING") {
+                grabTimer -= delta * 5.0; // Retract speed
+                if (grabTimer <= 0.0) {
+                    grabTimer = 0.0;
+                    grabState = "IDLE";
+                }
+                const t = grabTimer;
+                grabZOffset = -0.35 * Math.sin(t * Math.PI / 2);
+                grabYOffset = 0.08 * Math.sin(t * Math.PI / 2);
+                fingerCurl = 0.8 * Math.sin(t * Math.PI / 2);
+            }
+
+            // Apply all offsets to Viewmodel Hand position
+            handGroup.position.x = handRestPos.x + swayX + trembleX;
+            handGroup.position.y = handRestPos.y - swayY + trembleY + grabYOffset;
+            handGroup.position.z = handRestPos.z + grabZOffset;
+
+            // Apply procedural finger joints curls
+            fingersList.forEach(f => {
+                f.base.rotation.x = f.initialRotX + (fingerCurl * 0.8);
+                f.tip.rotation.x = -0.3 - (fingerCurl * 1.2);
+            });
+        }
+
+        function triggerHandGrabGesture() {
+            if (grabState !== "IDLE") return;
+            grabState = "REACHING";
+            grabTimer = 0.0;
+        }
+
+        // ====================================================================
+        // ADVANCED THREAT ENTITY INTENT AI (BACTERIA MONSTER)
+        // ====================================================================
+        class BacteriaMonster {
+            constructor() {
+                this.mesh = new THREE.Group();
+                this.visible = false;
+                this.gridX = 16;
+                this.gridZ = 16;
+                this.twitchTimer = 0;
+                
+                // Patrol / Chase status variables
+                this.aiState = "PATROL"; // PATROL, SEARCH, CHASE
+                this.patrolTargetX = 16;
+                this.patrolTargetZ = 16;
+                this.currentSpeed = 1.0;
+                this.searchTimer = 0;
+
+                const stalkMat = new THREE.MeshStandardMaterial({ color: '#090909', roughness: 0.9, metalness: 0.1 });
+
+                const spineGeo = new THREE.CylinderGeometry(0.04, 0.05, 2.2, 5);
+                const spine = new THREE.Mesh(spineGeo, stalkMat);
+                spine.position.y = 1.1;
+                spine.rotation.z = 0.15;
+                this.mesh.add(spine);
+
+                this.limbs = [];
+                const legCount = 5;
+                for (let i = 0; i < legCount; i++) {
+                    const limbGroup = new THREE.Group();
+                    limbGroup.position.set(0, 0.4 + i * 0.4, 0);
+
+                    const segment1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.1), stalkMat);
+                    segment1.position.y = 0.5;
+                    segment1.rotation.z = (Math.random() - 0.5) * 1.5;
+                    segment1.rotation.x = (Math.random() - 0.5) * 1.5;
+                    limbGroup.add(segment1);
+
+                    const segment2 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.9), stalkMat);
+                    segment2.position.set(0, 1.0, 0);
+                    segment2.rotation.z = (Math.random() - 0.5) * 2.0;
+                    segment1.add(segment2);
+
+                    this.mesh.add(limbGroup);
+                    this.limbs.push({ mesh: limbGroup, baseRotX: limbGroup.rotation.x, baseRotZ: limbGroup.rotation.z });
+                }
+
+                const headGeo = new THREE.SphereGeometry(0.12, 4, 4);
+                const head = new THREE.Mesh(headGeo, stalkMat);
+                head.position.set(0.1, 2.1, 0);
+                this.mesh.add(head);
+
+                scene.add(this.mesh);
+                this.mesh.visible = false;
+            }
+
+            spawn() {
+                // Relocate monster to distant grid quadrant initially
+                let spawned = false;
+                while (!spawned) {
+                    const rx = Math.floor(Math.random() * (GRID_COUNT - 8)) + 6;
+                    const rz = Math.floor(Math.random() * (GRID_COUNT - 8)) + 6;
+                    
+                    if (grid[rx][rz] === 0) {
+                        this.gridX = rx;
+                        this.gridZ = rz;
+                        this.mesh.position.set(rx * GRID_CELL_SIZE, 0, rz * GRID_CELL_SIZE);
+                        this.mesh.visible = true;
+                        this.visible = true;
+                        this.aiState = "PATROL";
+                        this.choosePatrolPoint();
+                        spawned = true;
+                    }
+                }
+            }
+
+            choosePatrolPoint() {
+                let found = false;
+                while (!found) {
+                    const tx = Math.floor(Math.random() * (GRID_COUNT - 4)) + 2;
+                    const tz = Math.floor(Math.random() * (GRID_COUNT - 4)) + 2;
+                    if (grid[tx][tz] === 0) {
+                        this.patrolTargetX = tx;
+                        this.patrolTargetZ = tz;
+                        found = true;
+                    }
+                }
+            }
+
+            update(delta) {
+                if (!this.visible || isGameWon) return;
+
+                this.twitchTimer += delta * 25;
+
+                // Twitchy organic procedural movement
+                this.limbs.forEach((l, idx) => {
+                    l.mesh.rotation.x = l.baseRotX + Math.sin(this.twitchTimer + idx) * 0.22;
+                    l.mesh.rotation.z = l.baseRotZ + Math.cos(this.twitchTimer * 1.5 + idx) * 0.18;
+                });
+
+                const playerDist = camera.position.distanceTo(this.mesh.position);
+                
+                // Adjust threat speed based on collected cassettes (Higher tapes = faster threat)
+                const baseSpeed = 1.0 + (playerStats.tapesCollected * 0.15);
+
+                // ==========================================
+                // AI STATE MACHINE LOGIC
+                // ==========================================
+                if (this.aiState === "CHASE") {
+                    this.currentSpeed = baseSpeed * 1.8;
+                    // Directly home in on player's continuous real world coordinates
+                    this.mesh.lookAt(camera.position.x, 0, camera.position.z);
+                    
+                    const dir = new THREE.Vector3().subVectors(camera.position, this.mesh.position).normalize();
+                    // Keep height aligned
+                    dir.y = 0;
+                    this.mesh.position.addScaledVector(dir, this.currentSpeed * delta);
+
+                    // Break chase if player gets extremely far away
+                    if (playerDist > 16.0) {
+                        this.aiState = "SEARCH";
+                        this.searchTimer = 5.0; // Search near last seen zone
+                    }
+                } 
+                else if (this.aiState === "SEARCH") {
+                    this.currentSpeed = baseSpeed * 0.9;
+                    this.searchTimer -= delta;
+                    
+                    // Wander slowly towards camera
+                    this.mesh.lookAt(camera.position.x, 0, camera.position.z);
+                    const dir = new THREE.Vector3().subVectors(camera.position, this.mesh.position).normalize();
+                    dir.y = 0;
+                    this.mesh.position.addScaledVector(dir, this.currentSpeed * delta);
+
+                    if (this.searchTimer <= 0) {
+                        this.aiState = "PATROL";
+                        this.choosePatrolPoint();
+                    }
+                } 
+                else { // PATROL STATE
+                    this.currentSpeed = baseSpeed * 0.85;
+                    
+                    const targetPos = new THREE.Vector3(this.patrolTargetX * GRID_CELL_SIZE, 0, this.patrolTargetZ * GRID_CELL_SIZE);
+                    const distToPatrol = this.mesh.position.distanceTo(targetPos);
+
+                    if (distToPatrol < 0.5) {
+                        this.choosePatrolPoint();
+                    } else {
+                        this.mesh.lookAt(targetPos);
+                        const dir = new THREE.Vector3().subVectors(targetPos, this.mesh.position).normalize();
+                        dir.y = 0;
+                        this.mesh.position.addScaledVector(dir, this.currentSpeed * delta);
+                    }
+
+                    // Scent detection triggers: If player is close and sprinting, alert monster
+                    if (playerDist < 9.0 && playerStats.sprinting) {
+                        this.aiState = "SEARCH";
+                        this.searchTimer = 4.0;
+                    }
+                }
+
+                // If player is within flash angle cone and close, trigger direct CHASE
+                if (playerDist < 8.0) {
+                    this.aiState = "CHASE";
+                }
+
+                // Proximity camera shake & fluorescent tube blackout flicker trigger
+                if (playerDist < 6.0) {
+                    lightsFlickerTrigger = 15;
+                    // Sanity damage over time
+                    playerStats.sanity = Math.max(0, playerStats.sanity - delta * 12);
+                }
+
+                // Capture check
+                if (playerDist < 1.3) {
+                    triggerDeathSequence("Captured by the entity");
+                }
+            }
+
+            despawn() {
+                this.visible = false;
+                this.mesh.visible = false;
+            }
+        }
+
+        const Enemy = new BacteriaMonster();
+
+        // ====================================================================
+        // HYBRID CONTROL PATTERN (POINTER LOCK API + MOUSE DRAG FALLBACK)
+        // ====================================================================
+        const keys = {};
+        let mouseYaw = 0;
+        let mousePitch = 0;
+
+        let isMouseDown = false;
+        let prevMouseX = 0;
+        let prevMouseY = 0;
+
+        // Pointer Lock Interface Setup
+        const container = document.getElementById('viewport-container');
+        const crosshair = document.getElementById('crosshair');
+
+        // Target the WebGL canvas directly for standard pointer lock compatibility
+        canvas3D.addEventListener('click', (e) => {
+            if (introScreen.style.display !== "none" || signalLostScreen.style.display !== "none" || escapedScreen.style.display !== "none") return;
+            
+            // Request Pointer Lock
+            try {
+                canvas3D.requestPointerLock();
+            } catch (err) {
+                console.warn("Direct Pointer Lock restricted. Falling back to intuitive Drag to Look controls.");
+            }
+        });
+
+        // Trigger Click-to-Collect when viewport is active and locked
+        canvas3D.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            prevMouseX = e.clientX;
+            prevMouseY = e.clientY;
+
+            if (document.pointerLockElement === canvas3D || document.pointerLockElement === container) {
+                triggerHandGrabGesture();
+                collectNearbyItem();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === canvas3D || document.pointerLockElement === container) {
+                crosshair.classList.remove('hidden');
+            } else {
+                crosshair.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (autoCamera) return;
+
+            // 1. POINTER LOCK ACTIVE MODE
+            if (document.pointerLockElement === canvas3D || document.pointerLockElement === container) {
+                mouseYaw -= e.movementX * 0.0022;
+                mousePitch -= e.movementY * 0.0022;
+            } 
+            // 2. BACKUP DRAG MODE (Mandatory for Sandboxed iFrame Previews)
+            else if (isMouseDown) {
+                const deltaX = e.clientX - prevMouseX;
+                const deltaY = e.clientY - prevMouseY;
+                
+                mouseYaw -= deltaX * 0.0035;
+                mousePitch -= deltaY * 0.0035;
+
+                prevMouseX = e.clientX;
+                prevMouseY = e.clientY;
+            }
+            
+            // Limit vertical look parameters to prevent flipping upside-down
+            mousePitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, mousePitch));
+        });
+
+        window.addEventListener('keydown', (e) => { 
+            keys[e.key.toLowerCase()] = true; 
+            
+            // Keyboard Shortcuts
+            if (e.key.toLowerCase() === 'f') {
+                toggleFlashlightState();
+            }
+            if (e.key.toLowerCase() === 'e') {
+                triggerHandGrabGesture();
+                collectNearbyItem();
+            }
+        });
+        window.addEventListener('keyup', (e) => { 
+            keys[e.key.toLowerCase()] = false; 
+        });
+
+        function toggleFlashlightState() {
+            if (playerStats.battery <= 0) return;
+            flashlightOn = !flashlightOn;
+            cameraFlashlight.visible = flashlightOn;
+            SoundSynth.playFootstep(); // brief sound feedback click
+        }
+
+        // Desktop quick buttons
+        btnFlashlightToggle.addEventListener('click', () => toggleFlashlightState());
+
+        // ====================================================================
+        // MOBILE COMPATIBLE TOUCH VIRTUAL JOYSTICK LOGIC
+        // ====================================================================
+        const joyLeft = document.getElementById('joystick-left');
+        const joyLeftHandle = document.getElementById('joystick-left-handle');
+        const btnMobileFlashlight = document.getElementById('btn-mobile-flashlight');
+        const btnMobileSprint = document.getElementById('btn-mobile-sprint');
+
+        let joyLeftActive = false;
+        let joyLeftStart = { x: 0, y: 0 };
+        let joyLeftMove = { x: 0, y: 0 };
+        const joyMaxRadius = 45;
+
+        // Mobile touch look tracking variables
+        let mobileLookActive = false;
+        let lastMobileTouch = { x: 0, y: 0 };
+
+        // Handle touch interfaces
+        window.addEventListener('touchstart', (e) => {
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                
+                // If touch hit left joystick container
+                const rect = joyLeft.getBoundingClientRect();
+                const distToCenter = Math.sqrt(
+                    (touch.clientX - (rect.left + rect.width/2))**2 + 
+                    (touch.clientY - (rect.top + rect.height/2))**2
+                );
+
+                if (distToCenter < rect.width/2 && !joyLeftActive) {
+                    joyLeftActive = true;
+                    joyLeftStart = { x: touch.clientX, y: touch.clientY };
+                    joyLeftMove = { x: touch.clientX, y: touch.clientY };
+                    break;
+                }
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            // Determine active touch coordinates
+            for (let i = 0; i < e.touches.length; i++) {
+                const touch = e.touches[i];
+                if (joyLeftActive && Math.abs(touch.clientX - joyLeftStart.x) < 150 && Math.abs(touch.clientY - joyLeftStart.y) < 150) {
+                    joyLeftMove = { x: touch.clientX, y: touch.clientY };
+                    
+                    // Calc vector bounds offset
+                    let dx = joyLeftMove.x - joyLeftStart.x;
+                    let dy = joyLeftMove.y - joyLeftStart.y;
+                    const distance = Math.sqrt(dx*dx + dy*dy);
+
+                    if (distance > joyMaxRadius) {
+                        dx = (dx / distance) * joyMaxRadius;
+                        dy = (dy / distance) * joyMaxRadius;
+                    }
+
+                    joyLeftHandle.style.transform = `translate(${dx}px, ${dy}px)`;
+                }
+            }
+        }, { passive: true });
+
+        const endTouchLeft = () => {
+            joyLeftActive = false;
+            joyLeftHandle.style.transform = 'translate(0px, 0px)';
+        };
+
+        window.addEventListener('touchend', endTouchLeft);
+        window.addEventListener('touchcancel', endTouchLeft);
+
+        // Track swipe look on the right half of the mobile screen
+        window.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            if (touch.clientX > window.innerWidth / 2) {
+                mobileLookActive = true;
+                lastMobileTouch = { x: touch.clientX, y: touch.clientY };
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (!mobileLookActive) return;
+            const touch = e.touches[0];
+            if (touch.clientX > window.innerWidth / 2) {
+                const dx = touch.clientX - lastMobileTouch.x;
+                const dy = touch.clientY - lastMobileTouch.y;
+
+                mouseYaw -= dx * 0.005;
+                mousePitch -= dy * 0.005;
+                mousePitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, mousePitch));
+
+                lastMobileTouch = { x: touch.clientX, y: touch.clientY };
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            mobileLookActive = false;
+        });
+
+        // Toggle Buttons on mobile overlays
+        btnMobileFlashlight.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleFlashlightState();
+        });
+
+        let mobileSprinting = false;
+        btnMobileSprint.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            mobileSprinting = true;
+            btnMobileSprint.classList.replace('bg-emerald-600/50', 'bg-emerald-400');
+        });
+        btnMobileSprint.addEventListener('touchend', (e) => {
+            e.stopPropagation();
+            mobileSprinting = false;
+            btnMobileSprint.classList.replace('bg-emerald-400', 'bg-emerald-600/50');
+        });
+
+        // Collisions checking
+        function checkCollisions(pos, radius = 0.55) {
+            const px = pos.x;
+            const pz = pos.z;
+
+            const cx = Math.round(px / GRID_CELL_SIZE);
+            const cz = Math.round(pz / GRID_CELL_SIZE);
+
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                    const cellX = cx + dx;
+                    const cellZ = cz + dz;
+
+                    if (cellX < 0 || cellX >= GRID_COUNT || cellZ < 0 || cellZ >= GRID_COUNT || grid[cellX][cellZ] === 1) {
+                        const minX = cellX * GRID_CELL_SIZE - GRID_CELL_SIZE / 2;
+                        const maxX = cellX * GRID_CELL_SIZE + GRID_CELL_SIZE / 2;
+                        const minZ = cellZ * GRID_CELL_SIZE - GRID_CELL_SIZE / 2;
+                        const maxZ = cellZ * GRID_CELL_SIZE + GRID_CELL_SIZE / 2;
+
+                        const closestX = Math.max(minX, Math.min(px, maxX));
+                        const closestZ = Math.max(minZ, Math.min(pz, maxZ));
+
+                        const diffX = px - closestX;
+                        const diffZ = pz - closestZ;
+                        const dist = Math.sqrt(diffX*diffX + diffZ*diffZ);
+
+                        if (dist < radius) {
+                            if (dist === 0) continue;
+                            const push = radius - dist;
+                            pos.x += (diffX / dist) * push;
+                            pos.z += (diffZ / dist) * push;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ====================================================================
+        // INTERACTION AND ITEM COLLECTION MECHANICS
+        // ====================================================================
+        let currentNearbyItem = null;
+
+        function checkItemInteractions() {
+            currentNearbyItem = null;
+            interactionOverlay.classList.add('hidden');
+
+            // Find closest nearby collectible items
+            for (let i = 0; i < itemsList.length; i++) {
+                const item = itemsList[i];
+                const dist = camera.position.distanceTo(item.mesh.position);
+
+                if (dist < item.radius) {
+                    currentNearbyItem = item;
+                    interactionOverlay.classList.remove('hidden');
+                    break;
+                }
+            }
+
+            // Check exit portal trigger distance if active
+            if (exitRiftPortal) {
+                const distToExit = camera.position.distanceTo(exitRiftPortal.position);
+                if (distToExit < 1.5) {
+                    triggerWinSequence();
+                }
+            }
+        }
+
+        function collectNearbyItem() {
+            if (!currentNearbyItem) return;
+
+            // Play pickup sound
+            SoundSynth.playPickupSound();
+
+            if (currentNearbyItem.type === 'tape') {
+                playerStats.tapesCollected++;
+                tapeCountTxt.innerText = playerStats.tapesCollected;
+
+                // Escape prompt trigger check
+                if (playerStats.tapesCollected >= 8) {
+                    spawnExitPortal();
+                }
+            } 
+            else if (currentNearbyItem.type === 'battery') {
+                // Restore battery charge
+                playerStats.battery = Math.min(100, playerStats.battery + 40);
+                if (flashlightOn) cameraFlashlight.visible = true;
+            }
+            else if (currentNearbyItem.type === 'food') {
+                // Restore hunger
+                playerStats.hunger = Math.min(100, playerStats.hunger + 45);
+            }
+            else if (currentNearbyItem.type === 'water') {
+                // Restore thirst & partial sanity
+                playerStats.thirst = Math.min(100, playerStats.thirst + 45);
+                playerStats.sanity = Math.min(100, playerStats.sanity + 15);
+            }
+
+            // Clean scene geometries
+            scene.remove(currentNearbyItem.mesh);
+            
+            // Delete from list active pointers
+            const index = itemsList.indexOf(currentNearbyItem);
+            if (index > -1) itemsList.splice(index, 1);
+
+            currentNearbyItem = null;
+            interactionOverlay.classList.add('hidden');
+        }
+
+        // Direct clicking on item HUD prompt
+        btnInteract.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerHandGrabGesture();
+            collectNearbyItem();
+        });
+
+        // ====================================================================
+        // GAME OVER & WIN MODAL TRIGGERS
+        // ====================================================================
+        function triggerDeathSequence(reason = "Captured by the Entity") {
+            if (isScaredState) return;
+            isScaredState = true;
+
+            try {
+                document.exitPointerLock();
+            } catch (err) {}
+
+            SoundSynth.playScareEffect();
+            document.getElementById('glitch-text').style.display = "block";
+            
+            let glitchTicks = 0;
+            const timer = setInterval(() => {
+                lightsFlickerTrigger = 25; // Soft flicker on transition instead of strobe blackouts
+                glitchTicks++;
+                if (glitchTicks > 8) { // Shortened from 25 to 8 ticks (~400ms transition)
+                    clearInterval(timer);
+                    
+                    document.getElementById('glitch-text').style.display = "none";
+                    Enemy.despawn();
+                    
+                    // Display VCR signal lost failure overlay
+                    document.getElementById('death-reason').innerText = reason;
+                    signalLostScreen.style.display = "flex";
+                }
+            }, 50);
+        }
+
+        function triggerWinSequence() {
+            if (isGameWon) return;
+            isGameWon = true;
+
+            try {
+                document.exitPointerLock();
+            } catch (err) {}
+            escapedScreen.style.display = "flex";
+        }
+
+        // Retry flows
+        rebootBtn.addEventListener('click', restartGameSession);
+        winRestartBtn.addEventListener('click', restartGameSession);
+
+        function restartGameSession() {
+            signalLostScreen.style.display = "none";
+            escapedScreen.style.display = "none";
+            
+            isScaredState = false;
+            isGameWon = false;
+            flashlightOn = true;
+
+            // Reset survival stats
+            playerStats.battery = 100;
+            playerStats.sanity = 100;
+            playerStats.stamina = 100;
+            playerStats.hunger = 100;
+            playerStats.thirst = 100;
+            playerStats.tapesCollected = 0;
+            tapeCountTxt.innerText = "0";
+            escapePrompt.classList.add('hidden');
+
+            camera.position.set(4, 1.7, 4);
+            mouseYaw = 0;
+            mousePitch = 0;
+
+            // Reseed collectibles list dynamically
+            spawnSurvivalItems();
+
+            // Spawn monster
+            Enemy.spawn();
+
+            simStartTime = Date.now();
+            lastTime = performance.now();
+        }
+
+        // ====================================================================
+        // CORE PHYSICS UPDATE & TICK LOOP
+        // ====================================================================
+        let lastTime = performance.now();
+
+        const glitchCanvas = document.getElementById('glitch-canvas');
+        const glitchCtx = glitchCanvas.getContext('2d');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const currentTime = performance.now();
+            const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
+            lastTime = currentTime;
+
+            // 1. Process player statistics, sprints, battery decays, food/water
+            let isMoving = false;
+            if (!isScaredState && !isGameWon) {
+                
+                // Track sprinting criteria (Shift or mobile button active)
+                const wantsSprint = (keys['shift'] || mobileSprinting) && playerStats.stamina > 5;
+                const movementKeysPressed = keys['w'] || keys['s'] || keys['a'] || keys['d'] || joyLeftActive;
+
+                if (movementKeysPressed && wantsSprint) {
+                    playerStats.sprinting = true;
+                    // Drain stamina faster
+                    playerStats.stamina = Math.max(0, playerStats.stamina - delta * 35);
+                } else {
+                    playerStats.sprinting = false;
+                    // Replenish stamina slowly when standing/walking
+                    playerStats.stamina = Math.min(100, playerStats.stamina + delta * 20);
+                }
+
+                // Handle FPS keyboard controls and virtual mobile joysticks
+                const speed = playerStats.sprinting ? 2.6 : 1.35;
+                const moveVector = new THREE.Vector3();
+
+                // Desktop inputs
+                if (keys['w']) { moveVector.z -= 1; isMoving = true; }
+                if (keys['s']) { moveVector.z += 1; isMoving = true; }
+                if (keys['a']) { moveVector.x -= 1; isMoving = true; }
+                if (keys['d']) { moveVector.x += 1; isMoving = true; }
+
+                // Mobile joystick vector calculations override
+                if (joyLeftActive) {
+                    isMoving = true;
+                    let dx = joyLeftMove.x - joyLeftStart.x;
+                    let dy = joyLeftMove.y - joyLeftStart.y;
+                    const len = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (len > 5) {
+                        moveVector.x = dx / len;
+                        moveVector.z = dy / len;
+                    }
+                }
+
+                if (isMoving) {
+                    moveVector.normalize();
+                    // Steer movement direction relative to camera angle look
+                    moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), mouseYaw);
+                    camera.position.add(moveVector.multiplyScalar(speed * delta));
+                }
+
+                checkCollisions(camera.position);
+
+                // Decay flashlight battery
+                if (flashlightOn) {
+                    playerStats.battery = Math.max(0, playerStats.battery - delta * 2.8);
+                    if (playerStats.battery <= 0) {
+                        flashlightOn = false;
+                        cameraFlashlight.visible = false;
+                    }
+                }
+
+                // Hunger & Thirst Decay over time
+                const decayMultiplier = playerStats.sprinting ? 1.8 : 1.0;
+                playerStats.hunger = Math.max(0, playerStats.hunger - delta * 0.45 * decayMultiplier);
+                playerStats.thirst = Math.max(0, playerStats.thirst - delta * 0.65 * decayMultiplier);
+
+                // Mind decay if starving or dehydrated
+                let hungerSanityPenalty = playerStats.hunger <= 0 ? 3.0 : 0.0;
+                let thirstSanityPenalty = playerStats.thirst <= 0 ? 5.0 : 0.0;
+
+                // Ambient mind decay if in absolute darkness
+                if (!flashlightOn) {
+                    playerStats.sanity = Math.max(0, playerStats.sanity - delta * (3.5 + hungerSanityPenalty + thirstSanityPenalty));
+                } else {
+                    playerStats.sanity = Math.max(0, Math.min(100, playerStats.sanity + delta * 0.8 - delta * (hungerSanityPenalty + thirstSanityPenalty)));
+                }
+
+                // Warn on near complete insanity
+                if (playerStats.sanity < 25) {
+                    document.getElementById('glitch-text').style.display = "block";
+                } else {
+                    document.getElementById('glitch-text').style.display = "none";
+                }
+
+                if (playerStats.sanity <= 0) {
+                    let reason = "Sanity collapsed completely in darkness";
+                    if (playerStats.hunger <= 0 && playerStats.thirst <= 0) {
+                        reason = "Died of starvation and severe dehydration";
+                    } else if (playerStats.hunger <= 0) {
+                        reason = "Starved to death in the endless maze";
+                    } else if (playerStats.thirst <= 0) {
+                        reason = "Collapsed from extreme dehydration";
+                    }
+                    triggerDeathSequence(reason);
+                }
+            }
+
+            // ==========================================
+            // DYNAMIC ATMOSPHERIC BIOME SHIFTS
+            // ==========================================
+            const pX = camera.position.x;
+            let currentBiome = "LEVEL 0";
+            let fogColor = new THREE.Color('#1a170f');
+
+            if (pX < 11 * GRID_CELL_SIZE) {
+                // Biome 0
+                currentBiome = "LEVEL 0 - THE LOBBY";
+                fogColor.set('#1a170f');
+            } else if (pX < 22 * GRID_CELL_SIZE) {
+                // Biome 1
+                currentBiome = "LEVEL 1 - HABITABLE ZONE";
+                const t = (pX - 11 * GRID_CELL_SIZE) / (11 * GRID_CELL_SIZE);
+                fogColor.lerpColors(new THREE.Color('#1a170f'), new THREE.Color('#111312'), t);
+            } else {
+                // Biome 2
+                currentBiome = "LEVEL 2 - PIPE NIGHTMARE";
+                const t = Math.min(1.0, (pX - 22 * GRID_CELL_SIZE) / (10 * GRID_CELL_SIZE));
+                fogColor.lerpColors(new THREE.Color('#111312'), new THREE.Color('#1c0f0f'), t);
+            }
+            biomeIndicator.innerText = `ZONE: ${currentBiome}`;
+            scene.fog.color.copy(fogColor);
+            renderer.setClearColor(fogColor);
+
+            // Apply camera steps bobs
+            if (isMoving && !isScaredState && !isGameWon) {
+                const multiplier = playerStats.sprinting ? 12.0 : 7.5;
+                moveTimer += delta * multiplier;
+                
+                const bobFactor = playerStats.sprinting ? 0.14 : 0.085;
+                const bobY = Math.abs(Math.sin(moveTimer)) * bobFactor;
+                camera.position.y = 1.6 + bobY;
+                camera.rotation.z = Math.sin(moveTimer * 0.5) * (playerStats.sprinting ? 0.05 : 0.02);
+
+                footstepCooldown -= delta;
+                if (Math.sin(moveTimer) > 0.9 && footstepCooldown <= 0) {
+                    SoundSynth.playFootstep(playerStats.sprinting);
+                    footstepCooldown = playerStats.sprinting ? 0.22 : 0.35;
+                }
+            } else {
+                moveTimer += delta * 1.5;
+                camera.position.y = 1.7 + Math.sin(moveTimer) * 0.025;
+                camera.rotation.z = Math.sin(moveTimer * 0.5) * 0.005;
+            }
+
+            // Animate Viewmodel Hand
+            animateGrabberHand(delta, isMoving);
+
+            // Steer viewport safely using 'YXZ' rotation mechanics
+            camera.rotation.set(0, 0, 0);
+            camera.rotation.y = mouseYaw;
+            camera.rotation.x = mousePitch;
+
+            // Battery beams attachment alignment
+            cameraFlashlight.position.copy(camera.position);
+            const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            cameraFlashlight.target.position.copy(camera.position).add(dir);
+
+            // Sync dynamic Point lights near player coordinates & adjust pooling color depending on Biome
+            const sortedFixtures = lightFixtures.map(fixtureObj => {
+                return {
+                    fixture: fixtureObj.group,
+                    biomeIdx: fixtureObj.biomeIdx,
+                    dist: camera.position.distanceTo(fixtureObj.group.position)
+                };
+            }).sort((a, b) => a.dist - b.dist);
+
+            for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+                const targetLight = activeLightsPool[i];
+                if (sortedFixtures[i] && sortedFixtures[i].dist < 18) {
+                    targetLight.position.copy(sortedFixtures[i].fixture.position).add(new THREE.Vector3(0, -0.1, 0));
+                    
+                    // Assign pool color based on active visual biome
+                    if (sortedFixtures[i].biomeIdx === 0) {
+                        targetLight.color.set('#fffadd'); // Warm incandescent
+                    } else if (sortedFixtures[i].biomeIdx === 1) {
+                        targetLight.color.set('#d1f0ff'); // Cool neon blue
+                    } else {
+                        targetLight.color.set('#ff2200'); // Ominous flashing emergency red
+                    }
+
+                    if (lightsFlickerTrigger > 0) {
+                        targetLight.intensity = Math.random() < (lightsFlickerTrigger / 100) ? 0.0 : 1.1;
+                    } else {
+                        if (Math.random() < 0.001) {
+                            targetLight.intensity = 0.05;
+                            setTimeout(() => { targetLight.intensity = 1.1; }, Math.random() * 200 + 50);
+                        } else {
+                            targetLight.intensity = 1.1;
+                        }
+                    }
+                    targetLight.visible = true;
+                } else {
+                    targetLight.visible = false;
+                }
+            }
+
+            if (lightsFlickerTrigger > 0) lightsFlickerTrigger--;
+
+            // Update items animations (spinning tapes/cans/rations)
+            itemsList.forEach(item => {
+                item.mesh.rotation.y += delta * 0.8;
+            });
+
+            // Update items nearby checks
+            if (!isScaredState && !isGameWon) {
+                checkItemInteractions();
+            }
+
+            updateDustParticles();
+            Enemy.update(delta);
+
+            // Render 3D Scene
+            renderer.render(scene, camera);
+
+            // Sync and draw HUD stats
+            barBattery.style.width = `${playerStats.battery}%`;
+            txtBattery.innerText = `${Math.round(playerStats.battery)}%`;
+            barSanity.style.width = `${playerStats.sanity}%`;
+            txtSanity.innerText = `${Math.round(playerStats.sanity)}%`;
+            barStamina.style.width = `${playerStats.stamina}%`;
+            txtStamina.innerText = `${Math.round(playerStats.stamina)}%`;
+            barHunger.style.width = `${playerStats.hunger}%`;
+            txtHunger.innerText = `${Math.round(playerStats.hunger)}%`;
+            barThirst.style.width = `${playerStats.thirst}%`;
+            txtThirst.innerText = `${Math.round(playerStats.thirst)}%`;
+
+            // Draw glitch artifacts horizontally to output canvas
+            glitchCtx.clearRect(0, 0, glitchCanvas.width, glitchCanvas.height);
+            
+            if (renderer.domElement.width > 0 && renderer.domElement.height > 0 && glitchCanvas.width > 0 && glitchCanvas.height > 0) {
+                if (Math.random() < 0.07 || isScaredState) {
+                    const sliceCount = isScaredState ? 4 : 2; // Toned down from 12 to 4 slices
+                    for (let k = 0; k < sliceCount; k++) {
+                        const sh = Math.max(1, Math.floor(Math.random() * (isScaredState ? 50 : 35) + 5)); // Max height reduced from 120px to 50px
+                        const maxSy = Math.max(0, renderer.domElement.height - sh);
+                        const sy = Math.floor(Math.random() * maxSy);
+                        const shiftX = (Math.random() - 0.5) * (isScaredState ? 20 : 12); // Horizontal displacement reduced from 55px to 20px
+
+                        glitchCtx.drawImage(
+                            renderer.domElement, 
+                            0, sy, renderer.domElement.width, sh, 
+                            shiftX, sy, glitchCanvas.width, sh
+                        );
+                    }
+                }
+
+                if (Math.random() < 0.05 || (isScaredState && Math.random() < 0.25)) { // Draw static scanline interruptions far less intensely
+                    glitchCtx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                    glitchCtx.lineWidth = Math.random() * 2 + 1;
+                    glitchCtx.beginPath();
+                    const y = Math.floor(Math.random() * glitchCanvas.height);
+                    glitchCtx.moveTo(0, y);
+                    glitchCtx.lineTo(glitchCanvas.width, y);
+                    glitchCtx.stroke();
+                }
+            }
+        }
+
+        // Initiate start gameplay screen
+        startBtn.addEventListener('click', () => {
+            introScreen.style.transform = "scale(0.9)";
+            introScreen.style.opacity = "0";
+            
+            SoundSynth.init();
+
+            setTimeout(() => {
+                introScreen.style.display = "none";
+                resizeViewport();
+                simStartTime = Date.now();
+                lastTime = performance.now();
+                
+                // Scatter survival collectible cassettes and batteries on grids
+                spawnSurvivalItems();
+
+                // Spawn threat Entity
+                Enemy.spawn();
+
+            }, 400);
+        });
+
+        window.addEventListener('resize', resizeViewport);
+        window.onload = function() {
+            resizeViewport();
+            requestAnimationFrame(animate);
+        };
+    </script>
+</body>
+</html>

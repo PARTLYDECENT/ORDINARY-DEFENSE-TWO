@@ -247,6 +247,50 @@
                     { type: 'scout', count: 1 }
                 ]
             ]
+        },
+        {
+            id: 6,
+            name: "Sector 6: The Liminal Depths",
+            biome: "backrooms",
+            description: "Somehow, we have slipped through reality's bounds and landed in the infinite yellow-wallpaper corridors of the Backrooms. Establish a defensive perimeter. The entities here do not obey standard physics.",
+            victoryText: "Incredible. You survived the Backrooms and managed to clip back into our sector space. Humanity's survival coordinates are now completely mapped!",
+            startGold: 350,
+            maxWaves: 25,
+            waves: [
+                // Wave 1
+                [
+                    { type: 'scarab', count: 12 },
+                    { type: 'ant', count: 6 }
+                ],
+                // Wave 2
+                [
+                    { type: 'ant', count: 10 },
+                    { type: 'wasp', count: 6 }
+                ],
+                // Wave 3
+                [
+                    { type: 'wasp', count: 8 },
+                    { type: 'ufo', count: 5 },
+                    { type: 'golem', count: 3 }
+                ],
+                // Wave 4
+                [
+                    { type: 'golem', count: 5 },
+                    { type: 'stealth', count: 6 },
+                    { type: 'ram', count: 4 }
+                ],
+                // Wave 5 (Final Boss Wave)
+                [
+                    { type: 'scarab', count: 20 },
+                    { type: 'ant', count: 15 },
+                    { type: 'wasp', count: 12 },
+                    { type: 'ufo', count: 8 },
+                    { type: 'golem', count: 6 },
+                    { type: 'stealth', count: 8 },
+                    { type: 'carrier', count: 3 },
+                    { type: 'ram', count: 4 }
+                ]
+            ]
         }
     ];
 
@@ -284,6 +328,18 @@
             if (typeof loadBiome === 'function') {
                 loadBiome(mission.biome);
             }
+
+            // Clean up main menu if it exists
+            const menuContainer = document.getElementById('main-menu-container');
+            if (menuContainer) {
+                menuContainer.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => menuContainer.remove(), 1200);
+            }
+            const uiContainer = document.getElementById('ui-container');
+            if (uiContainer) uiContainer.classList.remove('hidden');
+            gameState.inMenu = false;
+            if (typeof clearMenuBackground === 'function') clearMenuBackground();
+            if (typeof startCameraTransition === 'function') startCameraTransition();
 
             // Sync Stats HUD readout
             if (typeof updateStatsUI === 'function') {

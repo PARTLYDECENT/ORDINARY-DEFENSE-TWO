@@ -10,7 +10,7 @@
     <!-- FontAwesome for Premium Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Courier+Prime:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <!-- Three.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!-- OrbitControls -->
@@ -126,7 +126,7 @@
         }
         .brick-debris {
             position: absolute;
-            background: #06b6d4;
+            background: #eab308;
             border-radius: 1px;
             pointer-events: none;
             will-change: transform, opacity;
@@ -141,7 +141,7 @@
             position: absolute;
             inset: -2px;
             border-radius: 1.5rem;
-            background: conic-gradient(from var(--border-angle, 0deg), #06b6d4, #000, #06b6d4, #000, #06b6d4);
+            background: conic-gradient(from var(--border-angle, 0deg), #ca8a04, #12110c, #eab308, #12110c, #ca8a04);
             z-index: -1;
             animation: spinBorder 4s linear infinite;
         }
@@ -160,10 +160,92 @@
             left: 0;
             width: 100%;
             height: 2px;
-            background: linear-gradient(90deg, transparent 0%, #06b6d4 20%, #67e8f9 50%, #06b6d4 80%, transparent 100%);
-            box-shadow: 0 0 12px #06b6d4, 0 0 30px rgba(6, 182, 212, 0.3);
+            background: linear-gradient(90deg, transparent 0%, #ca8a04 20%, #fef08a 50%, #ca8a04 80%, transparent 100%);
+            box-shadow: 0 0 12px #caca07, 0 0 30px rgba(234, 179, 8, 0.3);
             z-index: 30;
             pointer-events: none;
+        }
+
+        /* VHS Scanline Overlay */
+        .vhs-scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(234, 179, 8, 0.04),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.04)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            z-index: -8;
+        }
+
+        /* VHS Vignette */
+        .vhs-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.85);
+            background: radial-gradient(circle, transparent 50%, rgba(0, 0, 0, 0.6) 100%);
+            pointer-events: none;
+            z-index: -7;
+        }
+
+        /* Retro CRT TV screen flicker */
+        @keyframes crt-flicker {
+            0% { opacity: 0.98; }
+            50% { opacity: 1.0; }
+            100% { opacity: 0.98; }
+        }
+        .crt-flicker-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            background: rgba(18, 16, 16, 0.03);
+            animation: crt-flicker 0.15s infinite;
+            pointer-events: none;
+            z-index: -6;
+        }
+
+        /* Blinking animation */
+        @keyframes vhs-blink {
+            50% { opacity: 0; }
+        }
+        .vhs-blink-effect {
+            animation: vhs-blink 1s step-start infinite;
+        }
+
+        /* Signal lost screen */
+        #menu-signal-lost {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 1.5rem;
+            background-color: #0000ff;
+            color: #ffffff;
+            font-family: 'Courier Prime', monospace;
+            z-index: 30;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-shadow: 2px 2px #000;
         }
 
         /* === HOLOGRAPHIC CARD SHIMMER === */
@@ -186,6 +268,32 @@
         .holo-card:hover::after {
             background-position: 0% 0%;
         }
+
+        /* === MAIN MENU DROPDOWN SYSTEM === */
+        .dropdown-container {
+            position: relative;
+            overflow: visible !important;
+        }
+        .dropdown-container .absolute {
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            visibility: hidden;
+        }
+        .dropdown-container:hover .absolute {
+            pointer-events: auto;
+            opacity: 1;
+            transform: translateY(0);
+            visibility: visible;
+        }
+        /* Specific transform for levels dropdown to keep it centered */
+        .dropdown-container #menu-levels-dropdown {
+            transform: translate(-50%, 15px);
+        }
+        .dropdown-container:hover #menu-levels-dropdown {
+            transform: translate(-50%, 0);
+        }
     </style>
 </head>
 <body class="w-screen h-screen relative select-none">
@@ -198,67 +306,293 @@
 
     <!-- Main Menu Screen -->
     <div id="main-menu-container" class="absolute inset-0 z-40 flex justify-center items-center overflow-hidden transition-all duration-700 bg-transparent">
-        <!-- Framed Menu Panel with Spinning Conic Border -->
-        <div id="menu-card-frame" class="relative w-[820px] h-[500px] rounded-3xl overflow-hidden bg-slate-950/95 shadow-[0_0_60px_rgba(6,182,212,0.2)] flex justify-center items-center">
+        <!-- Framed Menu Panel with Spinning Conic Border (Glassmorphism layout to show backrooms shader behind) -->
+        <div id="menu-card-frame" class="relative w-[820px] h-[500px] rounded-3xl overflow-visible bg-slate-950/60 backdrop-blur-md shadow-[0_0_60px_rgba(234,179,8,0.25)] flex justify-center items-center">
             
-            <!-- Physics Brick Grid (absolute positioned bricks injected by JS) -->
-            <div id="menu-brick-grid" class="absolute inset-0 z-10 bg-black pointer-events-none overflow-hidden"></div>
+            <!-- WebGL Backrooms Shader Canvas -->
+            <canvas id="menu-shader-canvas" class="absolute inset-0 w-full h-full -z-10 pointer-events-none transition-opacity duration-1000 opacity-100 rounded-3xl"></canvas>
 
-            <!-- Inner Map Selection Panel (revealed by laser beam) -->
-            <div id="map-selection-panel" class="relative z-20 flex flex-col items-center gap-5 p-6 text-center pointer-events-none" style="clip-path: inset(0 0 100% 0); opacity: 0;">
-                <h1 id="menu-title" class="orbitron text-4xl font-extrabold text-cyan-400 tracking-[0.3em] uppercase drop-shadow-[0_0_14px_rgba(34,211,238,0.5)]">
-                    ORDINARY DEFENSE 2
-                </h1>
-                <p id="menu-subtitle" class="text-[10px] text-slate-400 font-medium tracking-[0.2em] max-w-md leading-relaxed uppercase h-4"></p>
-                
-                <!-- Cards Grid -->
-                <div class="grid grid-cols-5 gap-4 mt-3 w-full max-w-[720px]">
-                    <!-- Jungle -->
-                    <div onclick="selectMenuMap('jungle')" class="holo-card group relative cursor-pointer border border-emerald-500/30 bg-emerald-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-emerald-950/80 rounded-lg flex items-center justify-center group-hover:bg-emerald-900 duration-300">
-                            <i class="fa-solid fa-tree text-2xl text-emerald-400 group-hover:scale-125 duration-300"></i>
+            <!-- Glitch Canvas Overlay -->
+            <canvas id="menu-glitch-canvas" class="absolute inset-0 w-full h-full pointer-events-none rounded-3xl" style="z-index: -9;"></canvas>
+
+            <!-- Retro Filters -->
+            <div class="vhs-scanlines" style="z-index: -8;"></div>
+            <div class="vhs-vignette" style="z-index: -7;"></div>
+            <div class="crt-flicker-overlay" style="z-index: -6;"></div>
+
+            <!-- Found Footage Camcorder HUD Overlay -->
+            <div id="menu-vhs-hud" class="absolute inset-0 p-8 flex flex-col justify-between pointer-events-none font-mono text-sm tracking-wider text-yellow-300 opacity-80" style="text-shadow: 1px 1px 2px #000; z-index: -5;">
+                <div class="flex justify-between items-start">
+                    <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-3 h-3 rounded-full bg-red-600 vhs-blink-effect"></span>
+                            <span class="text-white font-bold">REC</span>
                         </div>
-                        <div class="orbitron font-extrabold text-[10px] text-emerald-400 tracking-wider">JUNGLE</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Biolum canopy</div>
+                        <div>PLAY</div>
+                        <div class="text-xs text-yellow-500 font-bold">SP</div>
                     </div>
-                    <!-- Volcanic -->
-                    <div onclick="selectMenuMap('volcanic')" class="holo-card group relative cursor-pointer border border-red-500/30 bg-red-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-red-950/80 rounded-lg flex items-center justify-center group-hover:bg-red-900 duration-300">
-                            <i class="fa-solid fa-fire text-2xl text-red-400 group-hover:scale-125 duration-300"></i>
-                        </div>
-                        <div class="orbitron font-extrabold text-[10px] text-red-400 tracking-wider">VOLCANIC</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Lava fields</div>
-                    </div>
-                    <!-- Europa -->
-                    <div onclick="selectMenuMap('europa')" class="holo-card group relative cursor-pointer border border-cyan-500/30 bg-cyan-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-cyan-950/80 rounded-lg flex items-center justify-center group-hover:bg-cyan-900 duration-300">
-                            <i class="fa-solid fa-snowflake text-2xl text-cyan-400 group-hover:scale-125 duration-300"></i>
-                        </div>
-                        <div class="orbitron font-extrabold text-[10px] text-cyan-400 tracking-wider">EUROPA</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Icy crust shell</div>
-                    </div>
-                    <!-- Venus -->
-                    <div onclick="selectMenuMap('venus')" class="holo-card group relative cursor-pointer border border-lime-500/30 bg-lime-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-lime-400 hover:shadow-[0_0_20px_rgba(132,204,22,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-lime-950/80 rounded-lg flex items-center justify-center group-hover:bg-lime-900 duration-300">
-                            <i class="fa-solid fa-cloud-showers-water text-2xl text-lime-400 group-hover:scale-125 duration-300"></i>
-                        </div>
-                        <div class="orbitron font-extrabold text-[10px] text-lime-400 tracking-wider">VENUS</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Acidic Wasteland</div>
-                    </div>
-                    <!-- Mars -->
-                    <div onclick="selectMenuMap('mars')" class="holo-card group relative cursor-pointer border border-orange-500/30 bg-orange-950/50 rounded-xl shadow-2xl transition-all duration-300 hover:border-orange-400 hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] flex flex-col gap-2 p-3 text-center" style="opacity:0; transform: translateY(80px);">
-                        <div class="w-full h-16 bg-orange-950/80 rounded-lg flex items-center justify-center group-hover:bg-orange-900 duration-300">
-                            <i class="fa-solid fa-mars text-2xl text-orange-400 group-hover:scale-125 duration-300"></i>
-                        </div>
-                        <div class="orbitron font-extrabold text-[10px] text-orange-400 tracking-wider">MARS</div>
-                        <div class="text-[8px] text-slate-400/90 leading-tight uppercase">Steep canyons</div>
+                    <div class="flex flex-col items-end gap-1 text-right">
+                        <div id="menu-battery-indicator">BATT [|||| ] 84%</div>
+                        <div>AUDIO AUTO</div>
                     </div>
                 </div>
 
-                <!-- Load Snapshot Button -->
-                <button onclick="triggerMenuSnapshotUpload()" class="mt-4 pointer-events-auto px-6 py-2.5 bg-gradient-to-r from-cyan-950 to-blue-950 border border-cyan-500/40 text-cyan-400 font-bold orbitron text-xs rounded-xl hover:border-cyan-400 hover:bg-cyan-900 transition-all shadow-lg active:scale-95 flex items-center gap-2">
-                    <i class="fa-solid fa-upload"></i> UPLOAD SNAPSHOT (.JSON)
+                <!-- Interstitial Scare / Glitch Message -->
+                <div id="menu-glitch-text" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-red-600 font-extrabold text-2xl tracking-widest hidden vhs-blink-effect text-center" style="z-index: 10;">
+                    WARNING: EXTRUSION POINT REACHED
+                </div>
+
+                <div class="flex justify-between items-end">
+                    <div class="flex flex-col gap-1 text-xs">
+                        <div id="menu-timestamp-date">MAR. 12 1991</div>
+                        <div id="menu-timestamp-time">AM 11:42:05</div>
+                    </div>
+                    <div class="flex flex-col items-end text-right">
+                        <div class="text-xs text-yellow-500 font-bold">LEVEL 0</div>
+                        <div id="menu-recording-counter">0:00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VHS Blue Screen SIGNAL LOST screen -->
+            <div id="menu-signal-lost" class="p-10 text-center font-mono select-none" style="display: none;">
+                <h1 class="text-4xl font-extrabold bg-white text-blue-800 px-4 py-2 mb-4 tracking-wider uppercase">SIGNAL LOST</h1>
+                <p class="text-lg mb-2">VCR STOP - AUTO REWIND IN PROGRESS</p>
+                <p class="text-gray-400 text-xs mb-6">ERROR CODE: 0x904 (EXTRUSION DETECTED)</p>
+                <div class="flex items-center gap-3 justify-center mb-6">
+                    <span class="inline-block w-3 h-3 bg-white vhs-blink-effect rounded-full"></span>
+                    <span class="text-sm">REBOOTING RECEIVER CHANNELS...</span>
+                </div>
+                <button id="menu-btn-reboot" class="px-5 py-2.5 border-2 border-white bg-transparent hover:bg-white hover:text-blue-800 transition-all font-bold text-xs tracking-widest uppercase rounded-lg pointer-events-auto">
+                    RE-ENTER MAZE
                 </button>
+            </div>
+
+            <!-- Physics Brick Grid (absolute positioned bricks injected by JS) -->
+            <div id="menu-brick-grid" class="absolute inset-0 z-10 bg-black pointer-events-none overflow-hidden rounded-3xl"></div>
+
+            <!-- Inner Main Menu Panel (revealed by laser beam) -->
+            <div id="map-selection-panel" class="relative z-20 flex flex-col items-center gap-8 p-8 text-center pointer-events-none w-full h-full justify-start" style="clip-path: inset(0 0 100% 0); opacity: 0;">
+                <div class="space-y-2 mt-4">
+                    <h1 id="menu-title" class="orbitron text-5xl font-black text-cyan-400 tracking-[0.35em] uppercase drop-shadow-[0_0_18px_rgba(34,211,238,0.6)]">
+                        ORDINARY DEFENSE 2
+                    </h1>
+                    <p id="menu-subtitle" class="text-[11px] text-cyan-300/70 font-semibold tracking-[0.25em] max-w-lg leading-relaxed uppercase h-4 mx-auto"></p>
+                </div>
+                
+                <!-- The Futuristic Dropdown Menu Bar -->
+                <div class="flex justify-center items-center gap-6 mt-6 w-full max-w-[650px] pointer-events-auto z-30">
+                                       <!-- START DROPDOWN -->
+                    <div class="relative group dropdown-container menu-btn-animate no-tilt" style="opacity:0; transform: translateY(80px);">
+                        <button id="menu-btn-start" class="px-8 py-3.5 bg-slate-900/80 border border-cyan-500/40 text-cyan-400 font-bold orbitron text-sm rounded-xl hover:border-cyan-400 hover:bg-cyan-955/60 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.1)] active:scale-95 flex items-center gap-3">
+                            <i class="fa-solid fa-play animate-pulse text-cyan-300"></i> START <i class="fa-solid fa-chevron-down text-xs opacity-60 group-hover:rotate-180 transition-transform duration-300"></i>
+                        </button> <!-- Dropdown Menu -->
+                        <div onwheel="event.stopPropagation()" ontouchmove="event.stopPropagation()" class="absolute top-[105%] left-0 w-64 bg-slate-950/95 border border-cyan-500/40 rounded-xl shadow-2xl p-2 flex flex-col gap-1.5 z-50 max-h-[220px] overflow-y-auto">
+                            <div onclick="window.CampaignManager.showBriefing(0)" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-emerald-950/60 flex items-center justify-center text-emerald-400 group-hover/item:bg-emerald-900">
+                                    <i class="fa-solid fa-bolt text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="orbitron text-[11px] font-black text-white tracking-wider">CAMPAIGN MODE</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Deploy to Sector 1</div>
+                                </div>
+                            </div>
+                            <div onclick="selectMenuMap('jungle')" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-cyan-950/60 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-900">
+                                    <i class="fa-solid fa-circle-play text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="orbitron text-[11px] font-black text-white tracking-wider">QUICK PLAY</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Skirmish Sandbox</div>
+                                </div>
+                            </div>
+                            <div onclick="triggerMenuSnapshotUpload()" class="flex items-center gap-3 p-3 rounded-lg hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-cyan-950/60 flex items-center justify-center text-cyan-400 group-hover/item:bg-cyan-900">
+                                    <i class="fa-solid fa-upload text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="orbitron text-[11px] font-black text-white tracking-wider">LOAD SNAPSHOT</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Restore JSON save</div>
+                                </div>
+                            </div>
+                            <div onclick="window.location.href='backrooms.html'" class="flex items-center gap-3 p-3 rounded-lg hover:bg-yellow-950/40 border border-transparent hover:border-yellow-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-yellow-950/60 flex items-center justify-center text-yellow-400 group-hover/item:bg-yellow-900">
+                                    <i class="fa-solid fa-crosshairs text-sm"></i>
+                                </div>
+                                <div>
+                                    <div class="orbitron text-[11px] font-black text-white tracking-wider">BACKROOMS FPS</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">3D Found Footage Mode</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+ 
+                     <!-- LEVELS DROPDOWN -->
+                    <div class="relative group dropdown-container menu-btn-animate no-tilt" style="opacity:0; transform: translateY(80px);">
+                        <button id="menu-btn-levels" class="px-8 py-3.5 bg-slate-900/80 border border-cyan-500/40 text-cyan-400 font-bold orbitron text-sm rounded-xl hover:border-cyan-400 hover:bg-cyan-955/60 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.1)] active:scale-95 flex items-center gap-3">
+                            <i class="fa-solid fa-map-location-dot text-cyan-300"></i> LEVELS <i class="fa-solid fa-chevron-down text-xs opacity-60 group-hover:rotate-180 transition-transform duration-300"></i>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="menu-levels-dropdown" onwheel="event.stopPropagation()" ontouchmove="event.stopPropagation()" class="absolute top-[105%] left-1/2 w-72 bg-slate-950/95 border border-cyan-500/40 rounded-xl shadow-2xl p-2.5 flex flex-col gap-1.5 z-50 max-h-[220px] overflow-y-auto">
+                            <!-- Jungle -->
+                            <div onclick="selectMenuMap('jungle')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-emerald-950/40 border border-transparent hover:border-emerald-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-emerald-950/60 flex items-center justify-center text-emerald-400">
+                                    <i class="fa-solid fa-tree text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-emerald-400 tracking-wider">JUNGLE</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 1: Biolum canopy</div>
+                                </div>
+                            </div>
+                            <!-- Volcanic -->
+                            <div onclick="selectMenuMap('volcanic')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-red-950/40 border border-transparent hover:border-red-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-red-950/60 flex items-center justify-center text-red-400">
+                                    <i class="fa-solid fa-fire text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-red-400 tracking-wider">VOLCANIC</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 2: Lava fields</div>
+                                </div>
+                            </div>
+                            <!-- Europa -->
+                            <div onclick="selectMenuMap('europa')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-cyan-950/40 border border-transparent hover:border-cyan-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-cyan-950/60 flex items-center justify-center text-cyan-400">
+                                    <i class="fa-solid fa-snowflake text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-cyan-400 tracking-wider">EUROPA</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 3: Icy crust shell</div>
+                                </div>
+                            </div>
+                            <!-- Venus -->
+                            <div onclick="selectMenuMap('venus')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-lime-950/40 border border-transparent hover:border-lime-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-lime-950/60 flex items-center justify-center text-lime-400">
+                                    <i class="fa-solid fa-cloud-showers-water text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-lime-400 tracking-wider">VENUS</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 4: Acidic Wasteland</div>
+                                </div>
+                            </div>
+                            <!-- Mars -->
+                            <div onclick="selectMenuMap('mars')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-orange-950/40 border border-transparent hover:border-orange-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-orange-950/60 flex items-center justify-center text-orange-400">
+                                    <i class="fa-solid fa-mars text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-orange-400 tracking-wider">MARS</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 5: Steep canyons</div>
+                                </div>
+                            </div>
+                            <!-- Backrooms -->
+                            <div onclick="selectMenuMap('backrooms')" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-yellow-950/40 border border-transparent hover:border-yellow-500/20 cursor-pointer text-left transition-all duration-200 group/item">
+                                <div class="w-8 h-8 rounded-md bg-yellow-950/60 flex items-center justify-center text-yellow-400">
+                                    <i class="fa-solid fa-door-open text-sm"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="orbitron text-[11px] font-black text-yellow-400 tracking-wider">BACKROOMS</div>
+                                    <div class="text-[9px] text-slate-400 uppercase">Sector 6: Liminal depths</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+ 
+                     <!-- OPTIONS DROPDOWN -->
+                    <div class="relative group dropdown-container menu-btn-animate no-tilt" style="opacity:0; transform: translateY(80px);">
+                        <button id="menu-btn-options" class="px-8 py-3.5 bg-slate-900/80 border border-cyan-500/40 text-cyan-400 font-bold orbitron text-sm rounded-xl hover:border-cyan-400 hover:bg-cyan-955/60 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.1)] active:scale-95 flex items-center gap-3">
+                            <i class="fa-solid fa-sliders text-cyan-300"></i> OPTIONS <i class="fa-solid fa-chevron-down text-xs opacity-60 group-hover:rotate-180 transition-transform duration-300"></i>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div onwheel="event.stopPropagation()" ontouchmove="event.stopPropagation()" class="absolute top-[105%] right-0 w-80 bg-slate-950/95 border border-cyan-500/40 rounded-xl shadow-2xl p-4 flex flex-col gap-4 z-50 text-left max-h-[220px] overflow-y-auto">
+                            
+                            <!-- Audio Settings -->
+                            <div class="space-y-2.5">
+                                <div class="orbitron text-[10px] font-black text-cyan-400 tracking-widest uppercase border-b border-cyan-500/20 pb-1">
+                                    <i class="fa-solid fa-volume-high mr-1"></i> AUDIO CONFIG
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-slate-300 font-semibold tracking-wider">SOUND EFFECTS</span>
+                                    <button id="menu-opt-sound-toggle" onclick="toggleMenuSound(event)" class="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 hover:border-emerald-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200">
+                                        ENABLED
+                                    </button>
+                                </div>
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="text-slate-300 font-semibold tracking-wider">BACKGROUND MUSIC</span>
+                                    <button id="menu-opt-music-toggle" onclick="toggleMenuMusic(event)" class="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 hover:border-emerald-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200">
+                                        ENABLED
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Difficulty Settings -->
+                            <div class="space-y-2.5">
+                                <div class="orbitron text-[10px] font-black text-cyan-400 tracking-widest uppercase border-b border-cyan-500/20 pb-1">
+                                    <i class="fa-solid fa-gauge-high mr-1"></i> COMBAT DIFFICULTY
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button id="difficulty-easy" onclick="setMenuDifficulty('easy', event)" class="px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200">
+                                        EASY
+                                    </button>
+                                    <button id="difficulty-normal" onclick="setMenuDifficulty('normal', event)" class="px-1.5 py-1 border border-cyan-500 bg-cyan-950/50 text-cyan-400 text-[9px] orbitron font-bold rounded-md transition-all duration-200">
+                                        NORMAL
+                                    </button>
+                                    <button id="difficulty-hard" onclick="setMenuDifficulty('hard', event)" class="px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200">
+                                        HARD
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Graphic settings / Quality -->
+                            <div class="space-y-2.5">
+                                <div class="orbitron text-[10px] font-black text-cyan-400 tracking-widest uppercase border-b border-cyan-500/20 pb-1">
+                                    <i class="fa-solid fa-tv mr-1"></i> GRAPHICS PRESET
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <button id="graphics-low" onclick="setMenuGraphics('low', event)" class="px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200">
+                                        LOW
+                                    </button>
+                                    <button id="graphics-medium" onclick="setMenuGraphics('medium', event)" class="px-1.5 py-1 border border-cyan-500 bg-cyan-950/50 text-cyan-400 text-[9px] orbitron font-bold rounded-md transition-all duration-200">
+                                        HIGH
+                                    </button>
+                                    <button id="graphics-high" onclick="setMenuGraphics('high', event)" class="px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200">
+                                        ULTRA
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Decorative UI Elements to elevate premium look -->
+                <div class="flex items-center gap-6 mt-8 opacity-45 pointer-events-none w-full max-w-[620px] justify-between text-[8px] text-slate-400 orbitron tracking-[0.15em] border-t border-cyan-500/10 pt-4">
+                    <span>SYS_LOC: ORBIT_SECTOR_7</span>
+                    <span>LINK_LATENCY: 14MS</span>
+                    <span>HQ_STATUS: AWAITING_LAUNCH</span>
+                </div>
+        </div>
+        </div>
+        <!-- Custom HUD controls overlay (Interactive on top of Canvas) -->
+        <div id="backrooms-menu-controls" class="absolute right-[-240px] top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-slate-950/80 border border-yellow-600/40 p-4 rounded-2xl z-40 backdrop-blur-md w-48 text-yellow-500 shadow-[0_0_30px_rgba(234,179,8,0.15)] transition-all duration-300 pointer-events-auto">
+            <h3 class="text-yellow-400 font-bold text-center border-b border-yellow-500/20 pb-2 mb-1 text-xs uppercase tracking-widest orbitron">Backrooms HUD</h3>
+            
+            <button id="menu-btn-audio" class="px-3 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-500/30 text-yellow-200 text-[10px] font-bold tracking-wider orbitron flex items-center gap-2 justify-center transition-all">
+                <span>🔊</span> MUTE HUM
+            </button>
+            <button id="menu-btn-camera" class="px-3 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-500/30 text-yellow-200 text-[10px] font-bold tracking-wider orbitron flex items-center gap-2 justify-center transition-all">
+                <span>🎥</span> AUTO WALK
+            </button>
+            <button id="menu-btn-flashlight" class="px-3 py-1.5 rounded-lg bg-yellow-600/20 hover:bg-yellow-600/40 border border-yellow-500/30 text-yellow-200 text-[10px] font-bold tracking-wider orbitron flex items-center gap-2 justify-center transition-all">
+                <span>🔦</span> FLASHLIGHT ON
+            </button>
+            <button id="menu-btn-scare" class="px-3 py-1.5 rounded-lg bg-red-950/30 hover:bg-red-950/50 border border-red-500/40 text-red-400 text-[10px] font-bold tracking-wider orbitron flex items-center gap-2 justify-center transition-all">
+                <span>💀</span> SPAWN ENTITY
+            </button>
+
+            <div class="text-[9px] text-gray-400 text-center mt-1.5 border-t border-yellow-500/20 pt-2 font-mono">
+                <span class="block text-yellow-500 font-bold mb-1">INTERACTIVE MODE</span>
+                WASD to Move<br>
+                Mouse Drag to Look
             </div>
         </div>
     </div>
@@ -395,6 +729,7 @@
                     <option value="europa">Europa Ice-Shell</option>
                     <option value="venus">Venusian Wasteland</option>
                     <option value="mars">Martian Canyons</option>
+                    <option value="backrooms">The Backrooms</option>
                 </select>
             </div>
 
@@ -800,7 +1135,9 @@
             food: 100,
             water: 100,
             power: 100,
-            collectedFood: 0
+            collectedFood: 0,
+            difficulty: 'normal',
+            graphicsQuality: 'medium'
         };
 
         function generateMarsTexture() {
@@ -880,6 +1217,75 @@
             texture.repeat.set(32, 32); // repeat to look detailed
             venusGroundTexture = texture;
             return venusGroundTexture;
+        }
+
+        let backroomsGroundTexture = null;
+        function generateBackroomsTexture() {
+            if (backroomsGroundTexture) return backroomsGroundTexture;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Dirty worn carpet yellow-brown base
+            const grad = ctx.createLinearGradient(0, 0, 512, 512);
+            grad.addColorStop(0, '#786832');
+            grad.addColorStop(0.5, '#8b7d3c');
+            grad.addColorStop(1, '#665727');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Add fine noise for carpet texture
+            ctx.fillStyle = 'rgba(0,0,0,0.18)';
+            for (let i = 0; i < 25000; i++) {
+                const rx = Math.random() * 512;
+                const ry = Math.random() * 512;
+                const rw = Math.random() * 1.5 + 0.5;
+                ctx.fillRect(rx, ry, rw, rw);
+            }
+            ctx.fillStyle = 'rgba(255,255,255,0.06)';
+            for (let i = 0; i < 15000; i++) {
+                const rx = Math.random() * 512;
+                const ry = Math.random() * 512;
+                const rw = Math.random() * 1.2 + 0.5;
+                ctx.fillRect(rx, ry, rw, rw);
+            }
+
+            // Faint carpet seams (grid layout)
+            ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+            ctx.lineWidth = 1.0;
+            for (let coord = 64; coord < 512; coord += 64) {
+                // Horizontal seam
+                ctx.beginPath();
+                ctx.moveTo(0, coord);
+                ctx.lineTo(512, coord);
+                ctx.stroke();
+                // Vertical seam
+                ctx.beginPath();
+                ctx.moveTo(coord, 0);
+                ctx.lineTo(coord, 512);
+                ctx.stroke();
+            }
+
+            // Uncanny damp/dirty carpet splotches (dark mold/stain spots)
+            ctx.fillStyle = 'rgba(40,30,10,0.4)';
+            for (let i = 0; i < 8; i++) {
+                const cx = Math.random() * 512;
+                const cy = Math.random() * 512;
+                const rx = Math.random() * 30 + 15;
+                const ry = Math.random() * 15 + 8;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(32, 32);
+            backroomsGroundTexture = texture;
+            return backroomsGroundTexture;
         }
 
         function calculateVenusHeight(x, z) {
@@ -1240,6 +1646,24 @@
                 gridMainColor: 0xf97316,
                 gridSubColor: 0x431407,
                 themeClass: "border-orange-500/30 text-orange-400 focus:border-orange-400"
+            },
+            backrooms: {
+                name: "The Backrooms",
+                groundColor: 0x8b7d3c,      // dirty worn carpet yellow-brown
+                fogColor: 0x1a1806,          // deep amber darkness
+                skyTop: 0x2d2a0e,            // sickly yellow ceiling haze
+                skyBottom: 0x1a1806,         // matches fog
+                skyCloud: 0x6b5f1e,          // flickering fluorescent yellow
+                ambientColor: 0x3d3510,      // dim amber ambient
+                dirColor: 0xfde68a,          // harsh fluorescent white-yellow
+                dirIntensity: 0.5,           // dim, unsettling
+                baseCrystalColor: 0xfbbf24,  // amber crystal
+                baseCrystalEmissive: 0xd97706,
+                baseShardColor: 0x92400e,    // dark amber shard
+                baseShardEmissive: 0xfbbf24,
+                gridMainColor: 0xfbbf24,     // amber grid
+                gridSubColor: 0x3d2e05,
+                themeClass: "border-yellow-500/30 text-yellow-400 focus:border-yellow-400"
             }
         };
 
@@ -1834,6 +2258,7 @@
         // Global variable for dust storm particles
         let marsDustParticles = null;
         let venusAcidRainParticles = null;
+        let backroomsFluorescentParticles = null;
         let ufoBodyInstancedMesh = null;
         let ufoDomeInstancedMesh = null;
         let ufoThrustInstancedMesh = null;
@@ -2941,6 +3366,146 @@
             return group;
         }
 
+        function createBackroomsWallSegment() {
+            const group = new THREE.Group();
+            
+            // Wall geometry
+            const wallGeo = new THREE.BoxGeometry(0.8, 1.25, 0.15);
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0xc9b458, // pale faded yellow wallpaper color
+                roughness: 0.85,
+                metalness: 0.05
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.y = 0.625;
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            group.add(wall);
+
+            // Darker baseboard
+            const baseboardGeo = new THREE.BoxGeometry(0.81, 0.1, 0.17);
+            const baseboardMat = new THREE.MeshStandardMaterial({
+                color: 0x451a03, // dark wood baseboard
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
+            baseboard.position.y = 0.05;
+            baseboard.castShadow = true;
+            group.add(baseboard);
+
+            // Subtle vertical stripe patterns (decorative wallpaper details)
+            const stripeGeo = new THREE.BoxGeometry(0.015, 1.15, 0.005);
+            const stripeMat = new THREE.MeshStandardMaterial({
+                color: 0xb59e45, // slightly darker vertical lines
+                roughness: 0.9
+            });
+
+            // 4 vertical stripes (2 on each side of the wall panel)
+            for (let side of [-1, 1]) {
+                for (let xOffset of [-0.22, 0.22]) {
+                    const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+                    stripe.position.set(xOffset, 0.675, side * 0.076);
+                    group.add(stripe);
+                }
+            }
+
+            // Random rotation so they construct maze-like orientations (0 or 90 degrees)
+            const rotY = Math.random() < 0.5 ? 0 : Math.PI / 2;
+            group.rotation.y = rotY;
+            
+            return group;
+        }
+
+        function createBackroomsPillar() {
+            const group = new THREE.Group();
+
+            // Concrete gray columns
+            const pillarGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.0, 8);
+            const pillarMat = new THREE.MeshStandardMaterial({
+                color: 0xa8a29e, // concrete stone-400
+                roughness: 0.95,
+                metalness: 0.05
+            });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.y = 1.0;
+            pillar.castShadow = true;
+            pillar.receiveShadow = true;
+            group.add(pillar);
+
+            // Top molding trim (thin slab)
+            const moldingGeo = new THREE.BoxGeometry(0.44, 0.1, 0.44);
+            const moldingMat = new THREE.MeshStandardMaterial({
+                color: 0xe7e5e4, // stone-200 plaster
+                roughness: 0.9
+            });
+            const molding = new THREE.Mesh(moldingGeo, moldingMat);
+            molding.position.y = 1.95;
+            molding.castShadow = true;
+            group.add(molding);
+
+            // Faint base molding
+            const baseMolding = molding.clone();
+            baseMolding.position.y = 0.05;
+            group.add(baseMolding);
+
+            return group;
+        }
+
+        function createFluorescentFixture() {
+            const group = new THREE.Group();
+
+            // Broken tilted metal box casing
+            const fixtureGeo = new THREE.BoxGeometry(0.65, 0.08, 0.16);
+            const fixtureMat = new THREE.MeshStandardMaterial({
+                color: 0x57534e, // dirty steel
+                metalness: 0.85,
+                roughness: 0.35
+            });
+            const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
+            fixture.position.y = 0.45;
+            fixture.castShadow = true;
+            group.add(fixture);
+
+            // Double glowing tube cylinders inside
+            const tubeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.58, 6);
+            tubeGeo.rotateZ(Math.PI / 2);
+
+            const tubeMat = new THREE.MeshBasicMaterial({
+                color: 0xfef9c3 // glowing white-yellow fluorescent bulb
+            });
+
+            // 2 parallel tube lights
+            for (let offset of [-0.04, 0.04]) {
+                const tube = new THREE.Mesh(tubeGeo, tubeMat);
+                tube.position.set(0, 0.41, offset);
+                group.add(tube);
+            }
+
+            // Tilted support wire (make it look fallen/hanging)
+            const wireGeo = new THREE.CylinderGeometry(0.003, 0.003, 1.4, 4);
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0x27272a });
+            
+            const wire = new THREE.Mesh(wireGeo, wireMat);
+            wire.position.set(-0.25, 1.15, 0);
+            wire.rotation.z = 0.12;
+            group.add(wire);
+
+            // Tilt the whole light fixture group to look dangling/liminal
+            group.rotation.set(
+                (Math.random() - 0.5) * 0.15,
+                Math.random() * Math.PI,
+                0.22 + Math.random() * 0.15
+            );
+
+            // Small light emitter
+            const light = new THREE.PointLight(0xfde68a, 0.6, 2.5);
+            light.position.y = 0.38;
+            group.add(light);
+
+            return group;
+        }
+
         // Fill Obstacles randomly with strict pathway routing checks
         // Separate grid generation math (CPU) from 3D object synthesis (GPU upload)
         function generateObstacleLayoutGrid() {
@@ -3018,8 +3583,12 @@
                         }
                         if (isSpawnZone) continue;
 
-                        // Obstacle density probability (9% general, 3% on Mars)
-                        const density = (typeof gameState !== 'undefined' && gameState.currentBiome === 'mars') ? 0.03 : 0.09;
+                        // Obstacle density probability (9% general, 3% on Mars, 6% in Backrooms)
+                        let density = 0.09;
+                        if (typeof gameState !== 'undefined') {
+                            if (gameState.currentBiome === 'mars') density = 0.03;
+                            else if (gameState.currentBiome === 'backrooms') density = 0.06;
+                        }
                         if (Math.random() < density) {
                             grid[x][z] = CELL_TYPES.OBSTACLE;
                         }
@@ -3096,6 +3665,15 @@
                         } else {
                             model = createAcidicGeyser();
                         }
+                    } else if (gameState.currentBiome === 'backrooms') {
+                        const r = Math.random();
+                        if (r < 0.45) {
+                            model = createBackroomsWallSegment();
+                        } else if (r < 0.8) {
+                            model = createBackroomsPillar();
+                        } else {
+                            model = createFluorescentFixture();
+                        }
                     } else { // jungle
                         const r = Math.random();
                         if (r < 0.6) {
@@ -3128,6 +3706,18 @@
                         });
                         water = new THREE.Mesh(waterGeo, waterMat);
                         water.position.set(wPos.x, terrainHeight - 0.05, wPos.z);
+                    } else if (gameState.currentBiome === 'backrooms') {
+                        // Damp dark carpet puddle
+                        const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 0.05, CELL_SIZE);
+                        const waterMat = new THREE.MeshStandardMaterial({
+                            color: 0x3d3516,
+                            roughness: 0.1,
+                            metalness: 0.2,
+                            transparent: true,
+                            opacity: 0.7
+                        });
+                        water = new THREE.Mesh(waterGeo, waterMat);
+                        water.position.set(wPos.x, 0.025, wPos.z);
                     } else {
                         // Create blue bioluminescent water block (solid 5 blocks deep)
                         const waterGeo = new THREE.BoxGeometry(CELL_SIZE, 5.0, CELL_SIZE);
@@ -3171,6 +3761,17 @@
                                         rock.position.set(edgeX + (Math.random() - 0.5) * 0.12, terrainHeight + 0.02, edgeZ + (Math.random() - 0.5) * 0.12);
                                         scene.add(rock);
                                         lakeMeshes.push(rock);
+                                    }
+                                } else if (gameState.currentBiome === 'backrooms') {
+                                    // spawn small yellowed ceiling tile debris chunks near damp puddles
+                                    if (Math.random() < 0.25) {
+                                        const debrisGeo = new THREE.BoxGeometry(0.08 + Math.random() * 0.08, 0.01, 0.08 + Math.random() * 0.08);
+                                        const debrisMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.9 });
+                                        const debris = new THREE.Mesh(debrisGeo, debrisMat);
+                                        debris.position.set(edgeX + (Math.random() - 0.5) * 0.1, 0.005, edgeZ + (Math.random() - 0.5) * 0.1);
+                                        debris.rotation.set((Math.random() - 0.5) * 0.1, Math.random() * Math.PI, (Math.random() - 0.5) * 0.1);
+                                        scene.add(debris);
+                                        lakeMeshes.push(debris);
                                     }
                                 } else {
                                     if (Math.random() < 0.4) {
@@ -3448,7 +4049,14 @@
                         const oldGeo = ground.geometry;
                         ground.geometry = groundGeo;
                         oldGeo.dispose();
-                        
+                    }
+                    
+                    if (biomeName === 'backrooms' && typeof generateBackroomsTexture === 'function') {
+                        ground.material.map = generateBackroomsTexture();
+                        ground.material.bumpMap = ground.material.map;
+                        ground.material.bumpScale = 0.05;
+                        ground.material.needsUpdate = true;
+                    } else {
                         // Restore original sand texture repeat settings
                         ground.material.map = groundTexture;
                         ground.material.bumpMap = groundTexture;
@@ -3554,6 +4162,34 @@
                         ground.material.bumpScale = 0.55;
                         ground.material.roughness = 0.96;
                     }
+                } else if (biomeName === 'backrooms') {
+                    if (fillLight) {
+                        fillLight.color.setHex(0xfef3c7); // Harsh pale fluorescent light
+                        fillLight.intensity = 0.35;
+                    }
+                    if (!backroomsFluorescentParticles) {
+                        const pCount = 150;
+                        const pGeo = new THREE.BufferGeometry();
+                        const pPositions = new Float32Array(pCount * 3);
+                        const pFreqs = new Float32Array(pCount);
+                        for (let i = 0; i < pCount; i++) {
+                            pPositions[i * 3] = (Math.random() - 0.5) * 200;
+                            pPositions[i * 3 + 1] = 3.5 + (Math.random() - 0.5) * 0.4;
+                            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+                            pFreqs[i] = 2.0 + Math.random() * 8.0;
+                        }
+                        pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+                        const pMat = new THREE.PointsMaterial({
+                            color: 0xfde68a,
+                            size: 0.14,
+                            transparent: true,
+                            opacity: 0.85,
+                            blending: THREE.AdditiveBlending
+                        });
+                        backroomsFluorescentParticles = new THREE.Points(pGeo, pMat);
+                        backroomsFluorescentParticles.userData = { freqs: pFreqs };
+                    }
+                    scene.add(backroomsFluorescentParticles);
                 } else {
                     if (fillLight) fillLight.intensity = 0.0;
                     if (dirLight) {
@@ -3566,6 +4202,9 @@
                     }
                     if (venusAcidRainParticles) {
                         scene.remove(venusAcidRainParticles);
+                    }
+                    if (backroomsFluorescentParticles) {
+                        scene.remove(backroomsFluorescentParticles);
                     }
                 }
 
@@ -3606,6 +4245,9 @@
                 } else if (biomeName === 'mars') {
                     selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-orange-500/30 text-orange-400 focus:border-orange-400";
                     containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-orange-500/20";
+                } else if (biomeName === 'backrooms') {
+                    selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-yellow-500/30 text-yellow-400 focus:border-yellow-400";
+                    containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-yellow-500/20";
                 } else {
                     selectEl.className = "bg-black/90 font-bold border rounded px-2 py-1 text-xs focus:outline-none cursor-pointer duration-300 border-emerald-500/30 text-emerald-400 focus:border-emerald-400";
                     containerEl.className = "blur-panel rounded-xl px-4 py-2.5 flex items-center gap-3 shadow-2xl mr-auto ml-4 transition-all duration-300 border-emerald-500/20";
@@ -3652,7 +4294,7 @@
 
             sequencer.start(() => {
                 console.log(`[Biome Engine] Biome loaded smooth sequencing: ${biomeName}`);
-                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'venus' ? 'lime' : biomeName === 'mars' ? 'orange' : 'green');
+                showToast(`${config.name.toUpperCase()} INITIALIZED`, biomeName === 'volcanic' ? 'red' : biomeName === 'venus' ? 'lime' : biomeName === 'mars' ? 'orange' : biomeName === 'backrooms' ? 'yellow' : 'green');
                 if (onCompleteCallback) {
                     onCompleteCallback();
                 }
@@ -7987,7 +8629,8 @@
                         venus: ['scarab', 'ant', 'wasp', 'ufo', 'golem'],
                         europa: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier'],
                         volcanic: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'],
-                        mars: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout']
+                        mars: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier', 'scout'],
+                        backrooms: ['scarab', 'ant', 'wasp', 'ufo', 'golem', 'stealth', 'ram', 'carrier']
                     };
                     const enemyCosts = {
                         scarab: 1.0,
@@ -8794,6 +9437,10 @@
         }
 
         function initMenuBackground() {
+            // Start WebGL Backrooms shader background inside the card
+            if (typeof window.initBackroomsShader === 'function') {
+                window.initBackroomsShader();
+            }
             // Populate bricks as absolute-positioned divs with physics data
             const brickGrid = document.getElementById('menu-brick-grid');
             window._brickPhysics = [];
@@ -9372,7 +10019,1053 @@
             }
         }
 
+        window._backroomsShaderAnimId = null;
+        window._backroomsSim = null;
+
+        window.initBackroomsShader = function() {
+            const canvas = document.getElementById('menu-shader-canvas');
+            if (!canvas) return;
+
+            const glitchCanvas = document.getElementById('menu-glitch-canvas');
+            const glitchCtx = glitchCanvas ? glitchCanvas.getContext('2d') : null;
+
+            // State flags
+            let playAudio = true;
+            let autoCamera = true;
+            let flashlightOn = true;
+            let isScaredState = false;
+
+            /* ==========================================
+               BACKROOMS REAL-TIME SOUND SYNTHESIZER
+               ========================================== */
+            class BackroomsSoundSynth {
+                constructor() {
+                    this.ctx = null;
+                    this.masterVolume = null;
+                    this.humOsc = null;
+                    this.buzzOsc = null;
+                    this.whiteNoise = null;
+                    this.isActive = false;
+                }
+
+                init() {
+                    if (this.isActive) return;
+                    try {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        this.masterVolume = this.ctx.createGain();
+                        this.masterVolume.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                        this.masterVolume.connect(this.ctx.destination);
+
+                        this.humOsc = this.ctx.createOscillator();
+                        this.humOsc.type = 'sine';
+                        this.humOsc.frequency.setValueAtTime(60, this.ctx.currentTime);
+                        const humVolume = this.ctx.createGain();
+                        humVolume.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                        this.humOsc.connect(humVolume).connect(this.masterVolume);
+
+                        this.buzzOsc = this.ctx.createOscillator();
+                        this.buzzOsc.type = 'sawtooth';
+                        this.buzzOsc.frequency.setValueAtTime(120.3, this.ctx.currentTime);
+                        
+                        const buzzFilter = this.ctx.createBiquadFilter();
+                        buzzFilter.type = 'lowpass';
+                        buzzFilter.frequency.setValueAtTime(150, this.ctx.currentTime);
+
+                        const buzzVolume = this.ctx.createGain();
+                        buzzVolume.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                        this.buzzOsc.connect(buzzFilter).connect(buzzVolume).connect(this.masterVolume);
+
+                        const bufferSize = this.ctx.sampleRate * 2;
+                        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                        const output = noiseBuffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) {
+                            output[i] = Math.random() * 2 - 1;
+                        }
+                        this.whiteNoise = this.ctx.createBufferSource();
+                        this.whiteNoise.buffer = noiseBuffer;
+                        this.whiteNoise.loop = true;
+
+                        const noiseFilter = this.ctx.createBiquadFilter();
+                        noiseFilter.type = 'bandpass';
+                        noiseFilter.frequency.setValueAtTime(8200, this.ctx.currentTime);
+                        noiseFilter.Q.setValueAtTime(12, this.ctx.currentTime);
+
+                        const noiseVolume = this.ctx.createGain();
+                        noiseVolume.gain.setValueAtTime(0.015, this.ctx.currentTime);
+
+                        this.whiteNoise.connect(noiseFilter).connect(noiseVolume).connect(this.masterVolume);
+
+                        this.humOsc.start();
+                        this.buzzOsc.start();
+                        this.whiteNoise.start();
+
+                        this.isActive = true;
+                        this.updateMuteState();
+                    } catch (e) {
+                        console.error("Web Audio Synth failed to launch:", e);
+                    }
+                }
+
+                updateMuteState() {
+                    if (!this.masterVolume) return;
+                    this.masterVolume.gain.setValueAtTime(playAudio ? 0.12 : 0, this.ctx.currentTime);
+                }
+
+                playFootstep() {
+                    if (!this.isActive || !playAudio) return;
+                    try {
+                        const squishOsc = this.ctx.createOscillator();
+                        const squishGain = this.ctx.createGain();
+                        squishOsc.type = 'sine';
+                        squishOsc.frequency.setValueAtTime(90, this.ctx.currentTime);
+                        squishOsc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+
+                        const squishFilter = this.ctx.createBiquadFilter();
+                        squishFilter.type = 'lowpass';
+                        squishFilter.frequency.setValueAtTime(120, this.ctx.currentTime);
+
+                        squishGain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                        squishGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                        squishOsc.connect(squishFilter).connect(squishGain).connect(this.masterVolume);
+                        squishOsc.start();
+                        squishOsc.stop(this.ctx.currentTime + 0.16);
+                    } catch (err) {}
+                }
+
+                playScareEffect() {
+                    if (!this.isActive || !playAudio) return;
+                    try {
+                        const screechOsc = this.ctx.createOscillator();
+                        const screechGain = this.ctx.createGain();
+                        screechOsc.type = 'sawtooth';
+                        screechOsc.frequency.setValueAtTime(100, this.ctx.currentTime);
+                        screechOsc.frequency.linearRampToValueAtTime(1400, this.ctx.currentTime + 1.2);
+
+                        const screechFilter = this.ctx.createBiquadFilter();
+                        screechFilter.type = 'bandpass';
+                        screechFilter.frequency.setValueAtTime(600, this.ctx.currentTime);
+                        screechFilter.Q.setValueAtTime(1.0, this.ctx.currentTime);
+
+                        screechGain.gain.setValueAtTime(1.5, this.ctx.currentTime);
+                        screechGain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.3);
+
+                        screechOsc.connect(screechFilter).connect(screechGain).connect(this.ctx.destination);
+                        screechOsc.start();
+                        screechOsc.stop(this.ctx.currentTime + 1.4);
+                    } catch (err) {}
+                }
+
+                stop() {
+                    if (!this.isActive) return;
+                    try {
+                        if (this.humOsc) { this.humOsc.stop(); this.humOsc.disconnect(); }
+                        if (this.buzzOsc) { this.buzzOsc.stop(); this.buzzOsc.disconnect(); }
+                        if (this.whiteNoise) { this.whiteNoise.stop(); this.whiteNoise.disconnect(); }
+                        if (this.ctx) { this.ctx.close(); }
+                    } catch (e) {}
+                    this.isActive = false;
+                    this.ctx = null;
+                }
+            }
+
+            const SoundSynth = new BackroomsSoundSynth();
+
+            // Store in global ref for clean disposal
+            window._backroomsSim = {
+                renderer: null,
+                scene: null,
+                camera: null,
+                soundSynth: SoundSynth,
+                materials: [],
+                geometries: [],
+                textures: [],
+                listeners: []
+            };
+
+            // Setup buttons and panel elements
+            const btnAudio = document.getElementById('menu-btn-audio');
+            const btnCamera = document.getElementById('menu-btn-camera');
+            const btnFlashlight = document.getElementById('menu-btn-flashlight');
+            const btnScare = document.getElementById('menu-btn-scare');
+            const btnReboot = document.getElementById('menu-btn-reboot');
+
+            const countDisplay = document.getElementById('menu-recording-counter');
+            const timeDisplay = document.getElementById('menu-timestamp-time');
+            const dateDisplay = document.getElementById('menu-timestamp-date');
+            
+            if (dateDisplay) {
+                dateDisplay.innerText = "MAR. 12 1991";
+            }
+
+            let simStartTime = Date.now();
+
+            const trackListener = (el, type, fn) => {
+                if (el) {
+                    el.addEventListener(type, fn);
+                    window._backroomsSim.listeners.push({ el, type, fn });
+                }
+            };
+
+            if (btnAudio) {
+                trackListener(btnAudio, 'click', (e) => {
+                    e.stopPropagation();
+                    playAudio = !playAudio;
+                    btnAudio.innerHTML = playAudio ? `<span>🔊</span> MUTE HUM` : `<span>🔇</span> UNMUTE HUM`;
+                    btnAudio.classList.toggle('bg-red-800/30', !playAudio);
+                    btnAudio.classList.toggle('border-red-500/40', !playAudio);
+                    SoundSynth.updateMuteState();
+                });
+            }
+
+            if (btnCamera) {
+                trackListener(btnCamera, 'click', (e) => {
+                    e.stopPropagation();
+                    autoCamera = !autoCamera;
+                    btnCamera.innerHTML = autoCamera ? `<span>🎥</span> AUTO WALK` : `<span>👤</span> INTERACTIVE`;
+                    btnCamera.classList.toggle('bg-yellow-600/30', autoCamera);
+                });
+            }
+
+            if (btnFlashlight) {
+                trackListener(btnFlashlight, 'click', (e) => {
+                    e.stopPropagation();
+                    flashlightOn = !flashlightOn;
+                    btnFlashlight.innerHTML = flashlightOn ? `<span>🔦</span> FLASHLIGHT ON` : `<span>🔦</span> FLASHLIGHT OFF`;
+                    btnFlashlight.classList.toggle('bg-red-800/30', !flashlightOn);
+                    btnFlashlight.classList.toggle('border-red-500/40', !flashlightOn);
+                    if (cameraFlashlight) cameraFlashlight.visible = flashlightOn;
+                });
+            }
+
+            // Document interactions to activate audio context
+            const handleDocClick = () => {
+                if (playAudio) SoundSynth.init();
+            };
+            trackListener(document, 'click', handleDocClick);
+            trackListener(document, 'keydown', handleDocClick);
+
+            // Three.js Setup
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width || 820;
+            const height = rect.height || 500;
+
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: false, powerPreference: "high-performance" });
+            renderer.setSize(width, height, false);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            window._backroomsSim.renderer = renderer;
+
+            const scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2('#1a170f', 0.095);
+            window._backroomsSim.scene = scene;
+
+            const camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 100);
+            camera.position.set(4, 1.7, 4);
+            window._backroomsSim.camera = camera;
+
+            const trackGeo = g => { window._backroomsSim.geometries.push(g); return g; };
+            const trackMat = m => { window._backroomsSim.materials.push(m); return m; };
+            const trackTex = t => { window._backroomsSim.textures.push(t); return t; };
+
+            // Procedural Wallpapers
+            function generateWallpaperTexture() {
+                const wCanvas = document.createElement('canvas');
+                wCanvas.width = 512;
+                wCanvas.height = 512;
+                const ctx = wCanvas.getContext('2d');
+                ctx.fillStyle = '#dbcca0';
+                ctx.fillRect(0, 0, 512, 512);
+
+                ctx.strokeStyle = '#c5b487';
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 512; i += 16) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 512);
+                    ctx.stroke();
+                }
+
+                ctx.strokeStyle = '#dfd2af';
+                ctx.lineWidth = 1;
+                for (let x = 0; x < 512; x += 32) {
+                    for (let y = 0; y < 512; y += 32) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + 16, y);
+                        ctx.lineTo(x + 32, y + 16);
+                        ctx.lineTo(x + 16, y + 32);
+                        ctx.lineTo(x, y + 16);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.fillStyle = 'rgba(84, 73, 50, 0.25)';
+                for (let i = 0; i < 30; i++) {
+                    const x = Math.random() * 512;
+                    const y = Math.random() * 512;
+                    const radius = Math.random() * 45 + 10;
+                    const gradient = ctx.createRadialGradient(x, y, 1, x, y, radius);
+                    gradient.addColorStop(0, 'rgba(64, 53, 30, 0.35)');
+                    gradient.addColorStop(0.5, 'rgba(84, 73, 50, 0.15)');
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                const imgData = ctx.getImageData(0, 0, 512, 512);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const noise = (Math.random() - 0.5) * 12;
+                    data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                    data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+                    data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+                }
+                ctx.putImageData(imgData, 0, 0);
+
+                const tex = new THREE.CanvasTexture(wCanvas);
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(1, 1);
+                return trackTex(tex);
+            }
+
+            function generateCarpetTexture() {
+                const cCanvas = document.createElement('canvas');
+                cCanvas.width = 256;
+                cCanvas.height = 256;
+                const ctx = cCanvas.getContext('2d');
+                ctx.fillStyle = '#655437'; 
+                ctx.fillRect(0, 0, 256, 256);
+
+                for (let i = 0; i < 20; i++) {
+                    const x = Math.random() * 256;
+                    const y = Math.random() * 256;
+                    const radius = Math.random() * 35 + 5;
+                    const gradient = ctx.createRadialGradient(x, y, 1, x, y, radius);
+                    gradient.addColorStop(0, 'rgba(38, 29, 14, 0.7)');
+                    gradient.addColorStop(0.5, 'rgba(54, 43, 25, 0.3)');
+                    gradient.addColorStop(1, 'transparent');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                for (let i = 0; i < 8000; i++) {
+                    const x = Math.random() * 256;
+                    const y = Math.random() * 256;
+                    const shade = (Math.random() - 0.5) * 45;
+                    ctx.fillStyle = `rgba(${90 + shade}, ${78 + shade}, ${55 + shade}, 0.7)`;
+                    ctx.fillRect(x, y, 1.5, 1.5);
+                }
+
+                const tex = new THREE.CanvasTexture(cCanvas);
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(2, 2);
+                return trackTex(tex);
+            }
+
+            function generateCeilingTexture() {
+                const ceilCanvas = document.createElement('canvas');
+                ceilCanvas.width = 256;
+                ceilCanvas.height = 256;
+                const ctx = ceilCanvas.getContext('2d');
+                ctx.fillStyle = '#dbd9cb';
+                ctx.fillRect(0, 0, 256, 256);
+
+                ctx.fillStyle = 'rgba(70, 68, 60, 0.45)';
+                for (let i = 0; i < 250; i++) {
+                    const w = Math.random() * 3 + 1;
+                    const h = Math.random() * 3 + 1;
+                    ctx.fillRect(Math.random() * 256, Math.random() * 256, w, h);
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    const x = Math.random() * 256;
+                    const y = Math.random() * 256;
+                    const rad = Math.random() * 40 + 10;
+                    const grad = ctx.createRadialGradient(x, y, 1, x, y, rad);
+                    grad.addColorStop(0, 'rgba(100, 95, 75, 0.35)');
+                    grad.addColorStop(1, 'transparent');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, rad, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.strokeStyle = '#aeaca1';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(0, 0, 256, 256);
+
+                const tex = new THREE.CanvasTexture(ceilCanvas);
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(1, 1);
+                return trackTex(tex);
+            }
+
+            const GRID_CELL_SIZE = 4.0;
+            const GRID_COUNT = 16;
+            const mazeGrid = [];
+
+            function initMazeGrid() {
+                for (let x = 0; x < GRID_COUNT; x++) {
+                    mazeGrid[x] = [];
+                    for (let z = 0; z < GRID_COUNT; z++) {
+                        if (x === 0 || x === GRID_COUNT - 1 || z === 0 || z === GRID_COUNT - 1) {
+                            mazeGrid[x][z] = 1;
+                        } else {
+                            mazeGrid[x][z] = 0;
+                        }
+                    }
+                }
+
+                for (let x = 2; x < GRID_COUNT - 2; x += 4) {
+                    for (let z = 2; z < GRID_COUNT - 2; z += 4) {
+                        const rnd = Math.sin(x * 12.3 + z * 54.2) * 0.5 + 0.5;
+                        if (rnd < 0.25) {
+                            mazeGrid[x][z] = 1;
+                            mazeGrid[x+1][z] = 1;
+                        } else if (rnd < 0.50) {
+                            mazeGrid[x][z] = 1;
+                            mazeGrid[x][z+1] = 1;
+                        } else if (rnd < 0.75) {
+                            mazeGrid[x+1][z+1] = 1;
+                        }
+                    }
+                }
+            }
+
+            initMazeGrid();
+
+            const wallTexture = generateWallpaperTexture();
+            const wallMaterial = trackMat(new THREE.MeshStandardMaterial({
+                map: wallTexture,
+                roughness: 0.85,
+                metalness: 0.01,
+                bumpMap: wallTexture,
+                bumpScale: 0.01
+            }));
+
+            const carpetTexture = generateCarpetTexture();
+            const carpetMaterial = trackMat(new THREE.MeshStandardMaterial({
+                map: carpetTexture,
+                roughness: 0.98,
+                metalness: 0.0,
+                bumpMap: carpetTexture,
+                bumpScale: 0.005
+            }));
+
+            const ceilingTexture = generateCeilingTexture();
+            const ceilingMaterial = trackMat(new THREE.MeshStandardMaterial({
+                map: ceilingTexture,
+                roughness: 0.7,
+                metalness: 0.02
+            }));
+
+            const lightEmissionMaterial = trackMat(new THREE.MeshBasicMaterial({ color: '#fffaec' }));
+            const lightFixtureChassisMaterial = trackMat(new THREE.MeshStandardMaterial({ color: '#2a2a2a', roughness: 0.5 }));
+
+            const mazeExtent = GRID_COUNT * GRID_CELL_SIZE;
+            const floorGeo = trackGeo(new THREE.PlaneGeometry(mazeExtent, mazeExtent));
+            floorGeo.rotateX(-Math.PI / 2);
+            const floorMesh = new THREE.Mesh(floorGeo, carpetMaterial);
+            floorMesh.position.set(mazeExtent/2 - GRID_CELL_SIZE/2, 0, mazeExtent/2 - GRID_CELL_SIZE/2);
+            floorMesh.receiveShadow = true;
+            scene.add(floorMesh);
+
+            carpetTexture.repeat.set(GRID_COUNT * 4, GRID_COUNT * 4);
+
+            const ceilingGeo = trackGeo(new THREE.PlaneGeometry(mazeExtent, mazeExtent));
+            ceilingGeo.rotateX(Math.PI / 2);
+            const ceilingMesh = new THREE.Mesh(ceilingGeo, ceilingMaterial);
+            ceilingMesh.position.set(mazeExtent/2 - GRID_CELL_SIZE/2, 3.2, mazeExtent/2 - GRID_CELL_SIZE/2);
+            ceilingMesh.receiveShadow = true;
+            scene.add(ceilingMesh);
+
+            ceilingTexture.repeat.set(GRID_COUNT * 2, GRID_COUNT * 2);
+
+            const wallBoxGeo = trackGeo(new THREE.BoxGeometry(GRID_CELL_SIZE, 3.2, GRID_CELL_SIZE));
+            const wallGroup = new THREE.Group();
+            scene.add(wallGroup);
+
+            const lightFixtures = [];
+
+            for (let x = 0; x < GRID_COUNT; x++) {
+                for (let z = 0; z < GRID_COUNT; z++) {
+                    if (mazeGrid[x][z] === 1) {
+                        const wallBox = new THREE.Mesh(wallBoxGeo, wallMaterial);
+                        wallBox.position.set(x * GRID_CELL_SIZE, 1.6, z * GRID_CELL_SIZE);
+                        wallBox.castShadow = true;
+                        wallBox.receiveShadow = true;
+                        wallGroup.add(wallBox);
+                    } else {
+                        if (x % 3 === 0 && z % 3 === 0) {
+                            const fixtureGroup = new THREE.Group();
+                            fixtureGroup.position.set(x * GRID_CELL_SIZE, 3.14, z * GRID_CELL_SIZE);
+
+                            const chassis = new THREE.Mesh(trackGeo(new THREE.BoxGeometry(1.6, 0.02, 0.8)), lightFixtureChassisMaterial);
+                            fixtureGroup.add(chassis);
+
+                            const tubeGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.04, 1.4));
+                            tubeGeo.rotateZ(Math.PI / 2);
+                            
+                            const tube1 = new THREE.Mesh(tubeGeo, lightEmissionMaterial);
+                            tube1.position.set(0, -0.02, -0.15);
+                            fixtureGroup.add(tube1);
+
+                            const tube2 = new THREE.Mesh(tubeGeo, lightEmissionMaterial);
+                            tube2.position.set(0, -0.02, 0.15);
+                            fixtureGroup.add(tube2);
+
+                            scene.add(fixtureGroup);
+                            lightFixtures.push(fixtureGroup);
+                        }
+                    }
+                }
+            }
+
+            const LIGHT_POOL_SIZE = 4;
+            const activeLightsPool = [];
+
+            for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+                const light = new THREE.PointLight('#fffadd', 1.1, 10);
+                light.castShadow = true;
+                light.shadow.mapSize.width = 256;
+                light.shadow.mapSize.height = 256;
+                light.shadow.bias = -0.005;
+                light.shadow.camera.near = 0.5;
+                light.shadow.camera.far = 12;
+                scene.add(light);
+                activeLightsPool.push(light);
+            }
+
+            const globalAmbient = new THREE.AmbientLight('#2b291d', 0.28);
+            scene.add(globalAmbient);
+
+            const cameraFlashlight = new THREE.SpotLight('#fffaeb', 1.8, 18, Math.PI / 5, 0.5, 1.0);
+            cameraFlashlight.castShadow = true;
+            cameraFlashlight.shadow.mapSize.width = 256;
+            cameraFlashlight.shadow.mapSize.height = 256;
+            cameraFlashlight.shadow.bias = -0.002;
+            cameraFlashlight.visible = flashlightOn;
+            scene.add(cameraFlashlight);
+            scene.add(cameraFlashlight.target);
+
+            const dustCount = 40;
+            const dustPositions = new Float32Array(dustCount * 3);
+            for (let i = 0; i < dustCount * 3; i += 3) {
+                dustPositions[i] = (Math.random() - 0.5) * 16;
+                dustPositions[i+1] = Math.random() * 3.0;
+                dustPositions[i+2] = (Math.random() - 0.5) * 16;
+            }
+            const dustGeo = trackGeo(new THREE.BufferGeometry());
+            dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+            const dustMat = trackMat(new THREE.PointsMaterial({
+                color: '#ffebbd',
+                size: 0.035,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.AdditiveBlending
+            }));
+            const dustParticles = new THREE.Points(dustGeo, dustMat);
+            scene.add(dustParticles);
+
+            function updateDustParticles() {
+                const posAttr = dustParticles.geometry.attributes.position;
+                for (let i = 0; i < dustCount; i++) {
+                    const iy = i * 3 + 1;
+                    posAttr.array[iy] -= 0.005;
+                    if (posAttr.array[iy] < 0) posAttr.array[iy] = 3.0;
+                }
+                posAttr.needsUpdate = true;
+            }
+
+            class BacteriaMonster {
+                constructor() {
+                    this.mesh = new THREE.Group();
+                    this.visible = false;
+                    this.gridX = 0;
+                    this.gridZ = 0;
+                    this.twitchTimer = 0;
+
+                    const stalkMat = trackMat(new THREE.MeshStandardMaterial({ color: '#090909', roughness: 0.9, metalness: 0.1 }));
+                    const spineGeo = trackGeo(new THREE.CylinderGeometry(0.04, 0.05, 2.2, 5));
+                    const spine = new THREE.Mesh(spineGeo, stalkMat);
+                    spine.position.y = 1.1;
+                    spine.rotation.z = 0.15;
+                    this.mesh.add(spine);
+
+                    this.limbs = [];
+                    const legCount = 5;
+                    for (let i = 0; i < legCount; i++) {
+                        const limbGroup = new THREE.Group();
+                        limbGroup.position.set(0, 0.4 + i * 0.4, 0);
+
+                        const segment1 = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.02, 0.02, 1.1)), stalkMat);
+                        segment1.position.y = 0.5;
+                        segment1.rotation.z = (Math.random() - 0.5) * 1.5;
+                        segment1.rotation.x = (Math.random() - 0.5) * 1.5;
+                        limbGroup.add(segment1);
+
+                        const segment2 = new THREE.Mesh(trackGeo(new THREE.CylinderGeometry(0.015, 0.015, 0.9)), stalkMat);
+                        segment2.position.set(0, 1.0, 0);
+                        segment2.rotation.z = (Math.random() - 0.5) * 2.0;
+                        segment1.add(segment2);
+
+                        this.mesh.add(limbGroup);
+                        this.limbs.push({ mesh: limbGroup, baseRotX: limbGroup.rotation.x, baseRotZ: limbGroup.rotation.z });
+                    }
+
+                    const head = new THREE.Mesh(trackGeo(new THREE.SphereGeometry(0.12, 4, 4)), stalkMat);
+                    head.position.set(0.1, 2.1, 0);
+                    this.mesh.add(head);
+
+                    scene.add(this.mesh);
+                    this.mesh.visible = false;
+                }
+
+                spawn() {
+                    const playerX = Math.round(camera.position.x / GRID_CELL_SIZE);
+                    const playerZ = Math.round(camera.position.z / GRID_CELL_SIZE);
+
+                    let spawned = false;
+                    let attempts = 0;
+                    while (!spawned && attempts < 50) {
+                        const testX = Math.floor(Math.random() * (GRID_COUNT - 4)) + 2;
+                        const testZ = Math.floor(Math.random() * (GRID_COUNT - 4)) + 2;
+                        
+                        const dist = Math.sqrt((testX - playerX)**2 + (testZ - playerZ)**2);
+                        if (dist > 3 && dist < 8 && mazeGrid[testX][testZ] === 0) {
+                            this.gridX = testX;
+                            this.gridZ = testZ;
+                            this.mesh.position.set(testX * GRID_CELL_SIZE, 0, testZ * GRID_CELL_SIZE);
+                            this.mesh.visible = true;
+                            this.visible = true;
+                            spawned = true;
+                            lightsFlickerTrigger = 15; 
+                        }
+                        attempts++;
+                    }
+                }
+
+                update(delta) {
+                    if (!this.visible) return;
+
+                    this.twitchTimer += delta * 20;
+
+                    this.limbs.forEach((l, idx) => {
+                        l.mesh.rotation.x = l.baseRotX + Math.sin(this.twitchTimer + idx) * 0.18;
+                        l.mesh.rotation.z = l.baseRotZ + Math.cos(this.twitchTimer * 1.5 + idx) * 0.15;
+                    });
+
+                    const distToPlayer = camera.position.distanceTo(this.mesh.position);
+                    this.mesh.lookAt(new THREE.Vector3(camera.position.x, 0, camera.position.z));
+
+                    if (distToPlayer < 8.0) {
+                        if (!isScaredState) {
+                            lightsFlickerTrigger = 25;
+                            if (Math.random() < 0.08) lightsFlickerTrigger = 60;
+                        }
+                    }
+
+                    if (distToPlayer < 2.0) {
+                        triggerJumpScare();
+                    }
+                }
+
+                despawn() {
+                    this.visible = false;
+                    this.mesh.visible = false;
+                }
+            }
+
+            const Enemy = new BacteriaMonster();
+
+            if (btnScare) {
+                trackListener(btnScare, 'click', (e) => {
+                    e.stopPropagation();
+                    Enemy.spawn();
+                });
+            }
+
+            const playerPos = camera.position;
+            let yaw = 0;
+            let pitch = 0;
+
+            let moveTimer = 0;
+            let footstepCooldown = 0;
+            let lightsFlickerTrigger = 0;
+
+            let aiTargetCellX = 4;
+            let aiTargetCellZ = 4;
+            let aiHeadingAngle = 0;
+            let aiState = "WALKING"; 
+            let aiLastCellX = -1;
+            let aiLastCellZ = -1;
+
+            const keys = {};
+
+            trackListener(window, 'keydown', (e) => {
+                if (gameState.inMenu && !autoCamera) {
+                    keys[e.key.toLowerCase()] = true;
+                }
+            });
+            trackListener(window, 'keyup', (e) => {
+                if (gameState.inMenu && !autoCamera) {
+                    keys[e.key.toLowerCase()] = false;
+                }
+            });
+
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            trackListener(canvas, 'mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            trackListener(window, 'mousemove', (e) => {
+                if (!isDragging || autoCamera || !gameState.inMenu) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                yaw -= deltaX * 0.0035;
+                pitch -= deltaY * 0.0035;
+                pitch = Math.max(-Math.PI / 3.2, Math.min(Math.PI / 3.2, pitch));
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            trackListener(window, 'mouseup', () => { isDragging = false; });
+
+            function checkCollisions(pos, radius = 0.55) {
+                const px = pos.x;
+                const pz = pos.z;
+
+                const cx = Math.round(px / GRID_CELL_SIZE);
+                const cz = Math.round(pz / GRID_CELL_SIZE);
+
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        const cellX = cx + dx;
+                        const cellZ = cz + dz;
+
+                        if (cellX < 0 || cellX >= GRID_COUNT || cellZ < 0 || cellZ >= GRID_COUNT || mazeGrid[cellX][cellZ] === 1) {
+                            const minX = cellX * GRID_CELL_SIZE - GRID_CELL_SIZE / 2;
+                            const maxX = cellX * GRID_CELL_SIZE + GRID_CELL_SIZE / 2;
+                            const minZ = cellZ * GRID_CELL_SIZE - GRID_CELL_SIZE / 2;
+                            const maxZ = cellZ * GRID_CELL_SIZE + GRID_CELL_SIZE / 2;
+
+                            const closestX = Math.max(minX, Math.min(px, maxX));
+                            const closestZ = Math.max(minZ, Math.min(pz, maxZ));
+
+                            const diffX = px - closestX;
+                            const diffZ = pz - closestZ;
+                            const dist = Math.sqrt(diffX*diffX + diffZ*diffZ);
+
+                            if (dist < radius) {
+                                if (dist === 0) continue;
+                                const push = radius - dist;
+                                pos.x += (diffX / dist) * push;
+                                pos.z += (diffZ / dist) * push;
+                            }
+                        }
+                    }
+                }
+            }
+
+            function getAvailableDirections(cx, cz) {
+                const options = [];
+                if (mazeGrid[cx + 1]?.[cz] === 0) options.push({ x: cx + 1, z: cz, angle: -Math.PI / 2 });
+                if (mazeGrid[cx - 1]?.[cz] === 0) options.push({ x: cx - 1, z: cz, angle: Math.PI / 2 });
+                if (mazeGrid[cx]?.[cz + 1] === 0) options.push({ x: cx, z: cz + 1, angle: 0 });
+                if (mazeGrid[cx]?.[cz - 1] === 0) options.push({ x: cx, z: cz - 1, angle: Math.PI });
+                return options;
+            }
+
+            function runAutoWanderAI(delta) {
+                const cx = Math.round(playerPos.x / GRID_CELL_SIZE);
+                const cz = Math.round(playerPos.z / GRID_CELL_SIZE);
+
+                if (aiState === "WALKING") {
+                    const targetXWorld = aiTargetCellX * GRID_CELL_SIZE;
+                    const targetZWorld = aiTargetCellZ * GRID_CELL_SIZE;
+                    
+                    const distanceToTarget = Math.sqrt((playerPos.x - targetXWorld)**2 + (playerPos.z - targetZWorld)**2);
+
+                    if (distanceToTarget < 0.2) {
+                        aiState = "DECIDING";
+                    } else {
+                        const speed = 1.35;
+                        playerPos.x += Math.sin(aiHeadingAngle) * speed * delta;
+                        playerPos.z += Math.cos(aiHeadingAngle) * speed * delta;
+                        yaw += (aiHeadingAngle - yaw) * 3.0 * delta;
+                    }
+                } else if (aiState === "DECIDING") {
+                    const dirs = getAvailableDirections(cx, cz);
+                    const filteredDirs = dirs.filter(d => d.x !== aiLastCellX || d.z !== aiLastCellZ);
+                    const chosen = filteredDirs.length > 0 
+                        ? filteredDirs[Math.floor(Math.random() * filteredDirs.length)] 
+                        : dirs[Math.floor(Math.random() * dirs.length)];
+
+                    if (chosen) {
+                        aiLastCellX = cx;
+                        aiLastCellZ = cz;
+                        aiTargetCellX = chosen.x;
+                        aiTargetCellZ = chosen.z;
+                        aiHeadingAngle = chosen.angle;
+                        aiState = "WALKING";
+                    } else {
+                        aiTargetCellX = 4;
+                        aiTargetCellZ = 4;
+                        aiState = "WALKING";
+                    }
+                }
+
+                const time = Date.now() * 0.0012;
+                const lookBreathingSwayX = Math.sin(time * 0.7) * 0.12 + Math.cos(time * 1.5) * 0.05;
+                const lookBreathingSwayY = Math.cos(time * 0.5) * 0.15;
+                
+                pitch = -0.06 + lookBreathingSwayX;
+                yaw += lookBreathingSwayY * delta;
+            }
+
+            function triggerJumpScare() {
+                if (isScaredState) return;
+                isScaredState = true;
+
+                SoundSynth.playScareEffect();
+                const glitchText = document.getElementById('menu-glitch-text');
+                if (glitchText) glitchText.style.display = "block";
+                
+                let glitchTicks = 0;
+                const scareTimer = setInterval(() => {
+                    lightsFlickerTrigger = 100;
+                    glitchTicks++;
+                    if (glitchTicks > 30) {
+                        clearInterval(scareTimer);
+                        if (glitchText) glitchText.style.display = "none";
+                        Enemy.despawn();
+                        const sigLost = document.getElementById('menu-signal-lost');
+                        if (sigLost) sigLost.style.display = "flex";
+                    }
+                }, 50);
+            }
+
+            if (btnReboot) {
+                trackListener(btnReboot, 'click', (e) => {
+                    e.stopPropagation();
+                    const sigLost = document.getElementById('menu-signal-lost');
+                    if (sigLost) sigLost.style.display = "none";
+                    isScaredState = false;
+                    
+                    playerPos.set(4, 1.7, 4);
+                    yaw = 0;
+                    pitch = 0;
+                    aiTargetCellX = 4;
+                    aiTargetCellZ = 4;
+                    aiState = "WALKING";
+                });
+            }
+
+            let lastTime = performance.now();
+
+            function drawGlitchScreen(ctx, w, h) {
+                if (!ctx) return;
+                if (Math.random() < 0.08) {
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                    for (let i = 0; i < 5; i++) {
+                        const y = Math.random() * h;
+                        const lineH = Math.random() * 4 + 1;
+                        ctx.fillRect(0, y, w, lineH);
+                    }
+                    if (Math.random() < 0.3) {
+                        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                        ctx.fillRect(Math.random() * w * 0.1, Math.random() * h, w * 0.8, Math.random() * 10);
+                        ctx.fillStyle = 'rgba(0, 0, 255, 0.2)';
+                        ctx.fillRect(Math.random() * w * 0.1, Math.random() * h, w * 0.8, Math.random() * 10);
+                    }
+                } else {
+                    ctx.clearRect(0, 0, w, h);
+                }
+            }
+
+            const recordingTimeStart = Date.now();
+
+            function render(time) {
+                if (canvas.clientWidth === 0 || canvas.clientHeight === 0) {
+                    window._backroomsShaderAnimId = requestAnimationFrame(render);
+                    return;
+                }
+                const w = canvas.clientWidth;
+                const h = canvas.clientHeight;
+                if (canvas.width !== w || canvas.height !== h) {
+                    canvas.width = w;
+                    canvas.height = h;
+                    renderer.setSize(w, h, false);
+                    camera.aspect = w / h;
+                    camera.updateProjectionMatrix();
+                }
+
+                if (glitchCanvas && (glitchCanvas.width !== w || glitchCanvas.height !== h)) {
+                    glitchCanvas.width = w;
+                    glitchCanvas.height = h;
+                }
+
+                const delta = Math.min((performance.now() - lastTime) / 1000, 0.1);
+                lastTime = performance.now();
+
+                let isMoving = false;
+                if (!isScaredState && gameState.inMenu) {
+                    if (autoCamera) {
+                        runAutoWanderAI(delta);
+                        isMoving = true;
+                    } else {
+                        const speed = 1.45;
+                        const moveVector = new THREE.Vector3();
+
+                        if (keys['w']) { moveVector.z -= 1; isMoving = true; }
+                        if (keys['s']) { moveVector.z += 1; isMoving = true; }
+                        if (keys['a']) { moveVector.x -= 1; isMoving = true; }
+                        if (keys['d']) { moveVector.x += 1; isMoving = true; }
+
+                        moveVector.normalize();
+                        moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                        playerPos.add(moveVector.multiplyScalar(speed * delta));
+                    }
+
+                    checkCollisions(playerPos);
+                }
+
+                if (isMoving && !isScaredState) {
+                    moveTimer += delta * 7.5;
+                    const bobY = Math.abs(Math.sin(moveTimer)) * 0.085;
+                    camera.position.y = 1.65 + bobY;
+                    camera.rotation.z = Math.sin(moveTimer * 0.5) * 0.02;
+
+                    footstepCooldown -= delta;
+                    if (Math.sin(moveTimer) > 0.9 && footstepCooldown <= 0) {
+                        SoundSynth.playFootstep();
+                        footstepCooldown = 0.35;
+                    }
+                } else {
+                    moveTimer += delta * 1.5;
+                    camera.position.y = 1.7 + Math.sin(moveTimer) * 0.025;
+                    camera.rotation.z = Math.sin(moveTimer * 0.5) * 0.005;
+                }
+
+                camera.rotation.set(0, 0, 0);
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+
+                cameraFlashlight.position.copy(camera.position);
+                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                cameraFlashlight.target.position.copy(camera.position).add(dir);
+
+                if (flashlightOn && Math.random() < 0.004) {
+                    cameraFlashlight.intensity = Math.random() * 0.5 + 0.3;
+                    setTimeout(() => { cameraFlashlight.intensity = 1.8; }, Math.random() * 150);
+                }
+
+                const sortedFixtures = lightFixtures.map(fixture => {
+                    return {
+                        fixture: fixture,
+                        dist: playerPos.distanceTo(fixture.position)
+                    };
+                }).sort((a, b) => a.dist - b.dist);
+
+                for (let i = 0; i < LIGHT_POOL_SIZE; i++) {
+                    const targetLight = activeLightsPool[i];
+                    if (sortedFixtures[i] && sortedFixtures[i].dist < 18) {
+                        targetLight.position.copy(sortedFixtures[i].fixture.position).add(new THREE.Vector3(0, -0.1, 0));
+                        
+                        if (lightsFlickerTrigger > 0) {
+                            targetLight.intensity = Math.random() < (lightsFlickerTrigger / 100) ? 0.0 : 1.1;
+                        } else {
+                            if (Math.random() < 0.001) {
+                                targetLight.intensity = 0.05;
+                                setTimeout(() => { targetLight.intensity = 1.1; }, Math.random() * 200 + 50);
+                            } else {
+                                targetLight.intensity = 1.1;
+                            }
+                        }
+                    } else {
+                        targetLight.intensity = 0;
+                    }
+                }
+
+                if (lightsFlickerTrigger > 0) {
+                    lightsFlickerTrigger--;
+                }
+
+                updateDustParticles();
+                Enemy.update(delta);
+
+                renderer.render(scene, camera);
+
+                if (glitchCtx) {
+                    drawGlitchScreen(glitchCtx, w, h);
+                }
+
+                if (countDisplay && timeDisplay) {
+                    const elapsed = Math.floor((Date.now() - recordingTimeStart) / 1000);
+                    const hrs = Math.floor(elapsed / 3600);
+                    const mins = Math.floor((elapsed % 3600) / 60);
+                    const secs = elapsed % 60;
+                    countDisplay.innerText = `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    
+                    const now = new Date();
+                    timeDisplay.innerText = `AM ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                }
+
+                window._backroomsShaderAnimId = requestAnimationFrame(render);
+            }
+
+            window._backroomsShaderAnimId = requestAnimationFrame(render);
+        };
+
         function clearMenuBackground() {
+            if (window._backroomsShaderAnimId) {
+                cancelAnimationFrame(window._backroomsShaderAnimId);
+                window._backroomsShaderAnimId = null;
+            }
+
+            const sim = window._backroomsSim;
+            if (sim) {
+                if (sim.soundSynth) {
+                    sim.soundSynth.stop();
+                }
+                if (sim.listeners) {
+                    sim.listeners.forEach(({ el, type, fn }) => {
+                        try {
+                            el.removeEventListener(type, fn);
+                        } catch (e) {}
+                    });
+                }
+                if (sim.renderer) {
+                    sim.renderer.dispose();
+                }
+                if (sim.materials) {
+                    sim.materials.forEach(m => m.dispose());
+                }
+                if (sim.geometries) {
+                    sim.geometries.forEach(g => g.dispose());
+                }
+                if (sim.textures) {
+                    sim.textures.forEach(t => t.dispose());
+                }
+                window._backroomsSim = null;
+            }
+
+            const controlsPanel = document.getElementById('backrooms-menu-controls');
+            if (controlsPanel) controlsPanel.style.display = 'none';
+
             scene.remove(menuGroup);
             menuGroup.traverse(child => {
                 if (child.isMesh || child.isPoints) {
@@ -9462,6 +11155,134 @@
             if (biomeSelect) biomeSelect.value = biomeName;
             
             startCameraTransition();
+        };
+
+        window.triggerMenuSnapshotUpload = function() {
+            const input = document.getElementById('load-map-input');
+            if (input) input.click();
+        };
+
+        window.toggleMenuSound = function(event) {
+            if (event) event.stopPropagation();
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const btn = document.getElementById('menu-opt-sound-toggle');
+            const soundBtn = document.getElementById('sound-toggle');
+            if (gameState.soundEnabled) {
+                if (btn) {
+                    btn.innerText = 'ENABLED';
+                    btn.className = "px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 hover:border-emerald-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200";
+                }
+                if (soundBtn) {
+                    soundBtn.innerHTML = `<i class="fa-solid fa-volume-high text-lg"></i>`;
+                    soundBtn.classList.remove('text-red-400');
+                    soundBtn.classList.add('text-emerald-400');
+                }
+                if (typeof audio !== 'undefined' && typeof audio.playBuild === 'function') {
+                    audio.playBuild();
+                }
+            } else {
+                if (btn) {
+                    btn.innerText = 'DISABLED';
+                    btn.className = "px-2.5 py-1 bg-red-950/80 border border-red-500/30 text-red-400 hover:border-red-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200";
+                }
+                if (soundBtn) {
+                    soundBtn.innerHTML = `<i class="fa-solid fa-volume-xmark text-lg"></i>`;
+                    soundBtn.classList.remove('text-emerald-400');
+                    soundBtn.classList.add('text-red-400');
+                }
+            }
+        };
+
+        window.toggleMenuMusic = function(event) {
+            if (event) event.stopPropagation();
+            if (typeof window.toggleMusicMute === 'function') {
+                window.toggleMusicMute();
+            }
+            const btn = document.getElementById('menu-opt-music-toggle');
+            const musicIcon = document.getElementById('music-icon');
+            const isMuted = musicIcon && musicIcon.classList.contains('fa-volume-xmark');
+            if (btn) {
+                if (isMuted) {
+                    btn.innerText = 'DISABLED';
+                    btn.className = "px-2.5 py-1 bg-red-950/80 border border-red-500/30 text-red-400 hover:border-red-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200";
+                } else {
+                    btn.innerText = 'ENABLED';
+                    btn.className = "px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 hover:border-emerald-400 rounded-md font-bold orbitron text-[9px] uppercase transition-all duration-200";
+                }
+            }
+            if (gameState.soundEnabled && typeof audio !== 'undefined' && typeof audio.playBuild === 'function') {
+                audio.playBuild();
+            }
+        };
+
+        window.setMenuDifficulty = function(diff, event) {
+            if (event) event.stopPropagation();
+            gameState.difficulty = diff;
+            
+            ['easy', 'normal', 'hard'].forEach(d => {
+                const btn = document.getElementById(`difficulty-${d}`);
+                if (btn) {
+                    if (d === diff) {
+                        btn.className = "px-1.5 py-1 border border-cyan-500 bg-cyan-950/50 text-cyan-400 text-[9px] orbitron font-bold rounded-md transition-all duration-200";
+                    } else {
+                        btn.className = "px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200";
+                    }
+                }
+            });
+
+            if (typeof ENEMY_SPECS !== 'undefined') {
+                if (diff === 'easy') {
+                    ENEMY_SPECS.hp = 42;
+                    ENEMY_SPECS.speed = 2.2;
+                } else if (diff === 'hard') {
+                    ENEMY_SPECS.hp = 90;
+                    ENEMY_SPECS.speed = 3.4;
+                } else {
+                    ENEMY_SPECS.hp = 60;
+                    ENEMY_SPECS.speed = 2.8;
+                }
+            }
+
+            if (gameState.soundEnabled && typeof audio !== 'undefined' && typeof audio.playBuild === 'function') {
+                audio.playBuild();
+            }
+        };
+
+        window.setMenuGraphics = function(qual, event) {
+            if (event) event.stopPropagation();
+            gameState.graphicsQuality = qual;
+
+            ['low', 'medium', 'high'].forEach(q => {
+                const btn = document.getElementById(`graphics-${q}`);
+                if (btn) {
+                    if (q === qual) {
+                        btn.className = "px-1.5 py-1 border border-cyan-500 bg-cyan-950/50 text-cyan-400 text-[9px] orbitron font-bold rounded-md transition-all duration-200";
+                    } else {
+                        btn.className = "px-1.5 py-1 border border-slate-700 bg-slate-900/60 hover:bg-cyan-950/30 hover:border-cyan-500/50 text-[9px] orbitron font-bold rounded-md text-slate-400 transition-all duration-200";
+                    }
+                }
+            });
+
+            if (typeof renderer !== 'undefined') {
+                if (qual === 'low') {
+                    renderer.shadowMap.enabled = false;
+                    scene.traverse(node => {
+                        if (node.isLight) node.castShadow = false;
+                    });
+                } else {
+                    renderer.shadowMap.enabled = true;
+                    scene.traverse(node => {
+                        if (node.isLight && (node.type === 'DirectionalLight' || node.type === 'SpotLight')) {
+                            node.castShadow = true;
+                        }
+                    });
+                }
+                renderer.shadowMap.needsUpdate = true;
+            }
+
+            if (gameState.soundEnabled && typeof audio !== 'undefined' && typeof audio.playBuild === 'function') {
+                audio.playBuild();
+            }
         };
 
         /* ==========================================
@@ -9807,6 +11628,27 @@
                 if (baseLight) {
                     const elapsed = clock.getElapsedTime();
                     baseLight.intensity = 2.5 + Math.sin(elapsed * 3.0) * 1.0;
+                }
+            }
+
+            if (gameState.currentBiome === 'backrooms') {
+                if (backroomsFluorescentParticles && backroomsFluorescentParticles.parent) {
+                    const elapsed = clock.getElapsedTime();
+                    backroomsFluorescentParticles.material.opacity = 0.55 + Math.sin(elapsed * 5.0) * 0.3 + (Math.random() - 0.5) * 0.1;
+                    
+                    const posAttr = backroomsFluorescentParticles.geometry.attributes.position;
+                    for (let i = 0; i < posAttr.count; i++) {
+                        let px = posAttr.getX(i) + Math.sin(elapsed * 0.2 + i) * 0.05 * dt;
+                        let py = posAttr.getY(i) + Math.cos(elapsed * 0.1 + i) * 0.02 * dt;
+                        let pz = posAttr.getZ(i) + Math.cos(elapsed * 0.2 + i) * 0.05 * dt;
+                        posAttr.setXYZ(i, px, py, pz);
+                    }
+                    posAttr.needsUpdate = true;
+                }
+
+                if (baseLight) {
+                    const elapsed = clock.getElapsedTime();
+                    baseLight.intensity = 2.0 + Math.sin(elapsed * 4.0) * 0.8;
                 }
             }
 
@@ -11425,7 +13267,7 @@
 
         // === PHASE 4: CARD RISE FROM BELOW ===
         function startCardRise() {
-            const cards = document.querySelectorAll('.holo-card');
+            const cards = document.querySelectorAll('.holo-card, .menu-btn-animate');
             cards.forEach((card, i) => {
                 setTimeout(() => {
                     card.style.transition = 'opacity 0.5s ease-out, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
@@ -11436,6 +13278,7 @@
 
             // 3D cursor-tracked tilt
             cards.forEach(card => {
+                if (card.classList.contains('no-tilt')) return;
                 card.addEventListener('mousemove', (e) => {
                     const rect = card.getBoundingClientRect();
                     const x = (e.clientX - rect.left) / rect.width - 0.5;
@@ -11452,7 +13295,7 @@
         function typeSubtitle() {
             const el = document.getElementById('menu-subtitle');
             if (!el) return;
-            const text = 'SELECT YOUR COORDINATES TO DEPLOY THE DEFENSE HQ';
+            const text = 'AWAITING COMMANDER DIRECTIVES — ESTABLISH DEFENSE HQ OPERATIONS';
             let i = 0;
             function typeChar() {
                 if (i < text.length) {
