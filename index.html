@@ -13047,6 +13047,22 @@
         }
 
         let easterEggBuffer = "";
+        let menuEasterEggBuffer = "";
+
+        function isMainMenuActive() {
+            const menuContainer = document.getElementById('main-menu-container');
+            return menuContainer && !menuContainer.classList.contains('opacity-0') && !menuContainer.classList.contains('hidden');
+        }
+
+        function triggerMainMenuEasterEgg() {
+            const brickGrid = document.getElementById('menu-brick-grid');
+            if (brickGrid) {
+                window._bricksExploded = true;
+                brickGrid.style.pointerEvents = 'none';
+            }
+            window.location.href = 'assets/superguides/easteregg1.html';
+        }
+
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             if (key.length === 1 && /[a-z]/.test(key)) {
@@ -13055,6 +13071,13 @@
                     const hasGatling = towers.some(t => t.type === 'spore');
                     if (hasGatling) {
                         triggerSavEasterEgg();
+                    }
+                }
+
+                if (isMainMenuActive() && !window._bricksExploded) {
+                    menuEasterEggBuffer = (menuEasterEggBuffer + key).slice(-6);
+                    if (menuEasterEggBuffer === "ohayou") {
+                        triggerMainMenuEasterEgg();
                     }
                 }
             }
