@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Backrooms: Tentacle Infestation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', system-ui, sans-serif;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #blocker {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 5, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+        }
+        #instructions {
+            text-align: center;
+            cursor: pointer;
+        }
+        .title {
+            font-size: 2.5rem;
+            color: #ffcc66;
+            text-shadow: 0 0 20px rgba(255, 200, 100, 0.5);
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+        .controls {
+            font-family: monospace;
+            color: #888;
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            mix-blend-mode: difference;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: transparent;
+            color: #ffcc66;
+            pointer-events: none;
+            font-family: monospace;
+            text-shadow: 1px 1px 0 #000;
+        }
+        .hud-line {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="blocker">
+        <div id="instructions">
+            <div class="title">Level 0: Infestation</div>
+            <div class="subtitle">Procedural Generation & Tentacle Entities</div>
+            <div class="controls">
+                [CLICK] to Enter<br><br>
+                WASD - Move<br>
+                MOUSE - Look<br>
+                SHIFT - Sprint
+            </div>
+        </div>
+    </div>
+    <div id="ui">
+        <div class="hud-line">SECTOR: RANDOM_WALK_0XF</div>
+        <div class="hud-line">NODES ACTIVE: <span id="node-count">0</span></div>
+        <div class="hud-line" style="color:#ff5555">ENTITIES: WRITHING</div>
+    </div>
+    <div id="canvas-container"></div>
+    <div id="crosshair"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        let scene, camera, renderer, composer, controls;
+        let simulations = [];
+        let totalNodes = 0;
+        let time = 0;
+        let isGrowing = true;
+        let shaderMaterials = []; // Keep track to update uniforms
+
+        // Map configs
+        const MAP_SIZE = 25; // 25x25 grid
+        const CELL_SIZE = 5;
+        const WALL_HEIGHT = 6;
+        let mapGrid = []; 
+
+        // Player physics
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false, isSprinting = false;
+        let prevTime = performance.now();
+        const PLAYER_HEIGHT = 3.5;
+        const PLAYER_RADIUS = 1.0;
+
+        // Constants
+        const MAX_INSTANCES_PER_SIM = 6000;
+        const GROWTH_STEPS_PER_FRAME = 5;
+
+        const TextureGen = {
+            createCarpet: () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512; canvas.height = 512;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#9b8c66'; 
+                ctx.fillRect(0, 0, 512, 512);
+                const imgData = ctx.getImageData(0, 0, 512, 512);
+                const data = imgData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const noise = (Math.random() - 0.5) * 50;
+                    data[i] = Math.max(0, data[i] + noise);
+                    data[i+1] = Math.max(0, data[i+1] + noise);
+                    data[i+2] = Math.max(0, data[i+2] + noise);
+                }
+                ctx.putImageData(imgData, 0, 0);
+                // Moisture stains
+                for(let i=0; i<15; i++) {
+                    ctx.fillStyle = `rgba(40, 30, 10, ${Math.random() * 0.15})`;
+                    ctx.beginPath();
+                    ctx.arc(Math.random() * 512, Math.random() * 512, Math.random() * 80 + 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+            createWallpaper: () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#e8db8b';
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.strokeStyle = '#c4b55b';
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 256; i += 32) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
+                    ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(i + 16, 0); ctx.lineTo(i + 16, 256); ctx.stroke();
+                    ctx.lineWidth = 4;
+                }
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            },
+            createCeilingTile: () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#d0d0d0';
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                for(let i=0; i<1500; i++) {
+                    ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+                }
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 6;
+                ctx.strokeRect(0, 0, 256, 256);
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+                return tex;
+            }
+        };
+
+        class Branch {
+            constructor(parent, pos, dir, depth) {
+                this.parent = parent;
+                this.pos = pos;
+                this.dir = dir;
+                this.saveDir = dir.clone();
+                this.count = 0;
+                this.depth = depth; 
+            }
+            reset() {
+                this.dir.copy(this.saveDir);
+                this.count = 0;
+            }
+        }
+
+        class SpaceColonizationSim {
+            constructor(scene, options) {
+                this.scene = scene;
+                this.attractors = options.attractors || [];
+                this.rootPos = options.rootPos || new THREE.Vector3();
+                this.isOrthogonal = options.isOrthogonal || false;
+                this.isTentacle = options.isTentacle || false;
+                this.material = options.material;
+                this.baseThickness = options.thickness || 0.5;
+                this.minDist = options.minDist || 1.0;
+                this.maxDist = options.maxDist || 10.0;
+                this.branchLength = options.branchLength || 0.6;
+                
+                this.branches = [];
+                this.newBranches = [];
+                this.finished = false;
+
+                let root = new Branch(null, this.rootPos.clone(), new THREE.Vector3(0, 1, 0), 0);
+                this.branches.push(root);
+                this.newBranches.push(root);
+
+                const cylGeo = new THREE.CylinderGeometry(1, 1, this.branchLength, 7);
+                cylGeo.translate(0, this.branchLength / 2, 0);
+                this.meshCylinders = new THREE.InstancedMesh(cylGeo, this.material, MAX_INSTANCES_PER_SIM);
+                this.meshCylinders.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                this.meshCylinders.count = 0;
+
+                const sphGeo = new THREE.SphereGeometry(1.05, 7, 7);
+                this.meshSpheres = new THREE.InstancedMesh(sphGeo, this.material, MAX_INSTANCES_PER_SIM);
+                this.meshSpheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+                this.meshSpheres.count = 0;
+
+                this.scene.add(this.meshCylinders);
+                this.scene.add(this.meshSpheres);
+
+                this.dummy = new THREE.Object3D();
+                this.upVector = new THREE.Vector3(0, 1, 0);
+                this.quaternion = new THREE.Quaternion();
+            }
+
+            step() {
+                if (this.finished || this.attractors.length === 0 || this.branches.length >= MAX_INSTANCES_PER_SIM) {
+                    this.finished = true; return false;
+                }
+
+                let grown = false;
+
+                for (let i = this.attractors.length - 1; i >= 0; i--) {
+                    let a = this.attractors[i];
+                    let closestBranch = null;
+                    let record = this.maxDist;
+
+                    for (let j = 0; j < this.branches.length; j++) {
+                        let b = this.branches[j];
+                        let d = a.distanceTo(b.pos);
+                        
+                        if (d < this.minDist) {
+                            this.attractors.splice(i, 1);
+                            closestBranch = null; break; 
+                        } else if (d < record) {
+                            closestBranch = b; record = d;
+                        }
+                    }
+
+                    if (closestBranch != null) {
+                        let dir = a.clone().sub(closestBranch.pos).normalize();
+                        closestBranch.dir.add(dir);
+                        closestBranch.count++;
+                    }
+                }
+
+                for (let i = this.branches.length - 1; i >= 0; i--) {
+                    let b = this.branches[i];
+                    if (b.count > 0) {
+                        b.dir.divideScalar(b.count + 1).normalize();
+
+                        if (this.isTentacle) {
+                            // Tentacle logic: Add a curling curl force based on depth
+                            let curlForce = new THREE.Vector3(Math.sin(b.depth * 0.1), Math.cos(b.depth * 0.1), Math.sin(b.depth * 0.15)).multiplyScalar(0.3);
+                            b.dir.add(curlForce).normalize();
+                        }
+
+                        if (this.isOrthogonal) {
+                            let absX = Math.abs(b.dir.x), absY = Math.abs(b.dir.y), absZ = Math.abs(b.dir.z);
+                            if (absX > absY && absX > absZ) b.dir.set(Math.sign(b.dir.x), 0, 0);
+                            else if (absY > absX && absY > absZ) b.dir.set(0, Math.sign(b.dir.y), 0);
+                            else b.dir.set(0, 0, Math.sign(b.dir.z));
+                        }
+
+                        let nextPos = b.pos.clone().add(b.dir.clone().multiplyScalar(this.branchLength));
+                        let newBranch = new Branch(b, nextPos, b.dir.clone(), b.depth + 1);
+                        
+                        this.branches.push(newBranch);
+                        this.newBranches.push(newBranch);
+                        
+                        b.reset();
+                        grown = true;
+                        totalNodes++;
+                    }
+                }
+
+                if (!grown) this.finished = true;
+                return grown;
+            }
+
+            updateMeshes() {
+                if (this.newBranches.length === 0) return;
+                let startIdx = this.meshCylinders.count;
+
+                for (let i = 0; i < this.newBranches.length; i++) {
+                    if (startIdx + i >= MAX_INSTANCES_PER_SIM) break;
+                    let b = this.newBranches[i];
+                    
+                    let thickness = Math.max(0.05, this.baseThickness * Math.pow(0.98, b.depth));
+
+                    // Sphere
+                    this.dummy.position.copy(b.pos);
+                    this.dummy.quaternion.identity();
+                    this.dummy.scale.set(thickness, thickness, thickness);
+                    this.dummy.updateMatrix();
+                    this.meshSpheres.setMatrixAt(startIdx + i, this.dummy.matrix);
+
+                    // Cylinder
+                    if (b.parent) {
+                        this.dummy.position.copy(b.parent.pos);
+                        let dir = new THREE.Vector3().subVectors(b.pos, b.parent.pos).normalize();
+                        if (dir.lengthSq() > 0.0001) {
+                            this.quaternion.setFromUnitVectors(this.upVector, dir);
+                            this.dummy.quaternion.copy(this.quaternion);
+                        } else {
+                            this.dummy.quaternion.identity();
+                        }
+                        this.dummy.scale.set(thickness, 1, thickness);
+                        this.dummy.updateMatrix();
+                        this.meshCylinders.setMatrixAt(startIdx + i - 1, this.dummy.matrix);
+                    }
+                }
+
+                this.meshCylinders.count += this.newBranches.length - (this.newBranches[0].parent === null ? 1 : 0);
+                this.meshSpheres.count += this.newBranches.length;
+                this.meshCylinders.instanceMatrix.needsUpdate = true;
+                this.meshSpheres.instanceMatrix.needsUpdate = true;
+                this.newBranches = [];
+            }
+        }
+
+        function generateMapGrid() {
+            // 1 = Wall, 0 = Empty/Corridor
+            mapGrid = Array(MAP_SIZE).fill(0).map(() => Array(MAP_SIZE).fill(1));
+            
+            let startX = Math.floor(MAP_SIZE / 2);
+            let startZ = Math.floor(MAP_SIZE / 2);
+            mapGrid[startX][startZ] = 0;
+
+            let curr = {x: startX, z: startZ};
+            let steps = 600; // Length of the maze carve
+
+            for(let i=0; i<steps; i++) {
+                let dirs = [[0,1], [0,-1], [1,0], [-1,0]];
+                let d = dirs[Math.floor(Math.random()*4)];
+                
+                // Add corridor bias (keep going same direction often)
+                if(Math.random() < 0.6) {
+                    let nx = curr.x + d[0];
+                    let nz = curr.z + d[1];
+                    if(nx > 1 && nx < MAP_SIZE-2 && nz > 1 && nz < MAP_SIZE-2) {
+                        curr.x = nx; curr.z = nz;
+                        mapGrid[curr.x][curr.z] = 0;
+                        // Thicken corridors randomly
+                        if (Math.random() < 0.3) {
+                            mapGrid[curr.x+1][curr.z] = 0;
+                            mapGrid[curr.x][curr.z+1] = 0;
+                            mapGrid[curr.x+1][curr.z+1] = 0;
+                        }
+                    }
+                }
+            }
+            return { x: startX * CELL_SIZE, z: startZ * CELL_SIZE }; // Return start pos in world coords
+        }
+
+        function buildMapMeshes() {
+            const texCarpet = TextureGen.createCarpet();
+            const matFloor = new THREE.MeshStandardMaterial({ map: texCarpet, roughness: 0.9, color: 0xaaaaaa });
+            
+            const texWall = TextureGen.createWallpaper();
+            const matWall = new THREE.MeshStandardMaterial({ map: texWall, roughness: 0.8 });
+
+            const texCeiling = TextureGen.createCeilingTile();
+            const matCeiling = new THREE.MeshStandardMaterial({ map: texCeiling, roughness: 1.0 });
+            const matCeilingLight = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Emissive for bloom
+
+            let floorCount = 0, wallCount = 0;
+            for(let x=0; x<MAP_SIZE; x++) {
+                for(let z=0; z<MAP_SIZE; z++) {
+                    if(mapGrid[x][z] === 0) floorCount++;
+                }
+            }
+
+            // Estimate walls (roughly 4 per floor max)
+            const floorInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), matFloor, floorCount);
+            const ceilInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE), matCeiling, floorCount);
+            const lightInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(CELL_SIZE*0.4, CELL_SIZE*0.8), matCeilingLight, Math.floor(floorCount/3));
+            const wallInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(CELL_SIZE, WALL_HEIGHT), matWall, floorCount * 4);
+
+            let dummy = new THREE.Object3D();
+            let fIdx = 0, wIdx = 0, lIdx = 0;
+
+            for(let x=0; x<MAP_SIZE; x++) {
+                for(let z=0; z<MAP_SIZE; z++) {
+                    if(mapGrid[x][z] === 0) {
+                        let px = x * CELL_SIZE;
+                        let pz = z * CELL_SIZE;
+
+                        // Floor
+                        dummy.position.set(px, 0, pz);
+                        dummy.rotation.set(-Math.PI/2, 0, 0);
+                        dummy.updateMatrix();
+                        floorInst.setMatrixAt(fIdx, dummy.matrix);
+
+                        // Ceiling
+                        dummy.position.set(px, WALL_HEIGHT, pz);
+                        dummy.rotation.set(Math.PI/2, 0, 0);
+                        dummy.updateMatrix();
+                        ceilInst.setMatrixAt(fIdx, dummy.matrix);
+
+                        // Occasional ceiling light
+                        if (Math.random() < 0.25) {
+                            dummy.position.set(px, WALL_HEIGHT - 0.05, pz);
+                            dummy.rotation.set(Math.PI/2, 0, Math.random() > 0.5 ? Math.PI/2 : 0);
+                            dummy.updateMatrix();
+                            lightInst.setMatrixAt(lIdx++, dummy.matrix);
+                        }
+                        
+                        fIdx++;
+
+                        // Check neighbors for walls
+                        const dirs = [
+                            { dx: 0, dz: -1, ry: 0, pz: -CELL_SIZE/2, px: 0 },   // North
+                            { dx: 0, dz: 1, ry: Math.PI, pz: CELL_SIZE/2, px: 0 }, // South
+                            { dx: -1, dz: 0, ry: Math.PI/2, pz: 0, px: -CELL_SIZE/2 }, // West
+                            { dx: 1, dz: 0, ry: -Math.PI/2, pz: 0, px: CELL_SIZE/2 }   // East
+                        ];
+
+                        for(let d of dirs) {
+                            let nx = x + d.dx, nz = z + d.dz;
+                            if(nx < 0 || nx >= MAP_SIZE || nz < 0 || nz >= MAP_SIZE || mapGrid[nx][nz] === 1) {
+                                dummy.position.set(px + d.px, WALL_HEIGHT/2, pz + d.pz);
+                                dummy.rotation.set(0, d.ry, 0);
+                                dummy.updateMatrix();
+                                wallInst.setMatrixAt(wIdx++, dummy.matrix);
+                            }
+                        }
+                    }
+                }
+            }
+
+            wallInst.count = wIdx;
+            lightInst.count = lIdx;
+
+            scene.add(floorInst);
+            scene.add(ceilInst);
+            scene.add(wallInst);
+            scene.add(lightInst);
+        }
+
+        function createWrithingMaterial(baseColor, emissiveColor = 0x000000) {
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: baseColor, 
+                roughness: 0.3, 
+                metalness: 0.2,
+                emissive: emissiveColor,
+                emissiveIntensity: 0.8
+            });
+
+            mat.onBeforeCompile = (shader) => {
+                shader.uniforms.uTime = { value: 0 };
+                shaderMaterials.push(shader); // Save reference to update uTime in animate loop
+
+                shader.vertexShader = `uniform float uTime;\n` + shader.vertexShader;
+
+                // Inject vertex shader logic to make instances wiggle based on their world position and time
+                shader.vertexShader = shader.vertexShader.replace(
+                    `#include <begin_vertex>`,
+                    `
+                    #include <begin_vertex>
+                    
+                    // Calculate world position for instance
+                    #ifdef USE_INSTANCING
+                        vec4 worldPos = modelMatrix * instanceMatrix * vec4(position, 1.0);
+                    #else
+                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                    #endif
+
+                    // Generate squirming waves based on Y and XZ coords + time
+                    float waveX = sin(worldPos.y * 1.5 + uTime * 3.0) * 0.15;
+                    float waveZ = cos(worldPos.x * 1.5 + uTime * 2.5) * 0.15;
+                    
+                    // Apply offset to vertex
+                    transformed.x += waveX;
+                    transformed.z += waveZ;
+                    
+                    // Pulsating thickness
+                    float pulse = 1.0 + sin(uTime * 5.0 + worldPos.y * 2.0) * 0.1;
+                    transformed *= pulse;
+                    `
+                );
+            };
+            return mat;
+        }
+
+        function spawnEntities() {
+            const matFlesh = createWrithingMaterial(0x6a1510, 0x1a0000); // Red fleshy tentacle
+            const matVoid = createWrithingMaterial(0x111122, 0x0055ff); // Glowing blue glitch tentacle
+            const matMold = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1.0 }); // Static
+
+            // Find valid floor coordinates to spawn entities
+            let validSpots = [];
+            for(let x=2; x<MAP_SIZE-2; x++) {
+                for(let z=2; z<MAP_SIZE-2; z++) {
+                    if(mapGrid[x][z] === 0) validSpots.push({x: x*CELL_SIZE, z: z*CELL_SIZE});
+                }
+            }
+
+            // Shuffle and pick
+            validSpots.sort(() => Math.random() - 0.5);
+
+            // 1. The Flesh Hive (Tentacle Logic)
+            if(validSpots.length > 0) {
+                let s = validSpots.pop();
+                let center = new THREE.Vector3(s.x, WALL_HEIGHT/2, s.z);
+                let attr = generateAttractorsInBox(center, 15, WALL_HEIGHT, 15, 600);
+                simulations.push(new SpaceColonizationSim(scene, {
+                    attractors: attr, rootPos: new THREE.Vector3(s.x, 0, s.z),
+                    isTentacle: true, isOrthogonal: false, material: matFlesh, 
+                    thickness: 0.5, branchLength: 0.5
+                }));
+            }
+
+            // 2. Glitch Array (Orthogonal Pipes, also writhing!)
+            if(validSpots.length > 0) {
+                let s = validSpots.pop();
+                let center = new THREE.Vector3(s.x, WALL_HEIGHT/2, s.z);
+                let attr = generateAttractorsInBox(center, 20, WALL_HEIGHT, 20, 500);
+                simulations.push(new SpaceColonizationSim(scene, {
+                    attractors: attr, rootPos: new THREE.Vector3(s.x, WALL_HEIGHT, s.z), // Hangs from ceiling
+                    isTentacle: false, isOrthogonal: true, material: matVoid, 
+                    thickness: 0.3, branchLength: 0.8
+                }));
+            }
+
+            // 3. Black Mold Spread (Static, flat on walls/floor)
+            if(validSpots.length > 0) {
+                let s = validSpots.pop();
+                let center = new THREE.Vector3(s.x, 0.1, s.z);
+                let attr = generateAttractorsInBox(center, 12, 1, 12, 300);
+                simulations.push(new SpaceColonizationSim(scene, {
+                    attractors: attr, rootPos: new THREE.Vector3(s.x, 0, s.z),
+                    isTentacle: false, isOrthogonal: false, material: matMold, 
+                    thickness: 0.2, branchLength: 0.4
+                }));
+            }
+        }
+
+        function generateAttractorsInBox(center, w, h, d, count) {
+            let pts = [];
+            for(let i=0; i<count; i++) {
+                pts.push(new THREE.Vector3(
+                    center.x + (Math.random()-0.5)*w,
+                    center.y + (Math.random()-0.5)*h,
+                    center.z + (Math.random()-0.5)*d
+                ));
+            }
+            return pts;
+        }
+
+        function checkCollision(pos) {
+            // Convert world pos to grid coordinates
+            let gridX = Math.round(pos.x / CELL_SIZE);
+            let gridZ = Math.round(pos.z / CELL_SIZE);
+            
+            // Out of bounds checking
+            if (gridX < 0 || gridX >= MAP_SIZE || gridZ < 0 || gridZ >= MAP_SIZE) return true;
+            
+            // Check wall
+            if (mapGrid[gridX][gridZ] === 1) return true;
+            return false;
+        }
+
+        function setupControls() {
+            controls = new PointerLockControls(camera, document.body);
+
+            const blocker = document.getElementById('blocker');
+            const instructions = document.getElementById('instructions');
+
+            instructions.addEventListener('click', () => controls.lock());
+
+            controls.addEventListener('lock', () => {
+                instructions.style.display = 'none';
+                blocker.style.display = 'none';
+            });
+
+            controls.addEventListener('unlock', () => {
+                blocker.style.display = 'flex';
+                instructions.style.display = '';
+            });
+
+            scene.add(controls.getObject());
+
+            const onKeyDown = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': moveForward = true; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': moveLeft = true; break;
+                    case 'ArrowDown':
+                    case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight':
+                    case 'KeyD': moveRight = true; break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight': isSprinting = true; break;
+                }
+            };
+
+            const onKeyUp = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp':
+                    case 'KeyW': moveForward = false; break;
+                    case 'ArrowLeft':
+                    case 'KeyA': moveLeft = false; break;
+                    case 'ArrowDown':
+                    case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight':
+                    case 'KeyD': moveRight = false; break;
+                    case 'ShiftLeft':
+                    case 'ShiftRight': isSprinting = false; break;
+                }
+            };
+
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+        }
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a05);
+            scene.fog = new THREE.FogExp2(0x0a0a05, 0.05);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: false }); 
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            container.appendChild(renderer.domElement);
+
+            // Post-Processing (Bloom)
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.5;
+            bloomPass.strength = 1.0;
+            bloomPass.radius = 0.5;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0x444433, 0.3));
+            
+            // Player Flashlight
+            const flashlight = new THREE.PointLight(0xffffcc, 1.0, 15);
+            camera.add(flashlight); // Attach to camera
+            
+            setupControls();
+
+            // Generate Map and Set Spawn
+            let startPos = generateMapGrid();
+            controls.getObject().position.set(startPos.x, PLAYER_HEIGHT, startPos.z);
+            
+            buildMapMeshes();
+            spawnEntities();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const timeNow = performance.now();
+            const delta = (timeNow - prevTime) / 1000;
+            time += delta;
+
+            // 1. Process Growth
+            if (isGrowing) {
+                let anyActive = false;
+                for (let sim of simulations) {
+                    if (!sim.finished) {
+                        anyActive = true;
+                        for(let s=0; s < GROWTH_STEPS_PER_FRAME; s++) sim.step();
+                        sim.updateMeshes(); 
+                    }
+                }
+                if (!anyActive) isGrowing = false;
+                if (Math.random() < 0.1) document.getElementById('node-count').innerText = totalNodes; 
+            }
+
+            // 2. Update Shaders (Writhing effect)
+            shaderMaterials.forEach(shader => {
+                if (shader.uniforms && shader.uniforms.uTime) {
+                    shader.uniforms.uTime.value = time;
+                }
+            });
+
+            // 3. Player Movement & Physics
+            if (controls.isLocked === true) {
+                // Apply damping/friction
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize(); // consistent speed in all directions
+
+                let speedMultiplier = isSprinting ? 80.0 : 40.0;
+                
+                // Head bobbing logic based on speed
+                let speed = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
+                if (speed > 1.0) {
+                     camera.position.y = (PLAYER_HEIGHT - 0.2) + Math.sin(time * (isSprinting?15:10)) * 0.15;
+                } else {
+                     camera.position.y += (PLAYER_HEIGHT - camera.position.y) * 0.1; // reset height
+                }
+
+                if (moveForward || moveBackward) velocity.z -= direction.z * speedMultiplier * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speedMultiplier * delta;
+
+                // Proposed next position
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                let pos = controls.getObject().position;
+
+                // Simple Collision Resolution (Slide along walls)
+                let checkPos = pos.clone();
+                checkPos.z += (velocity.z > 0 ? -PLAYER_RADIUS : PLAYER_RADIUS);
+                if (checkCollision(checkPos)) {
+                    pos.z += velocity.z * delta; // Revert Z
+                    velocity.z = 0;
+                }
+
+                checkPos = pos.clone();
+                checkPos.x += (velocity.x > 0 ? -PLAYER_RADIUS : PLAYER_RADIUS);
+                if (checkCollision(checkPos)) {
+                    pos.x += velocity.x * delta; // Revert X
+                    velocity.x = 0;
+                }
+            }
+
+            prevTime = timeNow;
+            composer.render();
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>

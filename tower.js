@@ -765,6 +765,532 @@ window.SporeTower = class SporeTower {
                 this.drones.push(drone);
             }
 
+        } else if (this.type === 'bio_corroder') {
+            // Organic base mound
+            const baseGeo = new THREE.CylinderGeometry(0.55, 0.7, 0.3, 10);
+            const bioGreenMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.9, flatShading: true });
+            const base = new THREE.Mesh(baseGeo, bioGreenMat);
+            base.position.y = 0.15;
+            base.castShadow = true;
+            group.add(base);
+
+            // Flexible hose stem
+            const stemGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.8, 8);
+            const stemMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = 0.55;
+            stem.rotation.x = 0.1;
+            stem.castShadow = true;
+            group.add(stem);
+
+            // Bioluminescent nodes wrapping the stem
+            const nodeGeo = new THREE.SphereGeometry(0.06, 6, 6);
+            const nodeMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+            for (let i = 0; i < 4; i++) {
+                const node = new THREE.Mesh(nodeGeo, nodeMat);
+                const angle = i * Math.PI / 2;
+                node.position.set(Math.cos(angle) * 0.18, 0.4 + i * 0.12, Math.sin(angle) * 0.18);
+                group.add(node);
+            }
+
+            // Core lens and light
+            const coreGeo = new THREE.SphereGeometry(0.12, 8, 8);
+            this.pulseCore = new THREE.Mesh(coreGeo, lensGlass);
+            this.pulseCore.position.set(0, 0.95, 0);
+            group.add(this.pulseCore);
+
+            this.chestLight = new THREE.PointLight(this.specs.color, 1.2, 4);
+            this.chestLight.position.set(0, 0.95, 0.15);
+            group.add(this.chestLight);
+
+            // Turret head (organic bulb)
+            this.turretHead = new THREE.Group();
+            this.turretHead.position.y = 1.2;
+
+            const bulbGeo = new THREE.SphereGeometry(0.35, 10, 10);
+            const bulb = new THREE.Mesh(bulbGeo, camoOlive);
+            bulb.castShadow = true;
+            this.turretHead.add(bulb);
+
+            // Slime launcher tube
+            this.launcherTube = new THREE.Group();
+            this.launcherTube.position.set(0, 0, 0.25);
+            const tubeGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.6, 8);
+            tubeGeo.rotateX(Math.PI / 2);
+            const tube = new THREE.Mesh(tubeGeo, metalDark);
+            tube.castShadow = true;
+            this.launcherTube.add(tube);
+
+            // Glowing spit tip
+            const tipGeo = new THREE.TorusGeometry(0.1, 0.03, 5, 10);
+            tipGeo.rotateX(Math.PI / 2);
+            tipGeo.translate(0, 0, 0.3);
+            const tipMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor });
+            const tip = new THREE.Mesh(tipGeo, tipMat);
+            this.launcherTube.add(tip);
+
+            this.turretHead.add(this.launcherTube);
+
+            // Muzzle flash variables for projectile trigger
+            this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 3);
+            this.muzzleFlash.position.set(0, 0, 0.6);
+            this.turretHead.add(this.muzzleFlash);
+
+            const flashGeo = new THREE.SphereGeometry(0.18, 6, 6);
+            const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+            this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+            this.muzzleFlashMesh.position.set(0, 0, 0.6);
+            this.turretHead.add(this.muzzleFlashMesh);
+
+            group.add(this.turretHead);
+
+        } else if (this.type === 'plasma_obelisk') {
+            // Octagonal stone plate base
+            const baseGeo = new THREE.CylinderGeometry(0.65, 0.75, 0.2, 8);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x1f1f23, roughness: 0.8, flatShading: true });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.1;
+            base.castShadow = true;
+            group.add(base);
+
+            // Side claws / obelisk frames
+            const clawMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.8, roughness: 0.2 });
+            const clawLGeo = new THREE.BoxGeometry(0.1, 1.4, 0.25);
+            const clawL = new THREE.Mesh(clawLGeo, clawMat);
+            clawL.position.set(-0.35, 0.7, 0);
+            clawL.rotation.z = 0.08;
+            clawL.castShadow = true;
+            group.add(clawL);
+
+            const clawR = new THREE.Mesh(clawLGeo, clawMat);
+            clawR.position.set(0.35, 0.7, 0);
+            clawR.rotation.z = -0.08;
+            clawR.castShadow = true;
+            group.add(clawR);
+
+            // Levitating central obsidian core (turretHead wrapper for rotation alignment)
+            this.turretHead = new THREE.Group();
+            this.turretHead.position.y = 0.85;
+
+            // Rotating purple obelisk crystal
+            const crystalGeo = new THREE.OctahedronGeometry(0.24, 0);
+            const crystalMat = new THREE.MeshStandardMaterial({
+                color: 0x6b21a8,
+                emissive: 0xa855f7,
+                emissiveIntensity: 1.5,
+                roughness: 0.1,
+                metalness: 0.9,
+                flatShading: true
+            });
+            this.obeliskCrystal = new THREE.Mesh(crystalGeo, crystalMat);
+            this.obeliskCrystal.scale.set(1.0, 1.7, 1.0); // stretch it vertically
+            this.obeliskCrystal.castShadow = true;
+            this.turretHead.add(this.obeliskCrystal);
+
+            // Internal core lights
+            this.pulseCore = this.obeliskCrystal; // standard reference
+            this.chestLight = new THREE.PointLight(this.specs.bulletColor, 1.5, 5);
+            this.chestLight.position.set(0, 0, 0);
+            this.turretHead.add(this.chestLight);
+
+            // Muzzle flash variables for firing orbs
+            this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 4);
+            this.muzzleFlash.position.set(0, 0.5, 0);
+            this.turretHead.add(this.muzzleFlash);
+
+            const flashGeo = new THREE.SphereGeometry(0.25, 6, 6);
+            const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+            this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+            this.muzzleFlashMesh.position.set(0, 0.5, 0);
+            this.turretHead.add(this.muzzleFlashMesh);
+
+            group.add(this.turretHead);
+
+        } else if (this.type === 'chrono_emitter') {
+            // Sleek chrome base
+            const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.25, 12);
+            const base = new THREE.Mesh(baseGeo, metalChrome);
+            base.position.y = 0.125;
+            base.castShadow = true;
+            group.add(base);
+
+            // Gyroscope frame
+            this.gyroRing = new THREE.Group();
+            this.gyroRing.position.y = 0.85;
+
+            const ringGeo = new THREE.TorusGeometry(0.42, 0.04, 8, 24);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0x0891b2, metalness: 0.9, roughness: 0.15 });
+            const ring1 = new THREE.Mesh(ringGeo, ringMat);
+            ring1.rotation.y = Math.PI / 4;
+            this.gyroRing.add(ring1);
+
+            const ring2 = new THREE.Mesh(ringGeo, ringMat);
+            ring2.rotation.x = Math.PI / 2;
+            this.gyroRing.add(ring2);
+
+            group.add(this.gyroRing);
+
+            // Spinning central cyan dodecahedron
+            this.turretHead = new THREE.Group();
+            this.turretHead.position.y = 0.85;
+
+            const coreGeo = new THREE.DodecahedronGeometry(0.18, 0);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                emissive: 0x22d3ee,
+                emissiveIntensity: 1.6,
+                roughness: 0.05,
+                metalness: 0.95,
+                flatShading: true
+            });
+            this.chronoCrystal = new THREE.Mesh(coreGeo, coreMat);
+            this.chronoCrystal.castShadow = true;
+            this.turretHead.add(this.chronoCrystal);
+
+            this.pulseCore = this.chronoCrystal; // standard reference
+            this.chestLight = new THREE.PointLight(0x22d3ee, 1.5, 4.5);
+            this.chestLight.position.set(0, 0, 0);
+            this.turretHead.add(this.chestLight);
+
+            // Dummy muzzle flash to prevent errors in update loops
+            this.muzzleFlash = new THREE.PointLight(0x22d3ee, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            this.turretHead.add(this.muzzleFlash);
+            this.turretHead.add(this.muzzleFlashMesh);
+
+            group.add(this.turretHead);
+
+        } else if (this.type === 'atmos_generator') {
+            // Sleek octagonal generator platform
+            const baseGeo = new THREE.CylinderGeometry(0.6, 0.7, 0.25, 8);
+            const base = new THREE.Mesh(baseGeo, metalSlate);
+            base.position.y = 0.125;
+            base.castShadow = true;
+            group.add(base);
+
+            // Oxygen generator center chamber
+            const bodyGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.5, 8);
+            const body = new THREE.Mesh(bodyGeo, metalDark);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            group.add(body);
+
+            // Green bioluminescent dome
+            const domeGeo = new THREE.SphereGeometry(0.35, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const domeMat = new THREE.MeshStandardMaterial({
+                color: 0x22c55e,
+                emissive: 0x4ade80,
+                emissiveIntensity: 1.5,
+                transparent: true,
+                opacity: 0.8,
+                roughness: 0.1
+            });
+            const dome = new THREE.Mesh(domeGeo, domeMat);
+            dome.position.y = 0.75;
+            dome.castShadow = true;
+            group.add(dome);
+
+            // Turbine extraction fan on top of the dome
+            this.extractionFan = new THREE.Group();
+            this.extractionFan.position.set(0, 1.12, 0);
+
+            const fanHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 8);
+            const fanHub = new THREE.Mesh(fanHubGeo, metalChrome);
+            this.extractionFan.add(fanHub);
+
+            // 4 blades
+            const bladeGeo = new THREE.BoxGeometry(0.35, 0.01, 0.08);
+            for (let i = 0; i < 4; i++) {
+                const blade = new THREE.Mesh(bladeGeo, metalChrome);
+                blade.rotation.y = (i * Math.PI) / 2;
+                blade.rotation.z = 0.15; // slightly angled
+                blade.position.set(Math.cos(i * Math.PI / 2) * 0.18, 0, Math.sin(i * Math.PI / 2) * 0.18);
+                this.extractionFan.add(blade);
+            }
+            group.add(this.extractionFan);
+
+            // Warning yellow light
+            this.beaconLight = new THREE.PointLight(0x22c55e, 1.5, 4.0);
+            this.beaconLight.position.set(0, 0.75, 0);
+            group.add(this.beaconLight);
+
+            // Dummy properties to avoid errors
+            this.turretHead = new THREE.Group();
+            this.pulseCore = dome;
+            this.chestLight = this.beaconLight;
+            this.muzzleFlash = new THREE.PointLight(0x22c55e, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            group.add(this.turretHead);
+
+        } else if (this.type === 'hab_module') {
+            // Concrete-like foundation plate
+            const baseGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.2, 10);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x44403c, roughness: 0.9 });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.1;
+            base.castShadow = true;
+            group.add(base);
+
+            // Sleek housing units (triple domes)
+            this.habDomes = new THREE.Group();
+            this.habDomes.position.y = 0.2;
+
+            const domeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.05 });
+            const domeGeo = new THREE.SphereGeometry(0.3, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+
+            // Center Dome
+            const centerDome = new THREE.Mesh(domeGeo, domeMat);
+            centerDome.scale.set(1.0, 1.3, 1.0);
+            centerDome.castShadow = true;
+            this.habDomes.add(centerDome);
+
+            // Left Dome (smaller)
+            const leftDome = new THREE.Mesh(domeGeo, domeMat);
+            leftDome.position.set(-0.35, 0, -0.15);
+            leftDome.scale.set(0.75, 0.9, 0.75);
+            leftDome.castShadow = true;
+            this.habDomes.add(leftDome);
+
+            // Right Dome (smaller)
+            const rightDome = new THREE.Mesh(domeGeo, domeMat);
+            rightDome.position.set(0.35, 0, 0.15);
+            rightDome.scale.set(0.75, 0.9, 0.75);
+            rightDome.castShadow = true;
+            this.habDomes.add(rightDome);
+
+            // Tiny glass windows that glow internally
+            const windowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const windowGeo = new THREE.SphereGeometry(0.04, 6, 6);
+            
+            const w1 = new THREE.Mesh(windowGeo, windowMat);
+            w1.position.set(0, 0.25, 0.26);
+            this.habDomes.add(w1);
+
+            const w2 = new THREE.Mesh(windowGeo, windowMat);
+            w2.position.set(-0.35, 0.16, 0.06);
+            this.habDomes.add(w2);
+
+            const w3 = new THREE.Mesh(windowGeo, windowMat);
+            w3.position.set(0.35, 0.16, 0.36);
+            this.habDomes.add(w3);
+
+            group.add(this.habDomes);
+
+            // Ambient yellow light radiating from windows
+            this.beaconLight = new THREE.PointLight(0xfef08a, 1.2, 4.0);
+            this.beaconLight.position.set(0, 0.4, 0.3);
+            group.add(this.beaconLight);
+
+            // Dummy properties to avoid errors
+            this.turretHead = new THREE.Group();
+            this.pulseCore = centerDome;
+            this.chestLight = this.beaconLight;
+            this.muzzleFlash = new THREE.PointLight(0xfef08a, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            group.add(this.turretHead);
+
+        } else if (this.type === 'sensor_array') {
+            // Circular base
+            const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.2, 10);
+            const base = new THREE.Mesh(baseGeo, metalSlate);
+            base.position.y = 0.1;
+            base.castShadow = true;
+            group.add(base);
+
+            // Tall steel lattice tower frame
+            const frameGeo = new THREE.CylinderGeometry(0.1, 0.22, 1.2, 4);
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.9, roughness: 0.2 });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            frame.position.y = 0.7;
+            frame.castShadow = true;
+            group.add(frame);
+
+            // Rotating parabolic radar dish assembly on top
+            this.radarScanner = new THREE.Group();
+            this.radarScanner.position.set(0, 1.35, 0);
+
+            // Dish stem/axle
+            const axleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.12, 6);
+            axleGeo.rotateX(Math.PI / 2);
+            const axle = new THREE.Mesh(axleGeo, metalChrome);
+            this.radarScanner.add(axle);
+
+            // Parabolic dish (tilted cylinder cap / cone)
+            const dishGeo = new THREE.CylinderGeometry(0.38, 0.05, 0.18, 12, 1, true);
+            dishGeo.rotateX(Math.PI / 3);
+            const dish = new THREE.Mesh(dishGeo, metalChrome);
+            dish.position.set(0, 0.15, 0.08);
+            dish.castShadow = true;
+            this.radarScanner.add(dish);
+
+            // Sub-receiver horn feed pin
+            const pinGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.24, 4);
+            pinGeo.rotateX(Math.PI / 3);
+            const pin = new THREE.Mesh(pinGeo, metalDark);
+            pin.position.set(0, 0.32, 0.18);
+            this.radarScanner.add(pin);
+
+            // Glowing blue emitter tip on feed horn
+            const tipGeo = new THREE.SphereGeometry(0.045, 6, 6);
+            const tipMat = new THREE.MeshBasicMaterial({ color: 0x6366f1 });
+            const tip = new THREE.Mesh(tipGeo, tipMat);
+            tip.position.set(0, 0.42, 0.23);
+            this.radarScanner.add(tip);
+
+            group.add(this.radarScanner);
+
+            // Pulsing blue warning light
+            this.beaconLight = new THREE.PointLight(0x6366f1, 1.5, 5.0);
+            this.beaconLight.position.set(0, 1.35, 0);
+            group.add(this.beaconLight);
+
+            // Dummy properties to avoid errors
+            this.turretHead = new THREE.Group();
+            this.pulseCore = tip;
+            this.chestLight = this.beaconLight;
+            this.muzzleFlash = new THREE.PointLight(0x6366f1, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            group.add(this.turretHead);
+
+        } else if (this.type === 'greenhouse') {
+            // Hexagonal sleek foundation
+            const baseGeo = new THREE.CylinderGeometry(0.65, 0.75, 0.2, 6);
+            const base = new THREE.Mesh(baseGeo, metalSlate);
+            base.position.y = 0.1;
+            base.castShadow = true;
+            group.add(base);
+
+            // Internal tiered farming shelving cogs
+            const rackGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.35, 6);
+            const rackMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+            const rack = new THREE.Mesh(rackGeo, rackMat);
+            rack.position.y = 0.325;
+            rack.castShadow = true;
+            group.add(rack);
+
+            // Glowing alien sprouts (tiny colorful shapes)
+            const sproutGeo = new THREE.SphereGeometry(0.05, 5, 5);
+            const sproutMat1 = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+            const sproutMat2 = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const sp = new THREE.Mesh(sproutGeo, i % 2 === 0 ? sproutMat1 : sproutMat2);
+                sp.position.set(Math.cos(angle) * 0.38, 0.52, Math.sin(angle) * 0.38);
+                group.add(sp);
+            }
+
+            // High-aesthetic glass dome enclosure
+            const glassDomeGeo = new THREE.SphereGeometry(0.55, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+            const glassMat = new THREE.MeshStandardMaterial({
+                color: 0xf472b6,
+                transparent: true,
+                opacity: 0.35,
+                roughness: 0.05,
+                metalness: 0.95
+            });
+            const glassDome = new THREE.Mesh(glassDomeGeo, glassMat);
+            glassDome.position.y = 0.2;
+            glassDome.castShadow = true;
+            group.add(glassDome);
+
+            // Upper grow light beacon
+            const growLightCoreGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.08, 6);
+            const growLightCore = new THREE.Mesh(growLightCoreGeo, metalChrome);
+            growLightCore.position.y = 0.72;
+            group.add(growLightCore);
+
+            this.beaconLight = new THREE.PointLight(0xf472b6, 1.5, 4.0);
+            this.beaconLight.position.set(0, 0.68, 0);
+            group.add(this.beaconLight);
+
+            // Chimney exhaust stack
+            const stackGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.25, 4);
+            const chimney = new THREE.Mesh(stackGeo, metalDark);
+            chimney.position.set(0.3, 0.7, -0.3);
+            chimney.castShadow = true;
+            group.add(chimney);
+            this.exhaustStack = chimney;
+
+            // Dummy properties to avoid errors
+            this.turretHead = new THREE.Group();
+            this.pulseCore = glassDome;
+            this.chestLight = this.beaconLight;
+            this.muzzleFlash = new THREE.PointLight(0xf472b6, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            group.add(this.turretHead);
+
+        } else if (this.type === 'nano_refinery') {
+            // Concrete factory base platform
+            const baseGeo = new THREE.BoxGeometry(1.2, 0.3, 1.2);
+            const baseMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.85, flatShading: true });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.15;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            group.add(base);
+
+            // Steel housing walls
+            const houseGeo = new THREE.BoxGeometry(0.9, 0.5, 0.9);
+            const houseMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.75, roughness: 0.3 });
+            const house = new THREE.Mesh(houseGeo, houseMat);
+            house.position.y = 0.55;
+            house.castShadow = true;
+            group.add(house);
+
+            // Rotating gears on top
+            this.gearsGroup = new THREE.Group();
+            this.gearsGroup.position.set(0, 0.82, 0);
+            
+            const gearMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.1 });
+            const gearGeo1 = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 12);
+            this.gear1 = new THREE.Mesh(gearGeo1, gearMat);
+            this.gear1.position.set(-0.2, 0, -0.15);
+            this.gearsGroup.add(this.gear1);
+
+            const gearGeo2 = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 10);
+            this.gear2 = new THREE.Mesh(gearGeo2, gearMat);
+            this.gear2.position.set(0.18, 0, 0.15);
+            this.gearsGroup.add(this.gear2);
+
+            group.add(this.gearsGroup);
+
+            // Double exhaust chimneys (vents) sloped back
+            this.refineryChimneys = new THREE.Group();
+            const chimneyGeo = new THREE.CylinderGeometry(0.045, 0.055, 0.4, 6);
+            chimneyGeo.rotateX(-0.2); // slant backward
+            
+            const chimney1 = new THREE.Mesh(chimneyGeo, metalDark);
+            chimney1.position.set(-0.25, 0.95, 0.25);
+            chimney1.castShadow = true;
+            this.refineryChimneys.add(chimney1);
+
+            const chimney2 = new THREE.Mesh(chimneyGeo, metalDark);
+            chimney2.position.set(0.25, 0.95, -0.25);
+            chimney2.castShadow = true;
+            this.refineryChimneys.add(chimney2);
+
+            group.add(this.refineryChimneys);
+
+            this.exhaustStack = chimney1; // map for triggerExhaustPuff
+
+            // Warning light beacon
+            const beaconGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.08, 4);
+            const beacon = new THREE.Mesh(beaconGeo, new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+            beacon.position.set(0, 0.84, 0);
+            group.add(beacon);
+
+            this.beaconLight = new THREE.PointLight(0xf59e0b, 1.2, 3.5);
+            this.beaconLight.position.set(0, 0.88, 0);
+            group.add(this.beaconLight);
+
+            // Dummy properties to avoid errors in update loop
+            this.turretHead = new THREE.Group();
+            this.pulseCore = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            this.chestLight = this.beaconLight;
+            this.muzzleFlash = new THREE.PointLight(0xf59e0b, 0, 1);
+            this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+            group.add(this.turretHead);
+
         } else {
             // ==========================================
             // GATLING GUN / HEAVY MACHINE GUN (Realism)
@@ -902,7 +1428,244 @@ window.SporeTower = class SporeTower {
         }
     }
 
+    spawnPulseRing() {
+        if (typeof scene === 'undefined') return;
+        const ringGeo = new THREE.RingGeometry(0.1, this.specs.range, 32);
+        ringGeo.rotateX(-Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x22d3ee,
+            transparent: true,
+            opacity: 0.4,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending
+        });
+        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.position.copy(this.position).y += 0.05;
+        scene.add(ringMesh);
+
+        let scale = 0.05;
+        const expandInterval = setInterval(() => {
+            scale += 0.05;
+            if (ringMesh) {
+                ringMesh.scale.set(scale, 1, scale);
+                if (ringMesh.material) {
+                    ringMesh.material.opacity = Math.max(0, (1.0 - scale) * 0.4);
+                }
+            }
+            if (scale >= 1.0) {
+                clearInterval(expandInterval);
+                if (scene && ringMesh) {
+                    scene.remove(ringMesh);
+                }
+                ringGeo.dispose();
+                ringMat.dispose();
+            }
+        }, 30);
+    }
+
+    spawnPolyplantAdjacent() {
+        if (typeof scene === 'undefined' || typeof grid === 'undefined') return;
+        const size = typeof GRID_SIZE !== 'undefined' ? GRID_SIZE : 40;
+        const types = typeof CELL_TYPES !== 'undefined' ? CELL_TYPES : { EMPTY: 0 };
+        const dirs = [
+            { x: 1, z: 0 },
+            { x: -1, z: 0 },
+            { x: 0, z: 1 },
+            { x: 0, z: -1 }
+        ];
+        dirs.sort(() => Math.random() - 0.5);
+
+        for (let d of dirs) {
+            const nx = this.gridX + d.x;
+            const nz = this.gridZ + d.z;
+            
+            if (nx >= 0 && nx < size && nz >= 0 && nz < size) {
+                if (grid[nx]?.[nz] === types.EMPTY) {
+                    if (window.polyplants && !window.polyplants.some(p => p.gridX === nx && p.gridZ === nz)) {
+                        if (window.Polyplant) {
+                            const plant = new window.Polyplant(scene, nx, nz);
+                            window.polyplants.push(plant);
+                            this.triggerExhaustPuff();
+                            if (window.showToast) {
+                                window.showToast("Greenhouse cultivated a new Polyplant!", "green");
+                            }
+                            if (window.audio && typeof window.audio.playBuild === 'function') {
+                                window.audio.playBuild();
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     update(dt) {
+        if (this.type === 'atmos_generator') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.extractionFan) {
+                this.extractionFan.rotation.y += dt * 3.5;
+            }
+            if (this.beaconLight) {
+                this.beaconLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.005);
+            }
+            return;
+        }
+        if (this.type === 'hab_module') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.beaconLight) {
+                this.beaconLight.intensity = 0.8 + 0.4 * Math.sin(Date.now() * 0.004);
+            }
+            return;
+        }
+        if (this.type === 'sensor_array') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.radarScanner) {
+                this.radarScanner.rotation.y += dt * 0.8;
+            }
+            if (this.beaconLight) {
+                this.beaconLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.006);
+            }
+            return;
+        }
+        if (this.type === 'greenhouse') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.beaconLight) {
+                this.beaconLight.intensity = 1.0 + 0.4 * Math.sin(Date.now() * 0.005);
+            }
+            this.spawnTimer = (this.spawnTimer || (this.level === 2 ? 12.0 : 20.0)) - dt;
+            if (this.spawnTimer <= 0) {
+                this.spawnTimer = this.level === 2 ? 12.0 : 20.0;
+                this.spawnPolyplantAdjacent();
+            }
+            return;
+        }
+        if (this.type === 'chrono_emitter') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.gyroRing) {
+                this.gyroRing.rotation.y += dt * 1.8;
+                this.gyroRing.rotation.x += dt * 0.4;
+            }
+            if (this.chronoCrystal) {
+                this.chronoCrystal.rotation.y += dt * 1.5;
+            }
+            if (this.chestLight) {
+                this.chestLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.005);
+            }
+            
+            this.pulseVisualTimer = (this.pulseVisualTimer || 0) + dt;
+            if (this.pulseVisualTimer >= 2.5) {
+                this.pulseVisualTimer = 0;
+                this.spawnPulseRing();
+            }
+            return;
+        }
+        if (this.type === 'nano_refinery') {
+            if (this.disabledTimer > 0) {
+                this.disabledTimer -= dt;
+                if (this.chestLight) {
+                    this.chestLight.color.setHex(0xef4444);
+                    this.chestLight.intensity = Math.random() * 2.0;
+                }
+                if (this.disabledTimer <= 0) {
+                    if (this.chestLight) {
+                        this.chestLight.color.setHex(this.specs.color);
+                        this.chestLight.intensity = 1.0;
+                    }
+                }
+                return;
+            }
+            if (this.gear1 && this.gear2) {
+                this.gear1.rotation.y += dt * 1.8;
+                this.gear2.rotation.y -= dt * 2.4;
+            }
+            if (this.beaconLight) {
+                this.beaconLight.intensity = 0.5 + 0.5 * Math.sin(Date.now() * 0.015);
+            }
+            this.refineTimer = (this.refineTimer || 10.0) - dt;
+            if (this.refineTimer <= 0) {
+                this.refineTimer = 10.0;
+                const reward = this.level === 2 ? 30 : 15;
+                if (window.gameState) {
+                    window.gameState.gold += reward;
+                    if (window.updateStatsUI) window.updateStatsUI();
+                    if (window.showToast) {
+                        window.showToast(`+${reward}¢ Refined Minerals`, "green");
+                    }
+                    if (window.audio && typeof window.audio.playBuild === 'function') {
+                        window.audio.playBuild();
+                    }
+                    this.triggerExhaustPuff();
+                }
+            }
+            return;
+        }
+
         if (this.type === 'drone_factory') {
             // Pulse beacon and glow
             if (this.beaconTip) {
@@ -996,7 +1759,18 @@ window.SporeTower = class SporeTower {
         }
 
         if (this.cooldown > 0) {
-            this.cooldown -= dt;
+            let speedMult = 1.0;
+            if (typeof towers !== 'undefined') {
+                for (let t of towers) {
+                    if (t.type === 'chrono_emitter' && t.disabledTimer <= 0) {
+                        if (this.position.distanceTo(t.position) < t.specs.range) {
+                            speedMult = 1.5;
+                            break;
+                        }
+                    }
+                }
+            }
+            this.cooldown -= dt * speedMult;
         }
 
         // Animate mechanical parts based on turret type
@@ -1024,6 +1798,15 @@ window.SporeTower = class SporeTower {
         } else if (this.type === 'thermal') {
             if (this.thermalEmitter) {
                 this.thermalEmitter.rotation.z += dt * 1.2;
+            }
+        } else if (this.type === 'plasma_obelisk') {
+            if (this.obeliskCrystal) {
+                this.obeliskCrystal.rotation.y += dt * 1.5;
+                this.obeliskCrystal.position.y = Math.sin(Date.now() * 0.003) * 0.08;
+            }
+        } else if (this.type === 'bio_corroder') {
+            if (this.launcherTube) {
+                this.launcherTube.rotation.z = Math.sin(Date.now() * 0.001) * 0.1;
             }
         }
 
@@ -1076,10 +1859,12 @@ window.SporeTower = class SporeTower {
                 let detected = distToHQ < 4.5;
                 
                 if (!detected) {
-                    // Check if close to a tower that can spot it (Gatling 'spore' or Missile 'frost')
+                    // Check if close to a tower that can spot it (Gatling 'spore', Missile 'frost', or active 'sensor_array')
                     for (let t of towers) {
-                        if (t.type === 'spore' || t.type === 'frost') {
-                            if (t.position.distanceTo(enemy.position) < 3.5) {
+                        if (t.disabledTimer > 0) continue;
+                        if (t.type === 'spore' || t.type === 'frost' || t.type === 'sensor_array') {
+                            const spotRange = t.type === 'sensor_array' ? t.specs.range : 3.5;
+                            if (t.position.distanceTo(enemy.position) < spotRange) {
                                 detected = true;
                                 break;
                             }
@@ -1101,7 +1886,56 @@ window.SporeTower = class SporeTower {
     shoot() {
         this.cooldown = this.specs.fireRate;
 
-        if (this.type === 'laser') {
+        if (this.type === 'bio_corroder') {
+            const startPos = new THREE.Vector3(0, 0, 0.45).applyMatrix4(this.turretHead.matrixWorld);
+            projectiles.push(new BioSporeProjectile(
+                startPos,
+                this.target,
+                this.specs.damage,
+                this.specs.projectileSpeed,
+                this.specs.bulletColor,
+                false,
+                1.0,
+                0,
+                false,
+                true // isAcid
+            ));
+            
+            this.turretHead.scale.set(1.1, 1.1, 0.9);
+            
+            this.muzzleFlash.intensity = 2.0;
+            this.muzzleFlashMesh.material.opacity = 0.85;
+            this.muzzleFlashTimer = 0.12;
+
+            if (window.audio) {
+                if (typeof window.audio.playShoot === 'function') window.audio.playShoot();
+            }
+        } else if (this.type === 'plasma_obelisk') {
+            const startPos = new THREE.Vector3(0, 0.4, 0).applyMatrix4(this.turretHead.matrixWorld);
+            projectiles.push(new BioSporeProjectile(
+                startPos,
+                this.target,
+                this.specs.damage,
+                this.specs.projectileSpeed,
+                this.specs.bulletColor,
+                false,
+                1.0,
+                0,
+                true, // isArtillery
+                false
+            ));
+
+            this.turretHead.scale.set(0.8, 1.25, 0.8);
+            
+            this.muzzleFlash.intensity = 3.5;
+            this.muzzleFlashMesh.material.opacity = 0.95;
+            this.muzzleFlashTimer = 0.15;
+
+            if (window.audio) {
+                if (typeof window.audio.playLaserShoot === 'function') window.audio.playLaserShoot();
+                else if (typeof window.audio.playShoot === 'function') window.audio.playShoot();
+            }
+        } else if (this.type === 'laser') {
             // ==========================================
             // RAILGUN: ELECTRIC KINETIC ENERGY DISCHARGE
             // ==========================================

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Backrooms Assets (Space Colonization)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            pointer-events: none;
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 1.1rem;
+            color: #222;
+        }
+        p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="ui">
+        <h1>Procedural Backrooms Anomalies</h1>
+        <p>10 unique structures generated via Space Colonization</p>
+        <p>Drag to rotate • Scroll to zoom</p>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        let scene, camera, renderer, controls;
+        const items = [];
+
+        // Constants for the Space Colonization algorithm
+        const MIN_DIST = 1.2; // Distance at which an attractor is consumed
+        const MAX_DIST = 8.0; // Max distance an attractor can influence a branch
+        const BRANCH_LENGTH = 0.8; // Distance grown per step
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xdddddd);
+            scene.fog = new THREE.FogExp2(0xdddddd, 0.012);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(0, 25, 60);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 10, 0);
+            controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go below ground
+
+            // Lighting (Blank bright scene with a main light)
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfffff0, 1.5);
+            dirLight.position.set(20, 50, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 150;
+            const d = 40;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // Ground Plane
+            const planeGeo = new THREE.PlaneGeometry(200, 200);
+            const planeMat = new THREE.MeshStandardMaterial({ 
+                color: 0xcccccc,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            const plane = new THREE.Mesh(planeGeo, planeMat);
+            plane.rotation.x = -Math.PI / 2;
+            plane.receiveShadow = true;
+            scene.add(plane);
+
+            generateProceduralAssets();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        class Branch {
+            constructor(parent, pos, dir) {
+                this.parent = parent;
+                this.pos = pos;
+                this.dir = dir;
+                this.count = 0;
+                this.saveDir = dir.clone();
+            }
+            reset() {
+                this.dir.copy(this.saveDir);
+                this.count = 0;
+            }
+        }
+
+        class SpaceColonization {
+            constructor(attractors, rootPos, isOrthogonal = false) {
+                this.attractors = attractors; // Array of THREE.Vector3
+                this.branches = [];
+                this.isOrthogonal = isOrthogonal;
+                
+                // Start with a root pointing upwards
+                let root = new Branch(null, rootPos.clone(), new THREE.Vector3(0, 1, 0));
+                this.branches.push(root);
+            }
+
+            grow() {
+                if (this.attractors.length === 0) return false;
+
+                let grown = false;
+
+                // 1. Find the nearest branch for each attractor
+                for (let i = this.attractors.length - 1; i >= 0; i--) {
+                    let a = this.attractors[i];
+                    let closestBranch = null;
+                    let record = MAX_DIST;
+
+                    for (let j = 0; j < this.branches.length; j++) {
+                        let b = this.branches[j];
+                        let d = a.distanceTo(b.pos);
+                        
+                        if (d < MIN_DIST) {
+                            // Attractor reached, eliminate it
+                            this.attractors.splice(i, 1);
+                            closestBranch = null;
+                            break; 
+                        } else if (d < record) {
+                            closestBranch = b;
+                            record = d;
+                        }
+                    }
+
+                    // 2. Accumulate direction pull
+                    if (closestBranch != null) {
+                        let dir = a.clone().sub(closestBranch.pos).normalize();
+                        closestBranch.dir.add(dir);
+                        closestBranch.count++;
+                    }
+                }
+
+                // 3. Generate new branches
+                for (let i = this.branches.length - 1; i >= 0; i--) {
+                    let b = this.branches[i];
+                    if (b.count > 0) {
+                        // Average the direction
+                        b.dir.divideScalar(b.count + 1).normalize();
+
+                        // Backrooms glitch effect: Snap to 90 degrees
+                        if (this.isOrthogonal) {
+                            let absX = Math.abs(b.dir.x);
+                            let absY = Math.abs(b.dir.y);
+                            let absZ = Math.abs(b.dir.z);
+                            
+                            if (absX > absY && absX > absZ) {
+                                b.dir.set(Math.sign(b.dir.x), 0, 0);
+                            } else if (absY > absX && absY > absZ) {
+                                b.dir.set(0, Math.sign(b.dir.y), 0);
+                            } else {
+                                b.dir.set(0, 0, Math.sign(b.dir.z));
+                            }
+                        }
+
+                        let nextPos = b.pos.clone().add(b.dir.clone().multiplyScalar(BRANCH_LENGTH));
+                        let newBranch = new Branch(b, nextPos, b.dir.clone());
+                        this.branches.push(newBranch);
+                        b.reset();
+                        grown = true;
+                    }
+                }
+                return grown;
+            }
+        }
+
+        const dummy = new THREE.Object3D();
+        const up = new THREE.Vector3(0, 1, 0);
+        const quaternion = new THREE.Quaternion();
+
+        function createGeometryFromBranches(branches, material, thickness) {
+            const group = new THREE.Group();
+            const validBranches = branches.filter(b => b.parent !== null);
+            if (validBranches.length === 0) return group;
+
+            // Instanced Cylinders for the connections
+            const cylGeo = new THREE.CylinderGeometry(thickness, thickness, BRANCH_LENGTH, 8);
+            cylGeo.translate(0, BRANCH_LENGTH / 2, 0); // Pivot at the base
+            
+            const instancedCyl = new THREE.InstancedMesh(cylGeo, material, validBranches.length);
+            instancedCyl.castShadow = true;
+            instancedCyl.receiveShadow = true;
+
+            // Instanced Spheres for the joints (to make continuous smooth structures)
+            const sphGeo = new THREE.SphereGeometry(thickness * 1.05, 8, 8);
+            const instancedSph = new THREE.InstancedMesh(sphGeo, material, branches.length);
+            instancedSph.castShadow = true;
+            instancedSph.receiveShadow = true;
+
+            for (let i = 0; i < validBranches.length; i++) {
+                let b = validBranches[i];
+                let p1 = b.parent.pos;
+                let p2 = b.pos;
+
+                // Configure Cylinder
+                dummy.position.copy(p1);
+                let dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+                
+                // Avoid zero-length vector quaternion error
+                if (dir.lengthSq() > 0.0001) {
+                    quaternion.setFromUnitVectors(up, dir);
+                    dummy.quaternion.copy(quaternion);
+                } else {
+                    dummy.quaternion.identity();
+                }
+
+                dummy.scale.set(1, 1, 1);
+                dummy.updateMatrix();
+                instancedCyl.setMatrixAt(i, dummy.matrix);
+            }
+
+            for(let i = 0; i < branches.length; i++) {
+                // Configure Sphere joint
+                dummy.position.copy(branches[i].pos);
+                dummy.quaternion.identity();
+                dummy.scale.set(1, 1, 1);
+                dummy.updateMatrix();
+                instancedSph.setMatrixAt(i, dummy.matrix);
+            }
+
+            group.add(instancedCyl);
+            group.add(instancedSph);
+            return group;
+        }
+
+        function generateProceduralAssets() {
+            // Material palette fitting the "Backrooms" aesthetic
+            const mats = {
+                flesh: new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9, metalness: 0.1 }),
+                yellowWall: new THREE.MeshStandardMaterial({ color: 0xc8c385, roughness: 1.0, metalness: 0.0 }),
+                rustyMetal: new THREE.MeshStandardMaterial({ color: 0x6e3b22, roughness: 0.8, metalness: 0.6 }),
+                concrete: new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 1.0, metalness: 0.0 }),
+                blackMold: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.2 }),
+                whitePlastic: new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3, metalness: 0.1 })
+            };
+
+            const definitions = [
+                // 1. The Fleshy Pillar (Organic, Tall)
+                { type: 'cylinder', h: 25, r: 3, count: 400, mat: mats.flesh, thick: 0.4, ortho: false },
+                // 2. Glitch Pipe Column (Orthogonal, Tall)
+                { type: 'cylinder', h: 20, r: 2.5, count: 350, mat: mats.rustyMetal, thick: 0.35, ortho: true },
+                // 3. Creeping Mold Floor (Organic, Flat Box)
+                { type: 'box', w: 12, h: 2, d: 12, count: 500, mat: mats.blackMold, thick: 0.2, ortho: false },
+                // 4. Abstract Wiring Cube (Organic, Dense Box)
+                { type: 'box', w: 8, h: 8, d: 8, count: 400, mat: mats.concrete, thick: 0.15, ortho: false },
+                // 5. Backrooms Yellow Arch (Orthogonal, Arch bounds)
+                { type: 'arch', r: 6, h: 10, count: 400, mat: mats.yellowWall, thick: 0.5, ortho: true },
+                // 6. The Glitching Block (Orthogonal, Box)
+                { type: 'box', w: 7, h: 12, d: 7, count: 300, mat: mats.whitePlastic, thick: 0.3, ortho: true },
+                // 7. Structural Roots (Organic, Cone/Spreading)
+                { type: 'cone', r: 8, h: 15, count: 450, mat: mats.yellowWall, thick: 0.4, ortho: false },
+                // 8. Ceiling Drop Pipes (Orthogonal, Tall inverted)
+                { type: 'cylinder', h: -20, r: 4, count: 350, mat: mats.rustyMetal, thick: 0.4, ortho: true },
+                // 9. Floating Dark Anomaly (Orthogonal, Sphere)
+                { type: 'sphere', r: 5, h: 10, count: 300, mat: mats.blackMold, thick: 0.3, ortho: true },
+                // 10. Concrete Veins (Organic, Flat Wall-like)
+                { type: 'box', w: 10, h: 15, d: 1.5, count: 400, mat: mats.concrete, thick: 0.25, ortho: false }
+            ];
+
+            // Layout the 10 items in a large circle
+            const radius = 25;
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                const def = definitions[i];
+                
+                const baseX = Math.cos(angle) * radius;
+                const baseZ = Math.sin(angle) * radius;
+                
+                // Adjust starting height depending on if it's a ceiling drop
+                const baseY = def.h < 0 ? 20 : 0; 
+                const rootPos = new THREE.Vector3(baseX, baseY, baseZ);
+
+                const attractors = generateAttractors(def, rootPos);
+                
+                // Initialize Space Colonization
+                const sc = new SpaceColonization(attractors, rootPos, def.ortho);
+                
+                // Run generation loop
+                let iterations = 0;
+                while(sc.grow() && iterations < 300) {
+                    iterations++;
+                }
+
+                // Build Geometry
+                const meshGroup = createGeometryFromBranches(sc.branches, def.mat, def.thick);
+                scene.add(meshGroup);
+            }
+        }
+
+        function generateAttractors(def, rootPos) {
+            const attractors = [];
+            const count = def.count;
+
+            for (let i = 0; i < count; i++) {
+                let x = 0, y = 0, z = 0;
+
+                if (def.type === 'cylinder') {
+                    const r = Math.random() * def.r;
+                    const theta = Math.random() * Math.PI * 2;
+                    x = rootPos.x + r * Math.cos(theta);
+                    z = rootPos.z + r * Math.sin(theta);
+                    y = rootPos.y + Math.random() * def.h;
+                } 
+                else if (def.type === 'box') {
+                    x = rootPos.x + (Math.random() - 0.5) * def.w;
+                    y = rootPos.y + Math.random() * def.h;
+                    z = rootPos.z + (Math.random() - 0.5) * def.d;
+                }
+                else if (def.type === 'arch') {
+                    // Attractors placed in an arch curve shape
+                    const angle = Math.random() * Math.PI; // 0 to 180 degrees
+                    x = rootPos.x + Math.cos(angle) * def.r;
+                    y = rootPos.y + Math.sin(angle) * def.h;
+                    z = rootPos.z + (Math.random() - 0.5) * 2; // slight depth
+                }
+                else if (def.type === 'cone') {
+                    // Wider at bottom, narrow at top
+                    const height = Math.random() * def.h;
+                    const r = Math.random() * (def.r * (1 - height / def.h));
+                    const theta = Math.random() * Math.PI * 2;
+                    x = rootPos.x + r * Math.cos(theta);
+                    z = rootPos.z + r * Math.sin(theta);
+                    y = rootPos.y + height;
+                }
+                else if (def.type === 'sphere') {
+                    const r = Math.cbrt(Math.random()) * def.r; // uniform sphere dist
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    x = rootPos.x + r * Math.sin(phi) * Math.cos(theta);
+                    y = rootPos.y + def.h + r * Math.sin(phi) * Math.sin(theta);
+                    z = rootPos.z + r * Math.cos(phi);
+                }
+
+                attractors.push(new THREE.Vector3(x, y, z));
+            }
+            return attractors;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Very slow continuous auto-rotation to emphasize the gallery
+            scene.rotation.y += 0.0005;
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>

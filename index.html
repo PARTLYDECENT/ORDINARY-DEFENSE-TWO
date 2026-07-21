@@ -857,7 +857,7 @@
                     </button>
 
                     <!-- Dropdown Options Menu (initially hidden) -->
-                    <div id="construct-dropdown" class="absolute bottom-16 left-0 right-0 blur-panel rounded-xl border border-emerald-500/30 p-2 flex flex-col gap-1.5 shadow-2xl transition-all duration-300 transform scale-y-0 origin-bottom opacity-0 pointer-events-none z-40 bg-black/95">
+                    <div id="construct-dropdown" class="absolute bottom-16 left-0 right-0 blur-panel rounded-xl border border-emerald-500/30 p-2 flex flex-col gap-1.5 shadow-2xl transition-all duration-300 transform scale-y-0 origin-bottom opacity-0 pointer-events-none z-40 bg-black/95 max-h-[380px] overflow-y-auto">
                         
                         <!-- Option 1: Gatling Turret -->
                         <div id="build-spore" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-emerald-500/40 hover:bg-emerald-950/40 cursor-pointer transition-all active:scale-98">
@@ -1044,6 +1044,118 @@
                             </div>
                             <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>250¢</span>
                         </div>
+
+                        <!-- Option 14: Bio-Corroder -->
+                        <div id="build-bio_corroder" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-lime-500/40 hover:bg-lime-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-lime-950/80 border border-lime-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-lime-400">
+                                    <i class="fa-solid fa-flask text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">BIO-CORRODER</span>
+                                    <span class="text-[9px] text-lime-400/70">Launches toxic acid pools dealing damage over time</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>180¢</span>
+                        </div>
+
+                        <!-- Option 15: Void Obelisk -->
+                        <div id="build-plasma_obelisk" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-purple-500/40 hover:bg-purple-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-purple-950/80 border border-purple-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-purple-400">
+                                    <i class="fa-solid fa-gem text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">VOID OBELISK</span>
+                                    <span class="text-[9px] text-purple-400/70">Fires slow, massive void artillery shells with splash</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>320¢</span>
+                        </div>
+
+                        <!-- Option 16: Chrono Emitter -->
+                        <div id="build-chrono_emitter" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-cyan-500/40 hover:bg-cyan-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-cyan-950/80 border border-cyan-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-cyan-400">
+                                    <i class="fa-solid fa-clock text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">CHRONO EMITTER</span>
+                                    <span class="text-[9px] text-cyan-400/70">Pulses temporal fields, speeding up nearby towers by 50%</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>220¢</span>
+                        </div>
+
+                        <!-- Option 17: Ore Refinery -->
+                        <div id="build-nano_refinery" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-amber-500/40 hover:bg-amber-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-amber-950/80 border border-amber-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-amber-400">
+                                    <i class="fa-solid fa-industry text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">ORE REFINERY</span>
+                                    <span class="text-[9px] text-amber-400/70">Refines mineral resources to generate credits over time</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>280¢</span>
+                        </div>
+
+                        <!-- Option 18: Atmos Generator -->
+                        <div id="build-atmos_generator" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-green-500/40 hover:bg-green-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-green-950/80 border border-green-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-green-400">
+                                    <i class="fa-solid fa-wind text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">ATMOS GENERATOR</span>
+                                    <span class="text-[9px] text-green-400/70">Oxygen dome. Replenishes food passively over time.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>120¢</span>
+                        </div>
+
+                        <!-- Option 19: Habitation Module -->
+                        <div id="build-hab_module" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-slate-400/40 hover:bg-slate-900/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-slate-900/85 border border-slate-500/45 rounded-lg w-8 h-8 flex items-center justify-center text-slate-300">
+                                    <i class="fa-solid fa-people-roof text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">COLONY HAB</span>
+                                    <span class="text-[9px] text-slate-400/70">Colony housing. Replenishes food, water, and power.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>160¢</span>
+                        </div>
+
+                        <!-- Option 20: Colony Sensor Array -->
+                        <div id="build-sensor_array" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-indigo-500/40 hover:bg-indigo-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-indigo-950/80 border border-indigo-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-indigo-400">
+                                    <i class="fa-solid fa-satellite-dish text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">SENSOR ARRAY</span>
+                                    <span class="text-[9px] text-indigo-400/70">Radar tower. Spots and scans stealth cloaked threats.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>200¢</span>
+                        </div>
+
+                        <!-- Option 21: Polyplant Greenhouse -->
+                        <div id="build-greenhouse" class="build-card rounded-lg px-3 py-2 flex items-center justify-between border border-transparent hover:border-pink-500/40 hover:bg-pink-950/40 cursor-pointer transition-all active:scale-98">
+                            <div class="flex items-center gap-3">
+                                <div class="bg-pink-950/80 border border-pink-500/40 rounded-lg w-8 h-8 flex items-center justify-center text-pink-400">
+                                    <i class="fa-solid fa-spa text-sm"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span class="orbitron font-bold text-white text-xs tracking-wide">GREENHOUSE</span>
+                                    <span class="text-[9px] text-pink-400/70">Flora dome. Periodically spawns Polyplants nearby.</span>
+                                </div>
+                            </div>
+                            <span class="text-xs text-yellow-400 font-bold"><i class="fa-solid fa-coins mr-0.5"></i>180¢</span>
+                        </div>
                         </div>
                 </div>
 
@@ -1223,64 +1335,8 @@
         function generateBackroomsTexture() {
             if (backroomsGroundTexture) return backroomsGroundTexture;
 
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 512;
-            const ctx = canvas.getContext('2d');
-
-            // Dirty worn carpet yellow-brown base
-            const grad = ctx.createLinearGradient(0, 0, 512, 512);
-            grad.addColorStop(0, '#786832');
-            grad.addColorStop(0.5, '#8b7d3c');
-            grad.addColorStop(1, '#665727');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 512, 512);
-
-            // Add fine noise for carpet texture
-            ctx.fillStyle = 'rgba(0,0,0,0.18)';
-            for (let i = 0; i < 25000; i++) {
-                const rx = Math.random() * 512;
-                const ry = Math.random() * 512;
-                const rw = Math.random() * 1.5 + 0.5;
-                ctx.fillRect(rx, ry, rw, rw);
-            }
-            ctx.fillStyle = 'rgba(255,255,255,0.06)';
-            for (let i = 0; i < 15000; i++) {
-                const rx = Math.random() * 512;
-                const ry = Math.random() * 512;
-                const rw = Math.random() * 1.2 + 0.5;
-                ctx.fillRect(rx, ry, rw, rw);
-            }
-
-            // Faint carpet seams (grid layout)
-            ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-            ctx.lineWidth = 1.0;
-            for (let coord = 64; coord < 512; coord += 64) {
-                // Horizontal seam
-                ctx.beginPath();
-                ctx.moveTo(0, coord);
-                ctx.lineTo(512, coord);
-                ctx.stroke();
-                // Vertical seam
-                ctx.beginPath();
-                ctx.moveTo(coord, 0);
-                ctx.lineTo(coord, 512);
-                ctx.stroke();
-            }
-
-            // Uncanny damp/dirty carpet splotches (dark mold/stain spots)
-            ctx.fillStyle = 'rgba(40,30,10,0.4)';
-            for (let i = 0; i < 8; i++) {
-                const cx = Math.random() * 512;
-                const cy = Math.random() * 512;
-                const rx = Math.random() * 30 + 15;
-                const ry = Math.random() * 15 + 8;
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, rx, ry, Math.random() * Math.PI, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            const texture = new THREE.CanvasTexture(canvas);
+            const loader = new THREE.TextureLoader();
+            const texture = loader.load('assets/images/tile1.jpeg');
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(32, 32);
@@ -3366,141 +3422,1267 @@
             return group;
         }
 
-        function createBackroomsWallSegment() {
+        // ==========================================
+        // ADVANCED PROCEDURAL BACKROOMS ASSETS (Blender-Inspired Logics)
+        // ==========================================
+
+        // ==========================================
+        // SPACE COLONIZATION PROCEDURAL GENERATOR
+        // ==========================================
+        const SPACE_COL_MIN_DIST = 1.2;
+        const SPACE_COL_MAX_DIST = 8.0;
+        const SPACE_COL_BRANCH_LENGTH = 0.8;
+
+        class SpaceColBranch {
+            constructor(parent, pos, dir) {
+                this.parent = parent;
+                this.pos = pos;
+                this.dir = dir;
+                this.count = 0;
+                this.saveDir = dir.clone();
+            }
+            reset() {
+                this.dir.copy(this.saveDir);
+                this.count = 0;
+            }
+        }
+
+        class SpaceColonization {
+            constructor(attractors, rootPos, isOrthogonal = false) {
+                this.attractors = attractors; // Array of THREE.Vector3
+                this.branches = [];
+                this.isOrthogonal = isOrthogonal;
+                
+                // Start with a root pointing upwards
+                let root = new SpaceColBranch(null, rootPos.clone(), new THREE.Vector3(0, 1, 0));
+                this.branches.push(root);
+            }
+
+            grow() {
+                if (this.attractors.length === 0) return false;
+
+                let grown = false;
+                const minDistSq = SPACE_COL_MIN_DIST * SPACE_COL_MIN_DIST;
+                const maxDistSq = SPACE_COL_MAX_DIST * SPACE_COL_MAX_DIST;
+
+                // 1. Find the nearest branch for each attractor
+                for (let i = this.attractors.length - 1; i >= 0; i--) {
+                    let a = this.attractors[i];
+                    let closestBranch = null;
+                    let recordSq = maxDistSq;
+
+                    for (let j = 0; j < this.branches.length; j++) {
+                        let b = this.branches[j];
+                        let dSq = a.distanceToSquared(b.pos);
+                        
+                        if (dSq < minDistSq) {
+                            // Attractor reached, eliminate it
+                            this.attractors.splice(i, 1);
+                            closestBranch = null;
+                            break; 
+                        } else if (dSq < recordSq) {
+                            closestBranch = b;
+                            recordSq = dSq;
+                        }
+                    }
+
+                    // 2. Accumulate direction pull
+                    if (closestBranch != null) {
+                        let dir = a.clone().sub(closestBranch.pos).normalize();
+                        closestBranch.dir.add(dir);
+                        closestBranch.count++;
+                    }
+                }
+
+                // 3. Generate new branches
+                for (let i = this.branches.length - 1; i >= 0; i--) {
+                    let b = this.branches[i];
+                    if (b.count > 0) {
+                        // Average the direction
+                        b.dir.divideScalar(b.count + 1).normalize();
+
+                        // Backrooms glitch effect: Snap to 90 degrees
+                        if (this.isOrthogonal) {
+                            let absX = Math.abs(b.dir.x);
+                            let absY = Math.abs(b.dir.y);
+                            let absZ = Math.abs(b.dir.z);
+                            
+                            if (absX > absY && absX > absZ) {
+                                b.dir.set(Math.sign(b.dir.x), 0, 0);
+                            } else if (absY > absX && absY > absZ) {
+                                b.dir.set(0, Math.sign(b.dir.y), 0);
+                            } else {
+                                b.dir.set(0, 0, Math.sign(b.dir.z));
+                            }
+                        }
+
+                        let nextPos = b.pos.clone().add(b.dir.clone().multiplyScalar(SPACE_COL_BRANCH_LENGTH));
+                        let newBranch = new SpaceColBranch(b, nextPos, b.dir.clone());
+                        this.branches.push(newBranch);
+                        b.reset();
+                        grown = true;
+                    }
+                }
+                return grown;
+            }
+        }
+
+        const spaceColDummy = new THREE.Object3D();
+        const spaceColUp = new THREE.Vector3(0, 1, 0);
+        const spaceColQuat = new THREE.Quaternion();
+
+        function createGeometryFromBranches(branches, material, thickness) {
             const group = new THREE.Group();
+            const validBranches = branches.filter(b => b.parent !== null);
+            if (validBranches.length === 0) return group;
+
+            // Instanced Cylinders for the connections
+            const cylGeo = new THREE.CylinderGeometry(thickness, thickness, SPACE_COL_BRANCH_LENGTH, 8);
+            cylGeo.translate(0, SPACE_COL_BRANCH_LENGTH / 2, 0); // Pivot at the base
             
-            // Wall geometry
-            const wallGeo = new THREE.BoxGeometry(0.8, 1.25, 0.15);
-            const wallMat = new THREE.MeshStandardMaterial({
-                color: 0xc9b458, // pale faded yellow wallpaper color
+            const instancedCyl = new THREE.InstancedMesh(cylGeo, material, validBranches.length);
+            instancedCyl.castShadow = true;
+            instancedCyl.receiveShadow = true;
+
+            // Instanced Spheres for the joints (to make continuous smooth structures)
+            const sphGeo = new THREE.SphereGeometry(thickness * 1.05, 8, 8);
+            const instancedSph = new THREE.InstancedMesh(sphGeo, material, branches.length);
+            instancedSph.castShadow = true;
+            instancedSph.receiveShadow = true;
+
+            for (let i = 0; i < validBranches.length; i++) {
+                let b = validBranches[i];
+                let p1 = b.parent.pos;
+                let p2 = b.pos;
+
+                // Configure Cylinder
+                spaceColDummy.position.copy(p1);
+                let dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+                
+                // Avoid zero-length vector quaternion error
+                if (dir.lengthSq() > 0.0001) {
+                    spaceColQuat.setFromUnitVectors(spaceColUp, dir);
+                    spaceColDummy.quaternion.copy(spaceColQuat);
+                } else {
+                    spaceColDummy.quaternion.identity();
+                }
+
+                spaceColDummy.scale.set(1, 1, 1);
+                spaceColDummy.updateMatrix();
+                instancedCyl.setMatrixAt(i, spaceColDummy.matrix);
+            }
+
+            for(let i = 0; i < branches.length; i++) {
+                // Configure Sphere joint
+                spaceColDummy.position.copy(branches[i].pos);
+                spaceColDummy.quaternion.identity();
+                spaceColDummy.scale.set(1, 1, 1);
+                spaceColDummy.updateMatrix();
+                instancedSph.setMatrixAt(i, spaceColDummy.matrix);
+            }
+
+            instancedCyl.instanceMatrix.needsUpdate = true;
+            instancedSph.instanceMatrix.needsUpdate = true;
+
+            group.add(instancedCyl);
+            group.add(instancedSph);
+            return group;
+        }
+
+        function generateSpaceColAttractors(def, rootPos) {
+            const attractors = [];
+            const count = def.count;
+
+            for (let i = 0; i < count; i++) {
+                let x = 0, y = 0, z = 0;
+
+                if (def.type === 'cylinder') {
+                    const r = Math.random() * def.r;
+                    const theta = Math.random() * Math.PI * 2;
+                    x = rootPos.x + r * Math.cos(theta);
+                    z = rootPos.z + r * Math.sin(theta);
+                    y = rootPos.y + Math.random() * def.h;
+                } 
+                else if (def.type === 'box') {
+                    x = rootPos.x + (Math.random() - 0.5) * def.w;
+                    y = rootPos.y + Math.random() * def.h;
+                    z = rootPos.z + (Math.random() - 0.5) * def.d;
+                }
+                else if (def.type === 'arch') {
+                    const angle = Math.random() * Math.PI; // 0 to 180 degrees
+                    x = rootPos.x + Math.cos(angle) * def.r;
+                    y = rootPos.y + Math.sin(angle) * def.h;
+                    z = rootPos.z + (Math.random() - 0.5) * 2; // slight depth
+                }
+                else if (def.type === 'cone') {
+                    const height = Math.random() * def.h;
+                    const r = Math.random() * (def.r * (1 - height / def.h));
+                    const theta = Math.random() * Math.PI * 2;
+                    x = rootPos.x + r * Math.cos(theta);
+                    z = rootPos.z + r * Math.sin(theta);
+                    y = rootPos.y + height;
+                }
+                else if (def.type === 'sphere') {
+                    const r = Math.cbrt(Math.random()) * def.r; // uniform sphere dist
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    x = rootPos.x + r * Math.sin(phi) * Math.cos(theta);
+                    y = rootPos.y + def.h + r * Math.sin(phi) * Math.sin(theta);
+                    z = rootPos.z + r * Math.cos(phi);
+                }
+
+                attractors.push(new THREE.Vector3(x, y, z));
+            }
+            return attractors;
+        }
+
+        let backroomsSpaceColTemplates = null;
+
+        function generateBackroomsSpaceColTemplates() {
+            if (backroomsSpaceColTemplates) return;
+            console.log("[Space Colonization] Generating procedural Backrooms templates...");
+            backroomsSpaceColTemplates = [];
+            
+            const mats = {
+                flesh: new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9, metalness: 0.1 }),
+                yellowWall: new THREE.MeshStandardMaterial({ color: 0xc8c385, roughness: 1.0, metalness: 0.0 }),
+                rustyMetal: new THREE.MeshStandardMaterial({ color: 0x6e3b22, roughness: 0.8, metalness: 0.6 }),
+                concrete: new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 1.0, metalness: 0.0 }),
+                blackMold: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.2 }),
+                whitePlastic: new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3, metalness: 0.1 })
+            };
+
+            const definitions = [
+                // 1. The Fleshy Pillar (Organic, Tall)
+                { type: 'cylinder', h: 25, r: 3, count: 400, mat: mats.flesh, thick: 0.4, ortho: false, baseScale: 3.2 / 25 },
+                // 2. Glitch Pipe Column (Orthogonal, Tall)
+                { type: 'cylinder', h: 20, r: 2.5, count: 350, mat: mats.rustyMetal, thick: 0.35, ortho: true, baseScale: 3.2 / 20 },
+                // 3. Creeping Mold Floor (Organic, Flat Box)
+                { type: 'box', w: 12, h: 2, d: 12, count: 500, mat: mats.blackMold, thick: 0.2, ortho: false, baseScale: 2.0 / 12 },
+                // 4. Abstract Wiring Cube (Organic, Dense Box)
+                { type: 'box', w: 8, h: 8, d: 8, count: 400, mat: mats.concrete, thick: 0.15, ortho: false, baseScale: 2.0 / 8 },
+                // 5. Backrooms Yellow Arch (Orthogonal, Arch bounds)
+                { type: 'arch', r: 6, h: 10, count: 400, mat: mats.yellowWall, thick: 0.5, ortho: true, baseScale: 3.2 / 10 },
+                // 6. The Glitching Block (Orthogonal, Box)
+                { type: 'box', w: 7, h: 12, d: 7, count: 300, mat: mats.whitePlastic, thick: 0.3, ortho: true, baseScale: 3.2 / 12 },
+                // 7. Structural Roots (Organic, Cone/Spreading)
+                { type: 'cone', r: 8, h: 15, count: 450, mat: mats.yellowWall, thick: 0.4, ortho: false, baseScale: 3.2 / 15 },
+                // 8. Ceiling Drop Pipes (Orthogonal, Tall inverted)
+                { type: 'cylinder', h: -20, r: 4, count: 350, mat: mats.rustyMetal, thick: 0.4, ortho: true, baseScale: 3.2 / 20 },
+                // 9. Floating Dark Anomaly (Orthogonal, Sphere)
+                { type: 'sphere', r: 5, h: 10, count: 300, mat: mats.blackMold, thick: 0.3, ortho: true, baseScale: 0.2 },
+                // 10. Concrete Veins (Organic, Flat Wall-like)
+                { type: 'box', w: 10, h: 15, d: 1.5, count: 400, mat: mats.concrete, thick: 0.25, ortho: false, baseScale: 3.2 / 15 }
+            ];
+
+            for (let i = 0; i < definitions.length; i++) {
+                const def = definitions[i];
+                const baseY = def.h < 0 ? -def.h : 0;
+                const rootPos = new THREE.Vector3(0, baseY, 0);
+
+                const attractors = generateSpaceColAttractors(def, rootPos);
+                const sc = new SpaceColonization(attractors, rootPos, def.ortho);
+                
+                let iterations = 0;
+                while (sc.grow() && iterations < 300) {
+                    iterations++;
+                }
+
+                const meshGroup = createGeometryFromBranches(sc.branches, def.mat, def.thick);
+                meshGroup.userData = {
+                    baseScale: def.baseScale,
+                    name: `SpaceColAnom_${i+1}_${def.type}`
+                };
+                
+                meshGroup.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        child.userData.isClonedTemplate = true; // Protect from clearObstacles dispose
+                    }
+                });
+
+                backroomsSpaceColTemplates.push(meshGroup);
+            }
+            console.log("[Space Colonization] Generated 10 procedural templates successfully!");
+        }
+
+        function createSpaceColAnomalyObstacle() {
+            generateBackroomsSpaceColTemplates();
+            const index = Math.floor(Math.random() * backroomsSpaceColTemplates.length);
+            const template = backroomsSpaceColTemplates[index];
+            const instance = template.clone();
+            
+            const baseScale = template.userData.baseScale;
+            instance.scale.set(baseScale, baseScale, baseScale);
+            return instance;
+        }
+
+        // ==========================================
+        // BACKROOMS COLUMN FOUNDRY PROCEDURAL ASSETS
+        // ==========================================
+        function createWallpaperTexture(t) {
+            let e = eZ(t), canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 512;
+            let p = canvas.getContext("2d");
+            p.fillStyle = "#d9c66c";
+            p.fillRect(0, 0, 512, 512);
+            for (let l0 = 0; l0 < 9000; l0++) {
+                let z0 = e() * 512, R0 = e() * 512, p0 = e() * 3 + 0.5, s0 = (e() - 0.5) * 24;
+                p.fillStyle = `rgba(${Math.floor(217 + s0)}, ${Math.floor(198 + s0)}, ${Math.floor(108 + s0)}, 0.18)`;
+                p.fillRect(z0, R0, p0, p0);
+            }
+            p.strokeStyle = "rgba(0,0,0,0.05)";
+            p.lineWidth = 1;
+            for (let l0 = 0; l0 < 512; l0 += 28) {
+                p.beginPath();
+                p.moveTo(l0 + e() * 6, 0);
+                p.lineTo(l0 + e() * 6, 512);
+                p.stroke();
+            }
+            for (let l0 = 0; l0 < 18; l0++) {
+                let z0 = e() * 512, R0 = e() * 512, p0 = e() * 22 + 4;
+                p.fillStyle = `rgba(55, 42, 18, ${e() * 0.09 + 0.02})`;
+                p.beginPath();
+                p.arc(z0, R0, p0, 0, Math.PI * 2);
+                p.fill();
+            }
+            p.strokeStyle = "rgba(90, 80, 40, 0.06)";
+            for (let l0 = 0; l0 < 40; l0++) {
+                let z0 = e() * 512, R0 = e() * 512;
+                p.beginPath();
+                p.moveTo(z0, R0);
+                p.lineTo(z0 + e() * 20 - 10, R0 + e() * 60);
+                p.stroke();
+            }
+            let U0 = new THREE.CanvasTexture(canvas);
+            U0.wrapS = U0.wrapT = THREE.RepeatWrapping;
+            if (THREE.sRGBEncoding !== undefined) {
+                U0.encoding = THREE.sRGBEncoding;
+            } else {
+                U0.colorSpace = 'srgb';
+            }
+            U0.needsUpdate = true;
+            return U0;
+        }
+
+        function createConcreteTexture(t) {
+            let e = eZ(t + 99), canvas = document.createElement("canvas");
+            canvas.width = 512;
+            canvas.height = 512;
+            let p = canvas.getContext("2d");
+            p.fillStyle = "#8a8a86";
+            p.fillRect(0, 0, 512, 512);
+            for (let l0 = 0; l0 < 12000; l0++) {
+                let z0 = e() * 512, R0 = e() * 512, p0 = e() * 2.2, s0 = (e() - 0.5) * 40;
+                p.fillStyle = `rgba(${Math.floor(130 + s0)}, ${Math.floor(130 + s0)}, ${Math.floor(128 + s0)}, 0.22)`;
+                p.fillRect(z0, R0, p0, p0);
+            }
+            let U0 = new THREE.CanvasTexture(canvas);
+            U0.wrapS = U0.wrapT = THREE.RepeatWrapping;
+            U0.needsUpdate = true;
+            return U0;
+        }
+
+        function createCarpetTexture(t) {
+            let e = eZ(t + 7), canvas = document.createElement("canvas");
+            canvas.width = 256;
+            canvas.height = 256;
+            let p = canvas.getContext("2d");
+            p.fillStyle = "#9a8a4a";
+            p.fillRect(0, 0, 256, 256);
+            for (let l0 = 0; l0 < 6000; l0++) {
+                let z0 = e() * 256, R0 = e() * 256, p0 = e() * 1.8;
+                p.fillStyle = `rgba(${Math.floor(120 + e() * 40)}, ${Math.floor(110 + e() * 30)}, ${Math.floor(60 + e() * 20)}, 0.25)`;
+                p.fillRect(z0, R0, p0, p0);
+            }
+            let U0 = new THREE.CanvasTexture(canvas);
+            U0.wrapS = U0.wrapT = THREE.RepeatWrapping;
+            U0.needsUpdate = true;
+            return U0;
+        }
+
+        function eZ(E) {
+            return function() {
+                let k = (E += 1831565813);
+                k = Math.imul(k ^ (k >>> 15), k | 1);
+                k ^= k + Math.imul(k ^ (k >>> 7), k | 61);
+                return ((k ^ (k >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        function EU(E, k, Q, $ = {}) {
+            let J = $.stepSize ?? 0.08,
+                W = $.killDist ?? 0.15,
+                N = $.influenceDist ?? 0.8,
+                Z = $.maxIter ?? 120,
+                U = [Q.clone()],
+                H = [-1],
+                K = k.map((X) => X.clone()),
+                Y = [];
+            
+            const killDistSq = W * W;
+            const influenceDistSq = N * N;
+
+            for (let X = 0; X < Z; X++) {
+                if (K.length === 0) break;
+                let G = new Map,
+                    w = new Set;
+                for (let O = 0; O < K.length; O++) {
+                    let D = K[O],
+                        R = -1,
+                        F = influenceDistSq;
+                    for (let M = 0; M < U.length; M++) {
+                        let dSq = U[M].distanceToSquared(D);
+                        if (dSq < F) {
+                            F = dSq;
+                            R = M;
+                        }
+                    }
+                    if (R !== -1) {
+                        if (!G.has(R)) G.set(R, {
+                            dir: new E.Vector3,
+                            count: 0
+                        });
+                        let M = G.get(R),
+                            P = D.clone().sub(U[R]).normalize();
+                        M.dir.add(P), M.count++;
+                    }
+                }
+                for (let O = 0; O < K.length; O++) {
+                    for (let D = 0; D < U.length; D++) {
+                        if (U[D].distanceToSquared(K[O]) < killDistSq) {
+                            w.add(O);
+                            break;
+                        }
+                    }
+                }
+                let q = [];
+                G.forEach((O, D) => {
+                    if (O.count > 0) {
+                        O.dir.divideScalar(O.count).normalize();
+                        let R = U[D].clone().add(O.dir.multiplyScalar(J));
+                        q.push({
+                            pos: R,
+                            parent: D
+                        });
+                    }
+                }), K = K.filter((O, D) => !w.has(D));
+                for (let O of q) {
+                    let D = U.length;
+                    U.push(O.pos), H.push(O.parent), Y.push([O.parent, D]);
+                }
+                if (q.length === 0) break;
+            }
+            return {
+                nodes: U,
+                parents: H,
+                connections: Y
+            };
+        }
+
+        function Iq(E, k) {
+            let Q = [],
+                $ = k;
+            while ($ !== -1) Q.push($), $ = E[$];
+            return Q.reverse();
+        }
+
+        function createFoundryColumn(o, t) {
+            let e = eZ(t),
+                parentGroup = new THREE.Group(),
+                p = new THREE.Group();
+            
+            parentGroup.add(p);
+            p.position.y = 1.6;
+            
+            const c0 = (mesh) => {
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                p.add(mesh);
+            };
+
+            let l0 = createWallpaperTexture(t);
+            let z0 = new THREE.MeshStandardMaterial({ map: l0, roughness: 0.88, metalness: 0.02 });
+            let R0 = new THREE.MeshStandardMaterial({ color: 0xc4c4ba, roughness: 0.85 });
+            let p0 = new THREE.MeshStandardMaterial({ map: createCarpetTexture(t), color: 0xffffff, roughness: 1 });
+            let s0 = new THREE.MeshStandardMaterial({ map: createConcreteTexture(t), color: 0xffffff, roughness: 0.9 });
+
+            if (o === 0) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7);
+                c0(new THREE.Mesh(l, z0));
+                let n = new THREE.BoxGeometry(0.8, 0.08, 0.8),
+                    c = new THREE.Mesh(n, R0);
+                c.position.y = 1.56;
+                c0(c);
+                let d = new THREE.Mesh(n, R0);
+                d.position.y = -1.56;
+                c0(d);
+                let Z0 = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.08, 0.85), p0);
+                Z0.position.y = -1.56;
+                c0(Z0);
+            } else if (o === 1) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7, 10, 16, 10),
+                    n = l.attributes.position;
+                for (let E0 = 0; E0 < n.count; E0++) {
+                    let w0 = n.getY(E0),
+                        u0 = n.getX(E0),
+                        _0 = n.getZ(E0),
+                        f0 = Math.sin((w0 + 1.6) * 2.2) * 0.06 * Math.max(0, 1 - Math.abs(w0) / 1.6);
+                    if (Math.abs(u0) > 0.2 || Math.abs(_0) > 0.2) {
+                        n.setX(E0, u0 + (u0 > 0 ? f0 : -f0) + (e() - 0.5) * 0.015);
+                        n.setZ(E0, _0 + (_0 > 0 ? f0 : -f0) + (e() - 0.5) * 0.015);
+                    }
+                }
+                n.needsUpdate = true;
+                l.computeVertexNormals();
+                c0(new THREE.Mesh(l, z0));
+
+                let c = new THREE.MeshStandardMaterial({
+                        color: 0xa89b5a,
+                        roughness: 0.95,
+                        metalness: 0.02
+                    }),
+                    d = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.6, 0.72), c);
+                d.position.y = -1.3;
+                c0(d);
+
+                let Z0 = new THREE.MeshStandardMaterial({
+                    color: 0x3d351f,
+                    transparent: true,
+                    opacity: 0.55,
+                    roughness: 1
+                });
+                for (let E0 = 0; E0 < 6; E0++) {
+                    let w0 = 0.15 + e() * 0.5,
+                        u0 = new THREE.PlaneGeometry(0.06 + e() * 0.05, w0),
+                        _0 = new THREE.Mesh(u0, Z0),
+                        f0 = Math.floor(e() * 4),
+                        J1 = -1 + e() * 0.8;
+                    if (f0 === 0) _0.position.set(0.36, J1, (e() - 0.5) * 0.5), _0.rotation.y = 0;
+                    if (f0 === 1) _0.position.set(-0.36, J1, (e() - 0.5) * 0.5), _0.rotation.y = Math.PI;
+                    if (f0 === 2) _0.position.set((e() - 0.5) * 0.5, J1, 0.36), _0.rotation.y = Math.PI / 2;
+                    if (f0 === 3) _0.position.set((e() - 0.5) * 0.5, J1, -0.36), _0.rotation.y = -Math.PI / 2;
+                    c0(_0);
+                }
+            } else if (o === 2) {
+                let l = new THREE.BoxGeometry(0.8, 3.2, 0.8);
+                c0(new THREE.Mesh(l, s0));
+
+                let n = new THREE.CylinderGeometry(0.03, 0.03, 0.04, 8),
+                    c = new THREE.MeshStandardMaterial({
+                        color: 0x2a2a2a,
+                        roughness: 0.4,
+                        metalness: 0.7
+                    });
+                [[0.38, 1.5, 0.38], [-0.38, 1.5, 0.38], [0.38, 1.5, -0.38], [-0.38, 1.5, -0.38], [0.38, -1.5, 0.38], [-0.38, -1.5, 0.38], [0.38, -1.5, -0.38], [-0.38, -1.5, -0.38]].forEach(([E0, w0, u0]) => {
+                    let _0 = new THREE.Mesh(n, c);
+                    _0.position.set(E0, w0, u0);
+                    _0.rotation.x = Math.PI / 2;
+                    c0(_0);
+                });
+
+                let Z0 = new THREE.LineBasicMaterial({
+                    color: 0x222222,
+                    transparent: true,
+                    opacity: 0.5
+                });
+                for (let E0 = 0; E0 < 3; E0++) {
+                    let w0 = [],
+                        u0 = -1 + e() * 2;
+                    for (let J1 = 0; J1 < 6; J1++) {
+                        w0.push(new THREE.Vector3(0.41, u0 + J1 * 0.12 + (e() - 0.5) * 0.05, (e() - 0.5) * 0.6));
+                    }
+                    let _0 = new THREE.BufferGeometry().setFromPoints(w0),
+                        f0 = new THREE.Line(_0, Z0);
+                    p.add(f0);
+                }
+            } else if (o === 3) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7);
+                c0(new THREE.Mesh(l, z0));
+
+                let n = [];
+                for (let u0 = 0; u0 < 60; u0++) {
+                    let _0 = 0.2 + e() * 2.6,
+                        f0 = Math.floor(e() * 4),
+                        J1 = 0,
+                        M1 = 0;
+                    if (f0 === 0) J1 = 0.36, M1 = (e() - 0.5) * 0.68;
+                    if (f0 === 1) J1 = -0.36, M1 = (e() - 0.5) * 0.68;
+                    if (f0 === 2) J1 = (e() - 0.5) * 0.68, M1 = 0.36;
+                    if (f0 === 3) J1 = (e() - 0.5) * 0.68, M1 = -0.36;
+                    n.push(new THREE.Vector3(J1, _0 - 1.6, M1));
+                }
+                let c = new THREE.Vector3(0, -1.5, 0),
+                    d = EU(THREE, n, c, {
+                        stepSize: 0.09,
+                        killDist: 0.12,
+                        influenceDist: 0.7,
+                        maxIter: 80
+                    }),
+                    Z0 = new THREE.MeshStandardMaterial({
+                        color: 0x2a2418,
+                        roughness: 0.9,
+                        metalness: 0.05
+                    });
+                d.connections.forEach(([u0, _0]) => {
+                    let f0 = d.nodes[u0],
+                        J1 = d.nodes[_0];
+                    if (J1.clone().sub(f0).length() < 0.01) return;
+                    let y6 = new THREE.LineCurve3(f0, J1),
+                        h1 = new THREE.TubeGeometry(y6, 3, 0.012 + e() * 0.01, 5, false),
+                        $8 = new THREE.Mesh(h1, Z0);
+                    $8.castShadow = true;
+                    $8.receiveShadow = true;
+                    p.add($8);
+                });
+
+                let E0 = new THREE.SphereGeometry(0.022, 6, 6),
+                    w0 = new THREE.MeshStandardMaterial({
+                        color: 0x1a1306,
+                        roughness: 1
+                    });
+                d.nodes.forEach((u0, _0) => {
+                    if (_0 > 0 && e() > 0.7) {
+                        let f0 = new THREE.Mesh(E0, w0);
+                        f0.position.copy(u0);
+                        c0(f0);
+                    }
+                });
+            } else if (o === 4) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7);
+                c0(new THREE.Mesh(l, z0));
+
+                let n = [];
+                for (let d = 0; d < 70; d++) {
+                    let Z0 = 0.1 + e() * 3,
+                        E0 = Z0 * 2.5 + e() * 0.6,
+                        w0 = 0.42 + e() * 0.18;
+                    n.push(new THREE.Vector3(Math.cos(E0) * w0, Z0 - 1.6, Math.sin(E0) * w0));
+                }
+                let c = new THREE.MeshStandardMaterial({
+                    color: 0x444440,
+                    roughness: 0.3,
+                    metalness: 0.6
+                });
+                for (let d = 0; d < 3; d++) {
+                    let Z0 = 0.3 + d * 0.8 + e() * 0.2,
+                        E0 = new THREE.Vector3(0.38, Z0 - 1.6, 0),
+                        w0 = n.filter((h1, $8) => $8 % 3 === d),
+                        u0 = EU(THREE, w0, E0, {
+                            stepSize: 0.11,
+                            killDist: 0.14,
+                            influenceDist: 0.9,
+                            maxIter: 40
+                        }),
+                        _0 = [],
+                        f0 = 0;
+                    for (let h1 = u0.nodes.length - 1; h1 >= u0.nodes.length - 10 && h1 >= 0; h1--) {
+                        let $8 = Iq(u0.parents, h1);
+                        if ($8.length > f0) {
+                            f0 = $8.length;
+                            _0 = $8;
+                        }
+                    }
+                    if (_0.length < 3) continue;
+                    let J1 = _0.map((h1) => u0.nodes[h1]),
+                        M1 = new THREE.CatmullRomCurve3(J1),
+                        B8 = new THREE.TubeGeometry(M1, 24, 0.032, 8, false),
+                        H8 = new THREE.Mesh(B8, c);
+                    H8.castShadow = true;
+                    H8.receiveShadow = true;
+                    p.add(H8);
+
+                    let y6 = new THREE.MeshStandardMaterial({
+                        color: 0x111111,
+                        roughness: 0.8
+                    });
+                    for (let h1 = 2; h1 < J1.length; h1 += 5) {
+                        let $8 = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.008, 6, 10), y6);
+                        $8.position.copy(J1[h1]);
+                        $8.lookAt(J1[Math.min(h1 + 1, J1.length - 1)]);
+                        c0($8);
+                    }
+                }
+            } else if (o === 5) {
+                let l = new THREE.BoxGeometry(0.28, 3.2, 0.28),
+                    n = new THREE.Mesh(l, z0);
+                n.position.set(-0.34, 0, 0);
+                c0(n);
+
+                let c = new THREE.Mesh(l, z0);
+                c.position.set(0.34, 0, 0);
+                c0(c);
+
+                let d = new THREE.BoxGeometry(0.7, 0.08, 0.08),
+                    Z0 = new THREE.MeshStandardMaterial({
+                        color: 0x2a2a28,
+                        roughness: 0.6,
+                        metalness: 0.4
+                    });
+                [-0.9, 0, 0.9].forEach((E0) => {
+                    let w0 = new THREE.Mesh(d, Z0);
+                    w0.position.set(0, E0, 0);
+                    c0(w0);
+                });
+            } else if (o === 6) {
+                let l = new THREE.Shape();
+                l.moveTo(0, 0);
+                l.lineTo(0.8, 0);
+                l.lineTo(0.8, 0.3);
+                l.lineTo(0.3, 0.3);
+                l.lineTo(0.3, 0.8);
+                l.lineTo(0, 0.8);
+                l.lineTo(0, 0);
+
+                let n = new THREE.ExtrudeGeometry(l, {
+                    depth: 3.2,
+                    bevelEnabled: false
+                });
+                n.rotateX(-Math.PI / 2);
+                n.translate(0, 1.6, 0);
+                n.translate(-0.4, 0, -0.4);
+
+                let c = new THREE.Mesh(n, z0);
+                c0(c);
+            } else if (o === 7) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7, 8, 14, 8),
+                    n = l.attributes.position;
+                for (let E0 = 0; E0 < n.count; E0++) {
+                    let w0 = n.getY(E0),
+                        u0 = n.getX(E0),
+                        _0 = n.getZ(E0);
+                    if (Math.max(Math.abs(u0), Math.abs(_0)) > 0.3 && e() > 0.3) {
+                        n.setX(E0, u0 + (e() - 0.5) * 0.12);
+                        n.setY(E0, w0 + (e() - 0.5) * 0.08);
+                        n.setZ(E0, _0 + (e() - 0.5) * 0.12);
+                    }
+                    if (e() > 0.97 && w0 > -0.5 && w0 < 1.2) {
+                        n.setX(E0, u0 * 0.55);
+                        n.setZ(E0, _0 * 0.55);
+                    }
+                }
+                n.needsUpdate = true;
+                l.computeVertexNormals();
+                c0(new THREE.Mesh(l, z0));
+
+                let c = new THREE.BoxGeometry(0.5, 3, 0.5),
+                    d = new THREE.MeshStandardMaterial({
+                        color: 0x5a5a58,
+                        roughness: 0.95
+                    });
+                c0(new THREE.Mesh(c, d));
+
+                let Z0 = new THREE.MeshStandardMaterial({
+                    color: 0x6b3a22,
+                    roughness: 0.7,
+                    metalness: 0.3
+                });
+                for (let E0 = 0; E0 < 4; E0++) {
+                    let w0 = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 3, 6), Z0);
+                    w0.position.set((e() - 0.5) * 0.3, 0, (e() - 0.5) * 0.3);
+                    c0(w0);
+                }
+            } else if (o === 8) {
+                let l = new THREE.BoxGeometry(0.7, 3.2, 0.7);
+                c0(new THREE.Mesh(l, z0));
+
+                let n = new THREE.BoxGeometry(0.4, 0.5, 0.2),
+                    c = new THREE.MeshStandardMaterial({
+                        color: 0x6b6b68,
+                        roughness: 0.6,
+                        metalness: 0.3
+                    }),
+                    d = new THREE.Mesh(n, c);
+                d.position.set(0.45, 0.2, 0);
+                c0(d);
+
+                let Z0 = [];
+                for (let _0 = 0; _0 < 30; _0++) {
+                    Z0.push(new THREE.Vector3(0.5 + (e() - 0.5) * 0.3, -1.6 + e() * 1.2, (e() - 0.5) * 0.4));
+                }
+                let E0 = new THREE.Vector3(0.45, -0.05, 0.06),
+                    w0 = new THREE.Vector3(0.45, -0.05, -0.06),
+                    u0 = new THREE.MeshStandardMaterial({
+                        color: 0x0e0e0e,
+                        roughness: 0.9
+                    });
+                [E0, w0].forEach((_0) => {
+                    let f0 = EU(THREE, Z0, _0, {
+                        stepSize: 0.12,
+                        killDist: 0.1,
+                        influenceDist: 0.7,
+                        maxIter: 30
+                    });
+                    if (f0.nodes.length < 2) return;
+                    let M1 = Iq(f0.parents, f0.nodes.length - 1).map((h1) => f0.nodes[h1]),
+                        B8 = new THREE.CatmullRomCurve3(M1),
+                        H8 = new THREE.TubeGeometry(B8, 20, 0.018, 6, false),
+                        y6 = new THREE.Mesh(H8, u0);
+                    y6.castShadow = true;
+                    y6.receiveShadow = true;
+                    p.add(y6);
+                });
+            } else if (o === 9) {
+                let l = new THREE.CylinderGeometry(0.48, 0.22, 3.2, 12),
+                    n = new THREE.Mesh(l, z0);
+                c0(n);
+
+                let c = [];
+                for (let w0 = 0; w0 < 80; w0++) {
+                    let u0 = e() * Math.PI * 2,
+                        _0 = e() * 0.6,
+                        f0 = 1.2 + e() * 0.6;
+                    c.push(new THREE.Vector3(Math.cos(u0) * _0, f0, Math.sin(u0) * _0));
+                }
+                let d = new THREE.Vector3(0, 1.6, 0),
+                    Z0 = EU(THREE, c, d, {
+                        stepSize: 0.13,
+                        killDist: 0.12,
+                        influenceDist: 0.65,
+                        maxIter: 60
+                    }),
+                    E0 = new THREE.MeshStandardMaterial({
+                        color: 0x1a1306,
+                        roughness: 0.95
+                    });
+                Z0.connections.forEach(([w0, u0]) => {
+                    let _0 = Z0.nodes[w0],
+                        f0 = Z0.nodes[u0],
+                        J1 = new THREE.LineCurve3(_0, f0),
+                        M1 = new THREE.TubeGeometry(J1, 2, 0.008 + e() * 0.012, 4, false),
+                        B8 = new THREE.Mesh(M1, E0);
+                    B8.castShadow = true;
+                    B8.receiveShadow = true;
+                    p.add(B8);
+                });
+
+                for (let w0 = 0; w0 < 8; w0++) {
+                    let u0 = [],
+                        _0 = new THREE.Vector3((e() - 0.5) * 0.7, 1 + e() * 0.5, (e() - 0.5) * 0.7);
+                    u0.push(_0.clone());
+                    for (let B8 = 0; B8 < 6; B8++) {
+                        _0 = _0.clone().add(new THREE.Vector3((e() - 0.5) * 0.1, -0.15 - e() * 0.1, (e() - 0.5) * 0.1));
+                        u0.push(_0.clone());
+                    }
+                    let f0 = new THREE.CatmullRomCurve3(u0),
+                        J1 = new THREE.TubeGeometry(f0, 10, 0.01, 4, false),
+                        M1 = new THREE.Mesh(J1, E0);
+                    M1.castShadow = true;
+                    M1.receiveShadow = true;
+                    p.add(M1);
+                }
+            }
+
+            p.traverse(child => {
+                if (child.isMesh || child.isLine) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    child.userData.isClonedTemplate = true; // Protect from clearObstacles dispose
+                }
+            });
+
+            return parentGroup;
+        }
+
+        let backroomsFoundryTemplates = null;
+
+        function generateBackroomsFoundryTemplates() {
+            if (backroomsFoundryTemplates) return;
+            console.log("[Column Foundry] Generating procedural Backrooms templates...");
+            backroomsFoundryTemplates = [];
+            for (let i = 0; i < 10; i++) {
+                const seed = 1000 + i * 137;
+                const column = createFoundryColumn(i, seed);
+                column.userData = {
+                    name: `FoundryColumn_${i+1}`
+                };
+                backroomsFoundryTemplates.push(column);
+            }
+            console.log("[Column Foundry] Generated 10 templates successfully!");
+        }
+
+        function createFoundryAnomalyObstacle() {
+            generateBackroomsFoundryTemplates();
+            const index = Math.floor(Math.random() * backroomsFoundryTemplates.length);
+            const template = backroomsFoundryTemplates[index];
+            const instance = template.clone();
+            return instance;
+        }
+
+        // 1. Procedural Monolithic Yellow Column (Asset #1, #7, #10)
+        function createBackroomsColumn() {
+            const group = new THREE.Group();
+
+            // Mono-yellow main shaft
+            const colGeo = new THREE.BoxGeometry(1.2, 3.4, 1.2);
+            const colMat = new THREE.MeshStandardMaterial({
+                color: 0xc9b458,
                 roughness: 0.85,
                 metalness: 0.05
             });
-            const wall = new THREE.Mesh(wallGeo, wallMat);
-            wall.position.y = 0.625;
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            group.add(wall);
+            const col = new THREE.Mesh(colGeo, colMat);
+            col.position.y = 1.7;
+            col.castShadow = true;
+            col.receiveShadow = true;
+            group.add(col);
 
-            // Darker baseboard
-            const baseboardGeo = new THREE.BoxGeometry(0.81, 0.1, 0.17);
+            // Baseboard Molding around bottom (Asset #7)
+            const baseboardGeo = new THREE.BoxGeometry(1.26, 0.16, 1.26);
             const baseboardMat = new THREE.MeshStandardMaterial({
-                color: 0x451a03, // dark wood baseboard
+                color: 0x451a03,
                 roughness: 0.7,
                 metalness: 0.1
             });
             const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
-            baseboard.position.y = 0.05;
+            baseboard.position.y = 0.08;
             baseboard.castShadow = true;
             group.add(baseboard);
 
-            // Subtle vertical stripe patterns (decorative wallpaper details)
-            const stripeGeo = new THREE.BoxGeometry(0.015, 1.15, 0.005);
-            const stripeMat = new THREE.MeshStandardMaterial({
-                color: 0xb59e45, // slightly darker vertical lines
+            // Ceiling Molding around top (Asset #7)
+            const topMoldingGeo = new THREE.BoxGeometry(1.28, 0.12, 1.28);
+            const topMoldingMat = new THREE.MeshStandardMaterial({
+                color: 0xe7e5e4,
                 roughness: 0.9
             });
+            const topMolding = new THREE.Mesh(topMoldingGeo, topMoldingMat);
+            topMolding.position.y = 3.34;
+            topMolding.castShadow = true;
+            group.add(topMolding);
 
-            // 4 vertical stripes (2 on each side of the wall panel)
+            // Vertical wallpaper seams
+            const stripeGeo = new THREE.BoxGeometry(0.015, 3.2, 0.005);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xb59e45, roughness: 0.9 });
+            for (let side of [-0.603, 0.603]) {
+                for (let offset of [-0.35, 0.35]) {
+                    const stripeX = new THREE.Mesh(stripeGeo, stripeMat);
+                    stripeX.position.set(offset, 1.7, side);
+                    group.add(stripeX);
+
+                    const stripeZ = new THREE.Mesh(stripeGeo, stripeMat);
+                    stripeZ.rotation.y = Math.PI / 2;
+                    stripeZ.position.set(side, 1.7, offset);
+                    group.add(stripeZ);
+                }
+            }
+
+            // Random chance of creeping mold / stain on column (Asset #8 & #10)
+            if (Math.random() < 0.45) {
+                const moldMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.95 });
+                const patchGeo = new THREE.CircleGeometry(0.35 + Math.random() * 0.2, 8);
+                patchGeo.rotateY(Math.PI / 2);
+                const patch = new THREE.Mesh(patchGeo, moldMat);
+                patch.position.set(0.605, 0.5 + Math.random() * 0.8, (Math.random() - 0.5) * 0.4);
+                group.add(patch);
+
+                const tendrilGeo = new THREE.CylinderGeometry(0.015, 0.03, 0.8, 5);
+                const tendril = new THREE.Mesh(tendrilGeo, moldMat);
+                tendril.position.set(0.61, 0.9, (Math.random() - 0.5) * 0.3);
+                tendril.rotation.z = -0.15;
+                group.add(tendril);
+            }
+
+            return group;
+        }
+
+        // 2. Mono-Yellow Wall Panel Partition with Baseboard & Stain (Asset #2, #7, #8)
+        function createBackroomsWallSegment() {
+            const group = new THREE.Group();
+            
+            // Grand wall panel geometry
+            const wallGeo = new THREE.BoxGeometry(1.8, 3.2, 0.25);
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0xc9b458,
+                roughness: 0.85,
+                metalness: 0.05
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.y = 1.6;
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            group.add(wall);
+
+            // Darker baseboards on both sides
+            const baseboardGeo = new THREE.BoxGeometry(1.82, 0.14, 0.29);
+            const baseboardMat = new THREE.MeshStandardMaterial({
+                color: 0x451a03,
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const baseboard = new THREE.Mesh(baseboardGeo, baseboardMat);
+            baseboard.position.y = 0.07;
+            baseboard.castShadow = true;
+            group.add(baseboard);
+
+            // Vertical wallpaper stripe details
+            const stripeGeo = new THREE.BoxGeometry(0.015, 3.0, 0.005);
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xb59e45, roughness: 0.9 });
+
             for (let side of [-1, 1]) {
-                for (let xOffset of [-0.22, 0.22]) {
+                for (let xOffset of [-0.55, 0, 0.55]) {
                     const stripe = new THREE.Mesh(stripeGeo, stripeMat);
-                    stripe.position.set(xOffset, 0.675, side * 0.076);
+                    stripe.position.set(xOffset, 1.6, side * 0.126);
                     group.add(stripe);
                 }
             }
 
-            // Random rotation so they construct maze-like orientations (0 or 90 degrees)
+            // Damp Water/Mold Stain at base (Asset #8)
+            if (Math.random() < 0.6) {
+                const stainGeo = new THREE.PlaneGeometry(0.7, 0.6);
+                const stainMat = new THREE.MeshStandardMaterial({
+                    color: 0x2e2712,
+                    roughness: 0.95,
+                    transparent: true,
+                    opacity: 0.75
+                });
+                const stain = new THREE.Mesh(stainGeo, stainMat);
+                stain.position.set((Math.random() - 0.5) * 0.6, 0.38, 0.13);
+                group.add(stain);
+            }
+
+            // Random rotation (0 or 90 degrees)
             const rotY = Math.random() < 0.5 ? 0 : Math.PI / 2;
             group.rotation.y = rotY;
             
             return group;
         }
 
+        // 3. Wall Air Vent Unit with Slats & Dripping Mold (Asset #6 & #8)
+        function createBackroomsAirVent() {
+            const group = new THREE.Group();
+
+            // Vent metallic housing box
+            const ventGeo = new THREE.BoxGeometry(1.2, 0.7, 0.22);
+            const ventMat = new THREE.MeshStandardMaterial({
+                color: 0x52525b,
+                metalness: 0.85,
+                roughness: 0.3
+            });
+            const vent = new THREE.Mesh(ventGeo, ventMat);
+            vent.position.y = 2.4;
+            vent.castShadow = true;
+            group.add(vent);
+
+            // Slats cutouts inside vent
+            const slatGeo = new THREE.BoxGeometry(0.95, 0.03, 0.02);
+            const slatMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.95 });
+            for (let i = 0; i < 5; i++) {
+                const slat = new THREE.Mesh(slatGeo, slatMat);
+                slat.position.set(0, 2.6 - (i * 0.1), 0.115);
+                group.add(slat);
+            }
+
+            // Support post underneath
+            const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.0, 8);
+            const postMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.75, roughness: 0.4 });
+            const post = new THREE.Mesh(postGeo, postMat);
+            post.position.y = 1.0;
+            post.castShadow = true;
+            group.add(post);
+
+            // Dark mold dripping down below vent slats (Asset #8)
+            const dripGeo = new THREE.PlaneGeometry(0.5, 0.4);
+            const dripMat = new THREE.MeshStandardMaterial({
+                color: 0x171717,
+                roughness: 0.95,
+                transparent: true,
+                opacity: 0.8
+            });
+            const drip = new THREE.Mesh(dripGeo, dripMat);
+            drip.position.set(0, 1.9, 0.115);
+            group.add(drip);
+
+            return group;
+        }
+
+        // 4. Exposed Ceiling Pipe Structure (Asset #5)
+        function createBackroomsExposedPipe() {
+            const group = new THREE.Group();
+
+            // Main horizontal pipe running overhead
+            const pipeGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.2, 8);
+            pipeGeo.rotateZ(Math.PI / 2);
+            const pipeMat = new THREE.MeshStandardMaterial({
+                color: 0x71717a,
+                metalness: 0.85,
+                roughness: 0.35
+            });
+            const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+            pipe.position.y = 3.3;
+            pipe.castShadow = true;
+            group.add(pipe);
+
+            // Flange coupling rings on pipe ends
+            const flangeGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.06, 8);
+            flangeGeo.rotateZ(Math.PI / 2);
+            const flangeMat = new THREE.MeshStandardMaterial({ color: 0x27272a, metalness: 0.9 });
+            for (let xPos of [-0.9, 0.9]) {
+                const flange = new THREE.Mesh(flangeGeo, flangeMat);
+                flange.position.set(xPos, 3.3, 0);
+                group.add(flange);
+            }
+
+            // Vertical ceiling hanging rods (brackets)
+            const rodGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.7, 6);
+            const rodMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.9 });
+            for (let xPos of [-0.6, 0.6]) {
+                const rod = new THREE.Mesh(rodGeo, rodMat);
+                rod.position.set(xPos, 3.65, 0);
+                group.add(rod);
+            }
+
+            group.rotation.y = Math.random() < 0.5 ? 0 : Math.PI / 2;
+            return group;
+        }
+
+        // 5. Overhead Suspended Ceiling Tile Grid & Embedded Light (Asset #9 & #4)
+        function createBackroomsCeilingGrid() {
+            const group = new THREE.Group();
+
+            // Tile grid frame at height y=3.5
+            const gridGeo = new THREE.BoxGeometry(2.0, 0.06, 2.0);
+            const gridMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d4, roughness: 0.9 });
+            const ceilingGrid = new THREE.Mesh(gridGeo, gridMat);
+            ceilingGrid.position.y = 3.5;
+            ceilingGrid.castShadow = true;
+            group.add(ceilingGrid);
+
+            // Dark grid seams
+            const seamGeo = new THREE.BoxGeometry(2.02, 0.07, 0.04);
+            const seamMat = new THREE.MeshStandardMaterial({ color: 0x27272a, metalness: 0.8 });
+            const s1 = new THREE.Mesh(seamGeo, seamMat);
+            s1.position.y = 3.5;
+            group.add(s1);
+
+            const s2 = new THREE.Mesh(seamGeo, seamMat);
+            s2.rotation.y = Math.PI / 2;
+            s2.position.y = 3.5;
+            group.add(s2);
+
+            // Integrated fluorescent light box in center (Asset #4)
+            const lightBoxGeo = new THREE.BoxGeometry(0.8, 0.06, 0.35);
+            const lightBoxMat = new THREE.MeshBasicMaterial({ color: 0xfef9c3 });
+            const lightBox = new THREE.Mesh(lightBoxGeo, lightBoxMat);
+            lightBox.position.set(0, 3.46, 0);
+            group.add(lightBox);
+
+            // Downward point light
+            const light = new THREE.PointLight(0xfde68a, 0.8, 4.0);
+            light.position.set(0, 3.3, 0);
+            group.add(light);
+
+            return group;
+        }
+
+        // 6. SCA Creeping Mold Cluster (Asset #10 & #8)
+        function createBackroomsCreepingMold() {
+            const group = new THREE.Group();
+
+            // Dark mold spot base patch on floor
+            const baseGeo = new THREE.CylinderGeometry(0.5, 0.55, 0.02, 12);
+            const moldMat = new THREE.MeshStandardMaterial({
+                color: 0x1c1917,
+                roughness: 0.95
+            });
+            const basePatch = new THREE.Mesh(baseGeo, moldMat);
+            basePatch.position.y = 0.01;
+            basePatch.receiveShadow = true;
+            group.add(basePatch);
+
+            // Creeping tendrils radiating outwards and upwards
+            const tendrilCount = 6;
+            for (let i = 0; i < tendrilCount; i++) {
+                const angle = (i / tendrilCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+                const len = 0.4 + Math.random() * 0.35;
+                const tGeo = new THREE.CylinderGeometry(0.012, 0.035, len, 5);
+                tGeo.rotateX(Math.PI / 2);
+                const tendril = new THREE.Mesh(tGeo, moldMat);
+                tendril.position.set(Math.cos(angle) * (len * 0.5), 0.015, Math.sin(angle) * (len * 0.5));
+                tendril.rotation.y = angle;
+                group.add(tendril);
+            }
+
+            return group;
+        }
+
+        // 7. Concrete Pillar (Upgraded)
         function createBackroomsPillar() {
             const group = new THREE.Group();
 
-            // Concrete gray columns
-            const pillarGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.0, 8);
+            const pillarGeo = new THREE.CylinderGeometry(0.24, 0.24, 3.4, 10);
             const pillarMat = new THREE.MeshStandardMaterial({
-                color: 0xa8a29e, // concrete stone-400
+                color: 0xa8a29e,
                 roughness: 0.95,
                 metalness: 0.05
             });
             const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-            pillar.position.y = 1.0;
+            pillar.position.y = 1.7;
             pillar.castShadow = true;
             pillar.receiveShadow = true;
             group.add(pillar);
 
-            // Top molding trim (thin slab)
-            const moldingGeo = new THREE.BoxGeometry(0.44, 0.1, 0.44);
+            // Top molding trim (Asset #7)
+            const moldingGeo = new THREE.BoxGeometry(0.58, 0.14, 0.58);
             const moldingMat = new THREE.MeshStandardMaterial({
-                color: 0xe7e5e4, // stone-200 plaster
+                color: 0xe7e5e4,
                 roughness: 0.9
             });
             const molding = new THREE.Mesh(moldingGeo, moldingMat);
-            molding.position.y = 1.95;
+            molding.position.y = 3.33;
             molding.castShadow = true;
             group.add(molding);
 
-            // Faint base molding
+            // Base molding (Asset #7)
             const baseMolding = molding.clone();
-            baseMolding.position.y = 0.05;
+            baseMolding.position.y = 0.07;
             group.add(baseMolding);
 
             return group;
         }
 
+        // 8. Dangling Fluorescent Light Fixture (Asset #4)
         function createFluorescentFixture() {
             const group = new THREE.Group();
 
-            // Broken tilted metal box casing
-            const fixtureGeo = new THREE.BoxGeometry(0.65, 0.08, 0.16);
+            const fixtureGeo = new THREE.BoxGeometry(0.85, 0.1, 0.22);
             const fixtureMat = new THREE.MeshStandardMaterial({
-                color: 0x57534e, // dirty steel
+                color: 0x57534e,
                 metalness: 0.85,
                 roughness: 0.35
             });
             const fixture = new THREE.Mesh(fixtureGeo, fixtureMat);
-            fixture.position.y = 0.45;
+            fixture.position.y = 1.2;
             fixture.castShadow = true;
             group.add(fixture);
 
-            // Double glowing tube cylinders inside
-            const tubeGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.58, 6);
+            const tubeGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.75, 6);
             tubeGeo.rotateZ(Math.PI / 2);
 
-            const tubeMat = new THREE.MeshBasicMaterial({
-                color: 0xfef9c3 // glowing white-yellow fluorescent bulb
-            });
+            const tubeMat = new THREE.MeshBasicMaterial({ color: 0xfef9c3 });
 
-            // 2 parallel tube lights
-            for (let offset of [-0.04, 0.04]) {
+            for (let offset of [-0.06, 0.06]) {
                 const tube = new THREE.Mesh(tubeGeo, tubeMat);
-                tube.position.set(0, 0.41, offset);
+                tube.position.set(0, 1.14, offset);
                 group.add(tube);
             }
 
-            // Tilted support wire (make it look fallen/hanging)
-            const wireGeo = new THREE.CylinderGeometry(0.003, 0.003, 1.4, 4);
+            const wireGeo = new THREE.CylinderGeometry(0.004, 0.004, 2.0, 4);
             const wireMat = new THREE.MeshBasicMaterial({ color: 0x27272a });
             
             const wire = new THREE.Mesh(wireGeo, wireMat);
-            wire.position.set(-0.25, 1.15, 0);
+            wire.position.set(-0.35, 2.15, 0);
             wire.rotation.z = 0.12;
             group.add(wire);
 
-            // Tilt the whole light fixture group to look dangling/liminal
             group.rotation.set(
                 (Math.random() - 0.5) * 0.15,
                 Math.random() * Math.PI,
-                0.22 + Math.random() * 0.15
+                0.15 + Math.random() * 0.15
             );
 
-            // Small light emitter
-            const light = new THREE.PointLight(0xfde68a, 0.6, 2.5);
-            light.position.y = 0.38;
+            const light = new THREE.PointLight(0xfde68a, 0.8, 3.5);
+            light.position.y = 1.1;
             group.add(light);
 
             return group;
@@ -3667,12 +4849,28 @@
                         }
                     } else if (gameState.currentBiome === 'backrooms') {
                         const r = Math.random();
-                        if (r < 0.45) {
-                            model = createBackroomsWallSegment();
-                        } else if (r < 0.8) {
-                            model = createBackroomsPillar();
+                        // 35% chance Space Colonization, 35% chance Column Foundry, 30% chance original assets
+                        if (r < 0.35) {
+                            model = createSpaceColAnomalyObstacle();
+                        } else if (r < 0.70) {
+                            model = createFoundryAnomalyObstacle();
                         } else {
-                            model = createFluorescentFixture();
+                            const rOrig = (r - 0.70) / 0.30;
+                            if (rOrig < 0.22) {
+                                model = createBackroomsWallSegment();
+                            } else if (rOrig < 0.42) {
+                                model = createBackroomsColumn();
+                            } else if (rOrig < 0.56) {
+                                model = createBackroomsPillar();
+                            } else if (rOrig < 0.70) {
+                                model = createBackroomsAirVent();
+                            } else if (rOrig < 0.82) {
+                                model = createBackroomsExposedPipe();
+                            } else if (rOrig < 0.92) {
+                                model = createBackroomsCeilingGrid();
+                            } else {
+                                model = createBackroomsCreepingMold();
+                            }
                         }
                     } else { // jungle
                         const r = Math.random();
@@ -3929,7 +5127,11 @@
             obstacleMeshes.forEach(obj => {
                 scene.remove(obj);
                 obj.traverse(child => {
-                    if (child.isMesh) {
+                    if (child.isMesh || child.isLine) {
+                        // Skip disposing template-based shared geometries/materials
+                        if (child.userData && child.userData.isClonedTemplate) {
+                            return;
+                        }
                         if (child.geometry) child.geometry.dispose();
                         if (child.material) {
                             if (Array.isArray(child.material)) {
@@ -4894,6 +6096,38 @@
             argon_harvester: {
                 base: { cost: 250, upgradeCost: 200, sell: 125, range: 0.0, damage: 0, fireRate: 0.0, color: 0x0ea5e9 },
                 upgraded: { cost: 200, sell: 225, range: 0.0, damage: 0, fireRate: 0.0, color: 0x38bdf8 }
+            },
+            bio_corroder: {
+                base: { cost: 180, damage: 18, range: 7.5, fireRate: 1.6, projectileSpeed: 9.0, upgradeCost: 120, color: 0x15803d, bulletColor: 0x22c55e },
+                upgraded: { damage: 38, range: 9.5, fireRate: 1.3, projectileSpeed: 12.0, color: 0x1e3a8a, bulletColor: 0xa3e635 }
+            },
+            plasma_obelisk: {
+                base: { cost: 320, damage: 85, range: 11.0, fireRate: 2.5, projectileSpeed: 10.0, upgradeCost: 200, color: 0x581c87, bulletColor: 0xa855f7 },
+                upgraded: { damage: 180, range: 14.0, fireRate: 2.1, projectileSpeed: 13.0, color: 0x3b0764, bulletColor: 0xd8b4fe }
+            },
+            chrono_emitter: {
+                base: { cost: 220, damage: 0, range: 6.0, fireRate: 0, projectileSpeed: 0, upgradeCost: 150, color: 0x06b6d4, bulletColor: 0x22d3ee },
+                upgraded: { damage: 0, range: 8.5, fireRate: 0, projectileSpeed: 0, color: 0x0891b2, bulletColor: 0x67e8f9 }
+            },
+            nano_refinery: {
+                base: { cost: 280, damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, upgradeCost: 180, color: 0xd97706, bulletColor: 0xf59e0b },
+                upgraded: { damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, color: 0xb45309, bulletColor: 0xfbbf24 }
+            },
+            atmos_generator: {
+                base: { cost: 120, damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, upgradeCost: 100, color: 0x22c55e, bulletColor: 0x4ade80 },
+                upgraded: { damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, color: 0x15803d, bulletColor: 0x86efac }
+            },
+            hab_module: {
+                base: { cost: 160, damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, upgradeCost: 120, color: 0xa8a29e, bulletColor: 0xe7e5e4 },
+                upgraded: { damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, color: 0x78716c, bulletColor: 0xf5f5f4 }
+            },
+            sensor_array: {
+                base: { cost: 200, damage: 0, range: 8.0, fireRate: 0, projectileSpeed: 0, upgradeCost: 150, color: 0x4f46e5, bulletColor: 0x6366f1 },
+                upgraded: { damage: 0, range: 12.0, fireRate: 0, projectileSpeed: 0, color: 0x3730a3, bulletColor: 0x818cf8 }
+            },
+            greenhouse: {
+                base: { cost: 180, damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, upgradeCost: 130, color: 0xec4899, bulletColor: 0xf472b6 },
+                upgraded: { damage: 0, range: 0, fireRate: 0, projectileSpeed: 0, color: 0xbe185d, bulletColor: 0xf9a8d4 }
             }
         };
     </script>
@@ -5296,6 +6530,529 @@
                         panelR.rotation.set(0.4, 0, -0.4);
                         group.add(panelR);
 
+                    } else if (this.type === 'bio_corroder') {
+                        // Organic base mound
+                        const baseGeo = new THREE.CylinderGeometry(0.55, 0.7, 0.3, 10);
+                        const bioGreenMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.9, flatShading: true });
+                        const base = new THREE.Mesh(baseGeo, bioGreenMat);
+                        base.position.y = 0.15;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Flexible hose stem
+                        const stemGeo = new THREE.CylinderGeometry(0.12, 0.16, 0.8, 8);
+                        const stemMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.8 });
+                        const stem = new THREE.Mesh(stemGeo, stemMat);
+                        stem.position.y = 0.55;
+                        stem.rotation.x = 0.1;
+                        stem.castShadow = true;
+                        group.add(stem);
+
+                        // Bioluminescent nodes wrapping the stem
+                        const nodeGeo = new THREE.SphereGeometry(0.06, 6, 6);
+                        const nodeMat = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+                        for (let i = 0; i < 4; i++) {
+                            const node = new THREE.Mesh(nodeGeo, nodeMat);
+                            const angle = i * Math.PI / 2;
+                            node.position.set(Math.cos(angle) * 0.18, 0.4 + i * 0.12, Math.sin(angle) * 0.18);
+                            group.add(node);
+                        }
+
+                        // Core lens and light
+                        const coreGeo = new THREE.SphereGeometry(0.12, 8, 8);
+                        this.pulseCore = new THREE.Mesh(coreGeo, lensGlass);
+                        this.pulseCore.position.set(0, 0.95, 0);
+                        group.add(this.pulseCore);
+
+                        this.chestLight = new THREE.PointLight(this.specs.color, 1.2, 4);
+                        this.chestLight.position.set(0, 0.95, 0.15);
+                        group.add(this.chestLight);
+
+                        // Turret head (organic bulb)
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 1.2;
+
+                        const bulbGeo = new THREE.SphereGeometry(0.35, 10, 10);
+                        const bulb = new THREE.Mesh(bulbGeo, camoOlive);
+                        bulb.castShadow = true;
+                        this.turretHead.add(bulb);
+
+                        // Slime launcher tube
+                        this.launcherTube = new THREE.Group();
+                        this.launcherTube.position.set(0, 0, 0.25);
+                        const tubeGeo = new THREE.CylinderGeometry(0.08, 0.12, 0.6, 8);
+                        tubeGeo.rotateX(Math.PI / 2);
+                        const tube = new THREE.Mesh(tubeGeo, metalDark);
+                        tube.castShadow = true;
+                        this.launcherTube.add(tube);
+
+                        // Glowing spit tip
+                        const tipGeo = new THREE.TorusGeometry(0.1, 0.03, 5, 10);
+                        tipGeo.rotateX(Math.PI / 2);
+                        tipGeo.translate(0, 0, 0.3);
+                        const tipMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor });
+                        const tip = new THREE.Mesh(tipGeo, tipMat);
+                        this.launcherTube.add(tip);
+
+                        this.turretHead.add(this.launcherTube);
+
+                        this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 3);
+                        this.muzzleFlash.position.set(0, 0, 0.6);
+                        this.turretHead.add(this.muzzleFlash);
+
+                        const flashGeo = new THREE.SphereGeometry(0.18, 6, 6);
+                        const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+                        this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                        this.muzzleFlashMesh.position.set(0, 0, 0.6);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'plasma_obelisk') {
+                        // Octagonal stone plate base
+                        const baseGeo = new THREE.CylinderGeometry(0.65, 0.75, 0.2, 8);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x1f1f23, roughness: 0.8, flatShading: true });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.position.y = 0.1;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Side claws / obelisk frames
+                        const clawMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.8, roughness: 0.2 });
+                        const clawLGeo = new THREE.BoxGeometry(0.1, 1.4, 0.25);
+                        const clawL = new THREE.Mesh(clawLGeo, clawMat);
+                        clawL.position.set(-0.35, 0.7, 0);
+                        clawL.rotation.z = 0.08;
+                        clawL.castShadow = true;
+                        group.add(clawL);
+
+                        const clawR = new THREE.Mesh(clawLGeo, clawMat);
+                        clawR.position.set(0.35, 0.7, 0);
+                        clawR.rotation.z = -0.08;
+                        clawR.castShadow = true;
+                        group.add(clawR);
+
+                        // Levitating central obsidian core (turretHead wrapper for rotation alignment)
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 0.85;
+
+                        // Rotating purple obelisk crystal
+                        const crystalGeo = new THREE.OctahedronGeometry(0.24, 0);
+                        const crystalMat = new THREE.MeshStandardMaterial({
+                            color: 0x6b21a8,
+                            emissive: 0xa855f7,
+                            emissiveIntensity: 1.5,
+                            roughness: 0.1,
+                            metalness: 0.9,
+                            flatShading: true
+                        });
+                        this.obeliskCrystal = new THREE.Mesh(crystalGeo, crystalMat);
+                        this.obeliskCrystal.scale.set(1.0, 1.7, 1.0);
+                        this.obeliskCrystal.castShadow = true;
+                        this.turretHead.add(this.obeliskCrystal);
+
+                        // Internal core lights
+                        this.pulseCore = this.obeliskCrystal;
+                        this.chestLight = new THREE.PointLight(this.specs.bulletColor, 1.5, 5);
+                        this.chestLight.position.set(0, 0, 0);
+                        this.turretHead.add(this.chestLight);
+
+                        this.muzzleFlash = new THREE.PointLight(this.specs.bulletColor, 0, 4);
+                        this.muzzleFlash.position.set(0, 0.5, 0);
+                        this.turretHead.add(this.muzzleFlash);
+
+                        const flashGeo = new THREE.SphereGeometry(0.25, 6, 6);
+                        const flashMat = new THREE.MeshBasicMaterial({ color: this.specs.bulletColor, transparent: true, opacity: 0 });
+                        this.muzzleFlashMesh = new THREE.Mesh(flashGeo, flashMat);
+                        this.muzzleFlashMesh.position.set(0, 0.5, 0);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'chrono_emitter') {
+                        // Sleek chrome base
+                        const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.25, 12);
+                        const base = new THREE.Mesh(baseGeo, metalChrome);
+                        base.position.y = 0.125;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Gyroscope frame
+                        this.gyroRing = new THREE.Group();
+                        this.gyroRing.position.y = 0.85;
+
+                        const ringGeo = new THREE.TorusGeometry(0.42, 0.04, 8, 24);
+                        const ringMat = new THREE.MeshStandardMaterial({ color: 0x0891b2, metalness: 0.9, roughness: 0.15 });
+                        const ring1 = new THREE.Mesh(ringGeo, ringMat);
+                        ring1.rotation.y = Math.PI / 4;
+                        this.gyroRing.add(ring1);
+
+                        const ring2 = new THREE.Mesh(ringGeo, ringMat);
+                        ring2.rotation.x = Math.PI / 2;
+                        this.gyroRing.add(ring2);
+
+                        group.add(this.gyroRing);
+
+                        // Spinning central cyan dodecahedron
+                        this.turretHead = new THREE.Group();
+                        this.turretHead.position.y = 0.85;
+
+                        const coreGeo = new THREE.DodecahedronGeometry(0.18, 0);
+                        const coreMat = new THREE.MeshStandardMaterial({
+                            color: 0x0ea5e9,
+                            emissive: 0x22d3ee,
+                            emissiveIntensity: 1.6,
+                            roughness: 0.05,
+                            metalness: 0.95,
+                            flatShading: true
+                        });
+                        this.chronoCrystal = new THREE.Mesh(coreGeo, coreMat);
+                        this.chronoCrystal.castShadow = true;
+                        this.turretHead.add(this.chronoCrystal);
+
+                        this.pulseCore = this.chronoCrystal;
+                        this.chestLight = new THREE.PointLight(0x22d3ee, 1.5, 4.5);
+                        this.chestLight.position.set(0, 0, 0);
+                        this.turretHead.add(this.chestLight);
+
+                        this.muzzleFlash = new THREE.PointLight(0x22d3ee, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        this.turretHead.add(this.muzzleFlash);
+                        this.turretHead.add(this.muzzleFlashMesh);
+
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'nano_refinery') {
+                        // Concrete factory base platform
+                        const baseGeo = new THREE.BoxGeometry(1.2, 0.3, 1.2);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x52525b, roughness: 0.85, flatShading: true });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.position.y = 0.15;
+                        base.castShadow = true;
+                        base.receiveShadow = true;
+                        group.add(base);
+
+                        // Steel housing walls
+                        const houseGeo = new THREE.BoxGeometry(0.9, 0.5, 0.9);
+                        const houseMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.75, roughness: 0.3 });
+                        const house = new THREE.Mesh(houseGeo, houseMat);
+                        house.position.y = 0.55;
+                        house.castShadow = true;
+                        group.add(house);
+
+                        // Rotating gears on top
+                        this.gearsGroup = new THREE.Group();
+                        this.gearsGroup.position.set(0, 0.82, 0);
+                        
+                        const gearMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9, roughness: 0.1 });
+                        const gearGeo1 = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 12);
+                        this.gear1 = new THREE.Mesh(gearGeo1, gearMat);
+                        this.gear1.position.set(-0.2, 0, -0.15);
+                        this.gearsGroup.add(this.gear1);
+
+                        const gearGeo2 = new THREE.CylinderGeometry(0.18, 0.18, 0.08, 10);
+                        this.gear2 = new THREE.Mesh(gearGeo2, gearMat);
+                        this.gear2.position.set(0.18, 0, 0.15);
+                        this.gearsGroup.add(this.gear2);
+
+                        group.add(this.gearsGroup);
+
+                        // Double exhaust chimneys (vents) sloped back
+                        this.refineryChimneys = new THREE.Group();
+                        const chimneyGeo = new THREE.CylinderGeometry(0.045, 0.055, 0.4, 6);
+                        chimneyGeo.rotateX(-0.2); // slant backward
+                        
+                        const chimney1 = new THREE.Mesh(chimneyGeo, metalDark);
+                        chimney1.position.set(-0.25, 0.95, 0.25);
+                        chimney1.castShadow = true;
+                        this.refineryChimneys.add(chimney1);
+
+                        const chimney2 = new THREE.Mesh(chimneyGeo, metalDark);
+                        chimney2.position.set(0.25, 0.95, -0.25);
+                        chimney2.castShadow = true;
+                        this.refineryChimneys.add(chimney2);
+
+                        group.add(this.refineryChimneys);
+
+                        this.exhaustStack = chimney1;
+
+                        // Warning light beacon
+                        const beaconGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.08, 4);
+                        const beacon = new THREE.Mesh(beaconGeo, new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+                        beacon.position.set(0, 0.84, 0);
+                        group.add(beacon);
+
+                        this.beaconLight = new THREE.PointLight(0xf59e0b, 1.2, 3.5);
+                        this.beaconLight.position.set(0, 0.88, 0);
+                        group.add(this.beaconLight);
+
+                        // Dummy properties to avoid errors in update loop
+                        this.turretHead = new THREE.Group();
+                        this.pulseCore = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        this.chestLight = this.beaconLight;
+                        this.muzzleFlash = new THREE.PointLight(0xf59e0b, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'atmos_generator') {
+                        // Sleek octagonal generator platform
+                        const baseGeo = new THREE.CylinderGeometry(0.6, 0.7, 0.25, 8);
+                        const base = new THREE.Mesh(baseGeo, metalSlate);
+                        base.position.y = 0.125;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Oxygen generator center chamber
+                        const bodyGeo = new THREE.CylinderGeometry(0.45, 0.5, 0.5, 8);
+                        const body = new THREE.Mesh(bodyGeo, metalDark);
+                        body.position.y = 0.5;
+                        body.castShadow = true;
+                        group.add(body);
+
+                        // Green bioluminescent dome
+                        const domeGeo = new THREE.SphereGeometry(0.35, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+                        const domeMat = new THREE.MeshStandardMaterial({
+                            color: 0x22c55e,
+                            emissive: 0x4ade80,
+                            emissiveIntensity: 1.5,
+                            transparent: true,
+                            opacity: 0.8,
+                            roughness: 0.1
+                        });
+                        const dome = new THREE.Mesh(domeGeo, domeMat);
+                        dome.position.y = 0.75;
+                        dome.castShadow = true;
+                        group.add(dome);
+
+                        // Turbine extraction fan on top of the dome
+                        this.extractionFan = new THREE.Group();
+                        this.extractionFan.position.set(0, 1.12, 0);
+
+                        const fanHubGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 8);
+                        const fanHub = new THREE.Mesh(fanHubGeo, metalChrome);
+                        this.extractionFan.add(fanHub);
+
+                        // 4 blades
+                        const bladeGeo = new THREE.BoxGeometry(0.35, 0.01, 0.08);
+                        for (let i = 0; i < 4; i++) {
+                            const blade = new THREE.Mesh(bladeGeo, metalChrome);
+                            blade.rotation.y = (i * Math.PI) / 2;
+                            blade.rotation.z = 0.15;
+                            blade.position.set(Math.cos(i * Math.PI / 2) * 0.18, 0, Math.sin(i * Math.PI / 2) * 0.18);
+                            this.extractionFan.add(blade);
+                        }
+                        group.add(this.extractionFan);
+
+                        // Warning yellow light
+                        this.beaconLight = new THREE.PointLight(0x22c55e, 1.5, 4.0);
+                        this.beaconLight.position.set(0, 0.75, 0);
+                        group.add(this.beaconLight);
+
+                        // Dummy properties to avoid errors
+                        this.turretHead = new THREE.Group();
+                        this.pulseCore = dome;
+                        this.chestLight = this.beaconLight;
+                        this.muzzleFlash = new THREE.PointLight(0x22c55e, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'hab_module') {
+                        // Concrete-like foundation plate
+                        const baseGeo = new THREE.CylinderGeometry(0.7, 0.8, 0.2, 10);
+                        const baseMat = new THREE.MeshStandardMaterial({ color: 0x44403c, roughness: 0.9 });
+                        const base = new THREE.Mesh(baseGeo, baseMat);
+                        base.position.y = 0.1;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Sleek housing units (triple domes)
+                        this.habDomes = new THREE.Group();
+                        this.habDomes.position.y = 0.2;
+
+                        const domeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.05 });
+                        const domeGeo = new THREE.SphereGeometry(0.3, 10, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+
+                        // Center Dome
+                        const centerDome = new THREE.Mesh(domeGeo, domeMat);
+                        centerDome.scale.set(1.0, 1.3, 1.0);
+                        centerDome.castShadow = true;
+                        this.habDomes.add(centerDome);
+
+                        // Left Dome (smaller)
+                        const leftDome = new THREE.Mesh(domeGeo, domeMat);
+                        leftDome.position.set(-0.35, 0, -0.15);
+                        leftDome.scale.set(0.75, 0.9, 0.75);
+                        leftDome.castShadow = true;
+                        this.habDomes.add(leftDome);
+
+                        // Right Dome (smaller)
+                        const rightDome = new THREE.Mesh(domeGeo, domeMat);
+                        rightDome.position.set(0.35, 0, 0.15);
+                        rightDome.scale.set(0.75, 0.9, 0.75);
+                        rightDome.castShadow = true;
+                        this.habDomes.add(rightDome);
+
+                        // Tiny glass windows that glow internally
+                        const windowMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+                        const windowGeo = new THREE.SphereGeometry(0.04, 6, 6);
+                        
+                        const w1 = new THREE.Mesh(windowGeo, windowMat);
+                        w1.position.set(0, 0.25, 0.26);
+                        this.habDomes.add(w1);
+
+                        const w2 = new THREE.Mesh(windowGeo, windowMat);
+                        w2.position.set(-0.35, 0.16, 0.06);
+                        this.habDomes.add(w2);
+
+                        const w3 = new THREE.Mesh(windowGeo, windowMat);
+                        w3.position.set(0.35, 0.16, 0.36);
+                        this.habDomes.add(w3);
+
+                        group.add(this.habDomes);
+
+                        // Ambient yellow light radiating from windows
+                        this.beaconLight = new THREE.PointLight(0xfef08a, 1.2, 4.0);
+                        this.beaconLight.position.set(0, 0.4, 0.3);
+                        group.add(this.beaconLight);
+
+                        // Dummy properties to avoid errors
+                        this.turretHead = new THREE.Group();
+                        this.pulseCore = centerDome;
+                        this.chestLight = this.beaconLight;
+                        this.muzzleFlash = new THREE.PointLight(0xfef08a, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'sensor_array') {
+                        // Circular base
+                        const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.2, 10);
+                        const base = new THREE.Mesh(baseGeo, metalSlate);
+                        base.position.y = 0.1;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Tall steel lattice tower frame
+                        const frameGeo = new THREE.CylinderGeometry(0.1, 0.22, 1.2, 4);
+                        const frameMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, metalness: 0.9, roughness: 0.2 });
+                        const frame = new THREE.Mesh(frameGeo, frameMat);
+                        frame.position.y = 0.7;
+                        frame.castShadow = true;
+                        group.add(frame);
+
+                        // Rotating parabolic radar dish assembly on top
+                        this.radarScanner = new THREE.Group();
+                        this.radarScanner.position.set(0, 1.35, 0);
+
+                        // Dish stem/axle
+                        const axleGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.12, 6);
+                        axleGeo.rotateX(Math.PI / 2);
+                        const axle = new THREE.Mesh(axleGeo, metalChrome);
+                        this.radarScanner.add(axle);
+
+                        // Parabolic dish (tilted cylinder cap / cone)
+                        const dishGeo = new THREE.CylinderGeometry(0.38, 0.05, 0.18, 12, 1, true);
+                        dishGeo.rotateX(Math.PI / 3);
+                        const dish = new THREE.Mesh(dishGeo, metalChrome);
+                        dish.position.set(0, 0.15, 0.08);
+                        dish.castShadow = true;
+                        this.radarScanner.add(dish);
+
+                        // Sub-receiver horn feed pin
+                        const pinGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.24, 4);
+                        pinGeo.rotateX(Math.PI / 3);
+                        const pin = new THREE.Mesh(pinGeo, metalDark);
+                        pin.position.set(0, 0.32, 0.18);
+                        this.radarScanner.add(pin);
+
+                        // Glowing blue emitter tip on feed horn
+                        const tipGeo = new THREE.SphereGeometry(0.045, 6, 6);
+                        const tipMat = new THREE.MeshBasicMaterial({ color: 0x6366f1 });
+                        const tip = new THREE.Mesh(tipGeo, tipMat);
+                        tip.position.set(0, 0.42, 0.23);
+                        this.radarScanner.add(tip);
+
+                        group.add(this.radarScanner);
+
+                        // Pulsing blue warning light
+                        this.beaconLight = new THREE.PointLight(0x6366f1, 1.5, 5.0);
+                        this.beaconLight.position.set(0, 1.35, 0);
+                        group.add(this.beaconLight);
+
+                        // Dummy properties to avoid errors
+                        this.turretHead = new THREE.Group();
+                        this.pulseCore = tip;
+                        this.chestLight = this.beaconLight;
+                        this.muzzleFlash = new THREE.PointLight(0x6366f1, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        group.add(this.turretHead);
+
+                    } else if (this.type === 'greenhouse') {
+                        // Hexagonal sleek foundation
+                        const baseGeo = new THREE.CylinderGeometry(0.65, 0.75, 0.2, 6);
+                        const base = new THREE.Mesh(baseGeo, metalSlate);
+                        base.position.y = 0.1;
+                        base.castShadow = true;
+                        group.add(base);
+
+                        // Internal tiered farming shelving cogs
+                        const rackGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.35, 6);
+                        const rackMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+                        const rack = new THREE.Mesh(rackGeo, rackMat);
+                        rack.position.y = 0.325;
+                        rack.castShadow = true;
+                        group.add(rack);
+
+                        // Glowing alien sprouts
+                        const sproutGeo = new THREE.SphereGeometry(0.05, 5, 5);
+                        const sproutMat1 = new THREE.MeshBasicMaterial({ color: 0xec4899 });
+                        const sproutMat2 = new THREE.MeshBasicMaterial({ color: 0x22c55e });
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i / 6) * Math.PI * 2;
+                            const sp = new THREE.Mesh(sproutGeo, i % 2 === 0 ? sproutMat1 : sproutMat2);
+                            sp.position.set(Math.cos(angle) * 0.38, 0.52, Math.sin(angle) * 0.38);
+                            group.add(sp);
+                        }
+
+                        // High-aesthetic glass dome enclosure
+                        const glassDomeGeo = new THREE.SphereGeometry(0.55, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+                        const glassMat = new THREE.MeshStandardMaterial({
+                            color: 0xf472b6,
+                            transparent: true,
+                            opacity: 0.35,
+                            roughness: 0.05,
+                            metalness: 0.95
+                        });
+                        const glassDome = new THREE.Mesh(glassDomeGeo, glassMat);
+                        glassDome.position.y = 0.2;
+                        glassDome.castShadow = true;
+                        group.add(glassDome);
+
+                        // Upper grow light beacon
+                        const growLightCoreGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.08, 6);
+                        const growLightCore = new THREE.Mesh(growLightCoreGeo, metalChrome);
+                        growLightCore.position.y = 0.72;
+                        group.add(growLightCore);
+
+                        this.beaconLight = new THREE.PointLight(0xf472b6, 1.5, 4.0);
+                        this.beaconLight.position.set(0, 0.68, 0);
+                        group.add(this.beaconLight);
+
+                        // Chimney exhaust stack
+                        const stackGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.25, 4);
+                        const chimney = new THREE.Mesh(stackGeo, metalDark);
+                        chimney.position.set(0.3, 0.7, -0.3);
+                        chimney.castShadow = true;
+                        group.add(chimney);
+                        this.exhaustStack = chimney;
+
+                        // Dummy properties to avoid errors
+                        this.turretHead = new THREE.Group();
+                        this.pulseCore = glassDome;
+                        this.chestLight = this.beaconLight;
+                        this.muzzleFlash = new THREE.PointLight(0xf472b6, 0, 1);
+                        this.muzzleFlashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.01, 4, 4), new THREE.MeshBasicMaterial({ visible: false }));
+                        group.add(this.turretHead);
+
                     } else {
                         const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.35, 8);
                         const base = new THREE.Mesh(baseGeo, metalSlate);
@@ -5414,7 +7171,244 @@
                     }
                 }
 
+                spawnPulseRing() {
+                    if (typeof scene === 'undefined') return;
+                    const ringGeo = new THREE.RingGeometry(0.1, this.specs.range, 32);
+                    ringGeo.rotateX(-Math.PI / 2);
+                    const ringMat = new THREE.MeshBasicMaterial({
+                        color: 0x22d3ee,
+                        transparent: true,
+                        opacity: 0.4,
+                        side: THREE.DoubleSide,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+                    ringMesh.position.copy(this.position).y += 0.05;
+                    scene.add(ringMesh);
+
+                    let scale = 0.05;
+                    const expandInterval = setInterval(() => {
+                        scale += 0.05;
+                        if (ringMesh) {
+                            ringMesh.scale.set(scale, 1, scale);
+                            if (ringMesh.material) {
+                                ringMesh.material.opacity = Math.max(0, (1.0 - scale) * 0.4);
+                            }
+                        }
+                        if (scale >= 1.0) {
+                            clearInterval(expandInterval);
+                            if (scene && ringMesh) {
+                                scene.remove(ringMesh);
+                            }
+                            ringGeo.dispose();
+                            ringMat.dispose();
+                        }
+                    }, 30);
+                }
+
+                spawnPolyplantAdjacent() {
+                    if (typeof scene === 'undefined' || typeof grid === 'undefined') return;
+                    const size = typeof GRID_SIZE !== 'undefined' ? GRID_SIZE : 40;
+                    const types = typeof CELL_TYPES !== 'undefined' ? CELL_TYPES : { EMPTY: 0 };
+                    const dirs = [
+                        { x: 1, z: 0 },
+                        { x: -1, z: 0 },
+                        { x: 0, z: 1 },
+                        { x: 0, z: -1 }
+                    ];
+                    dirs.sort(() => Math.random() - 0.5);
+
+                    for (let d of dirs) {
+                        const nx = this.gridX + d.x;
+                        const nz = this.gridZ + d.z;
+                        
+                        if (nx >= 0 && nx < size && nz >= 0 && nz < size) {
+                            if (grid[nx]?.[nz] === types.EMPTY) {
+                                if (window.polyplants && !window.polyplants.some(p => p.gridX === nx && p.gridZ === nz)) {
+                                    if (window.Polyplant) {
+                                        const plant = new window.Polyplant(scene, nx, nz);
+                                        window.polyplants.push(plant);
+                                        this.triggerExhaustPuff();
+                                        if (window.showToast) {
+                                            window.showToast("Greenhouse cultivated a new Polyplant!", "green");
+                                        }
+                                        if (window.audio && typeof window.audio.playBuild === 'function') {
+                                            window.audio.playBuild();
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 update(dt) {
+                    if (this.type === 'atmos_generator') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.extractionFan) {
+                            this.extractionFan.rotation.y += dt * 3.5;
+                        }
+                        if (this.beaconLight) {
+                            this.beaconLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.005);
+                        }
+                        return;
+                    }
+                    if (this.type === 'hab_module') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.beaconLight) {
+                            this.beaconLight.intensity = 0.8 + 0.4 * Math.sin(Date.now() * 0.004);
+                        }
+                        return;
+                    }
+                    if (this.type === 'sensor_array') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.radarScanner) {
+                            this.radarScanner.rotation.y += dt * 0.8;
+                        }
+                        if (this.beaconLight) {
+                            this.beaconLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.006);
+                        }
+                        return;
+                    }
+                    if (this.type === 'greenhouse') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.beaconLight) {
+                            this.beaconLight.intensity = 1.0 + 0.4 * Math.sin(Date.now() * 0.005);
+                        }
+                        this.spawnTimer = (this.spawnTimer || (this.level === 2 ? 12.0 : 20.0)) - dt;
+                        if (this.spawnTimer <= 0) {
+                            this.spawnTimer = this.level === 2 ? 12.0 : 20.0;
+                            this.spawnPolyplantAdjacent();
+                        }
+                        return;
+                    }
+                    if (this.type === 'chrono_emitter') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.gyroRing) {
+                            this.gyroRing.rotation.y += dt * 1.8;
+                            this.gyroRing.rotation.x += dt * 0.4;
+                        }
+                        if (this.chronoCrystal) {
+                            this.chronoCrystal.rotation.y += dt * 1.5;
+                        }
+                        if (this.chestLight) {
+                            this.chestLight.intensity = 1.0 + 0.5 * Math.sin(Date.now() * 0.005);
+                        }
+                        
+                        this.pulseVisualTimer = (this.pulseVisualTimer || 0) + dt;
+                        if (this.pulseVisualTimer >= 2.5) {
+                            this.pulseVisualTimer = 0;
+                            this.spawnPulseRing();
+                        }
+                        return;
+                    }
+                    if (this.type === 'nano_refinery') {
+                        if (this.disabledTimer > 0) {
+                            this.disabledTimer -= dt;
+                            if (this.chestLight) {
+                                this.chestLight.color.setHex(0xef4444);
+                                this.chestLight.intensity = Math.random() * 2.0;
+                            }
+                            if (this.disabledTimer <= 0) {
+                                if (this.chestLight) {
+                                    this.chestLight.color.setHex(this.specs.color);
+                                    this.chestLight.intensity = 1.0;
+                                }
+                            }
+                            return;
+                        }
+                        if (this.gear1 && this.gear2) {
+                            this.gear1.rotation.y += dt * 1.8;
+                            this.gear2.rotation.y -= dt * 2.4;
+                        }
+                        if (this.beaconLight) {
+                            this.beaconLight.intensity = 0.5 + 0.5 * Math.sin(Date.now() * 0.015);
+                        }
+                        this.refineTimer = (this.refineTimer || 10.0) - dt;
+                        if (this.refineTimer <= 0) {
+                            this.refineTimer = 10.0;
+                            const reward = this.level === 2 ? 30 : 15;
+                            if (window.gameState) {
+                                window.gameState.gold += reward;
+                                if (window.updateStatsUI) window.updateStatsUI();
+                                if (window.showToast) {
+                                    window.showToast(`+${reward}¢ Refined Minerals`, "green");
+                                }
+                                if (window.audio && typeof window.audio.playBuild === 'function') {
+                                    window.audio.playBuild();
+                                }
+                                this.triggerExhaustPuff();
+                            }
+                        }
+                        return;
+                    }
+
                     if (this.type === 'harvester') {
                         if (this.scarab) {
                             this.scarab.update(dt);
@@ -5458,7 +7452,18 @@
                     }
 
                     if (this.cooldown > 0) {
-                        this.cooldown -= dt;
+                        let speedMult = 1.0;
+                        if (typeof towers !== 'undefined') {
+                            for (let t of towers) {
+                                if (t.type === 'chrono_emitter' && t.disabledTimer <= 0) {
+                                    if (this.position.distanceTo(t.position) < t.specs.range) {
+                                        speedMult = 1.5;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        this.cooldown -= dt * speedMult;
                     }
 
                     if (this.type === 'spore' && this.barrelCluster) {
@@ -5477,6 +7482,15 @@
                     } else if (this.type === 'frost') {
                         if (this.radarDish) {
                             this.radarDish.rotation.y += dt * 2.2;
+                        }
+                    } else if (this.type === 'plasma_obelisk') {
+                        if (this.obeliskCrystal) {
+                            this.obeliskCrystal.rotation.y += dt * 1.5;
+                            this.obeliskCrystal.position.y = Math.sin(Date.now() * 0.003) * 0.08;
+                        }
+                    } else if (this.type === 'bio_corroder') {
+                        if (this.launcherTube) {
+                            this.launcherTube.rotation.z = Math.sin(Date.now() * 0.001) * 0.1;
                         }
                     }
 
@@ -5516,6 +7530,26 @@
 
                     for (let enemy of enemies) {
                         if (enemy.isDead) continue;
+
+                        if (enemy.isStealth) {
+                            const distToHQ = enemy.position.distanceTo(new THREE.Vector3(0, 0.25, 0));
+                            let detected = distToHQ < 4.5;
+                            
+                            if (!detected) {
+                                for (let t of towers) {
+                                    if (t.disabledTimer > 0) continue;
+                                    if (t.type === 'spore' || t.type === 'frost' || t.type === 'sensor_array') {
+                                        const spotRange = t.type === 'sensor_array' ? t.specs.range : 3.5;
+                                        if (t.position.distanceTo(enemy.position) < spotRange) {
+                                            detected = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            if (!detected) continue;
+                        }
+
                         let dist = this.position.distanceTo(enemy.position);
                         if (dist < minDist) {
                             minDist = dist;
@@ -5528,7 +7562,56 @@
                 shoot() {
                     this.cooldown = this.specs.fireRate;
 
-                    if (this.type === 'laser') {
+                    if (this.type === 'bio_corroder') {
+                        const startPos = new THREE.Vector3(0, 0, 0.45).applyMatrix4(this.turretHead.matrixWorld);
+                        projectiles.push(new BioSporeProjectile(
+                            startPos,
+                            this.target,
+                            this.specs.damage,
+                            this.specs.projectileSpeed,
+                            this.specs.bulletColor,
+                            false,
+                            1.0,
+                            0,
+                            false,
+                            true // isAcid
+                        ));
+                        
+                        this.turretHead.scale.set(1.1, 1.1, 0.9);
+                        
+                        this.muzzleFlash.intensity = 2.0;
+                        this.muzzleFlashMesh.material.opacity = 0.85;
+                        this.muzzleFlashTimer = 0.12;
+
+                        if (window.audio) {
+                            if (typeof window.audio.playShoot === 'function') window.audio.playShoot();
+                        }
+                    } else if (this.type === 'plasma_obelisk') {
+                        const startPos = new THREE.Vector3(0, 0.4, 0).applyMatrix4(this.turretHead.matrixWorld);
+                        projectiles.push(new BioSporeProjectile(
+                            startPos,
+                            this.target,
+                            this.specs.damage,
+                            this.specs.projectileSpeed,
+                            this.specs.bulletColor,
+                            false,
+                            1.0,
+                            0,
+                            true, // isArtillery
+                            false
+                        ));
+
+                        this.turretHead.scale.set(0.8, 1.25, 0.8);
+                        
+                        this.muzzleFlash.intensity = 3.5;
+                        this.muzzleFlashMesh.material.opacity = 0.95;
+                        this.muzzleFlashTimer = 0.15;
+
+                        if (window.audio) {
+                            if (typeof window.audio.playLaserShoot === 'function') window.audio.playLaserShoot();
+                            else if (typeof window.audio.playShoot === 'function') window.audio.playShoot();
+                        }
+                    } else if (this.type === 'laser') {
                         const startPos = new THREE.Vector3(0, 0, 1.0).applyMatrix4(this.turretHead.matrixWorld);
                         const endPos = this.target.position.clone();
                         const distance = startPos.distanceTo(endPos);
@@ -5617,9 +7700,44 @@
            PROJECTILE CONTROLLER
            ========================================== */
         const projectiles = [];
+        const acidPuddles = [];
+
+        function spawnAcidPuddle(position, radius, damagePerTick, duration) {
+            const terrainY = window.getTerrainHeight ? window.getTerrainHeight(position.x, position.z) : 0;
+            const puddlePos = new THREE.Vector3(position.x, terrainY + 0.03, position.z);
+
+            const circleGeo = new THREE.RingGeometry(0.01, radius, 16);
+            circleGeo.rotateX(-Math.PI / 2);
+            const circleMat = new THREE.MeshBasicMaterial({
+                color: 0x22c55e,
+                transparent: true,
+                opacity: 0.65,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            const mesh = new THREE.Mesh(circleGeo, circleMat);
+            mesh.position.copy(puddlePos);
+            scene.add(mesh);
+
+            const light = new THREE.PointLight(0x22c55e, 0.8, 3.0);
+            light.position.copy(puddlePos).y += 0.2;
+            scene.add(light);
+
+            acidPuddles.push({
+                mesh: mesh,
+                light: light,
+                position: puddlePos,
+                radius: radius,
+                damage: damagePerTick,
+                lifetime: duration,
+                maxLifetime: duration,
+                tickTimer: 0.5
+            });
+        }
+        window.spawnAcidPuddle = spawnAcidPuddle;
 
         class BioSporeProjectile {
-            constructor(startPos, target, damage, speed, colorHex, isFrost = false, slowFactor = 1.0, slowDuration = 0, isArtillery = false) {
+            constructor(startPos, target, damage, speed, colorHex, isFrost = false, slowFactor = 1.0, slowDuration = 0, isArtillery = false, isAcid = false) {
                 this.position = startPos.clone();
                 this.target = target;
                 this.damage = damage;
@@ -5630,6 +7748,7 @@
                 this.slowFactor = slowFactor;
                 this.slowDuration = slowDuration;
                 this.isArtillery = isArtillery;
+                this.isAcid = isAcid;
                 this.isInstanced = false;
 
                 this.startPosition = startPos.clone();
@@ -5666,6 +7785,12 @@
                     scene.add(this.mesh);
                 } else if (this.isArtillery) {
                     const geo = new THREE.SphereGeometry(0.14, 8, 8);
+                    const mat = new THREE.MeshBasicMaterial({ color: this.color });
+                    this.mesh = new THREE.Mesh(geo, mat);
+                    this.mesh.position.copy(this.position);
+                    scene.add(this.mesh);
+                } else if (this.isAcid) {
+                    const geo = new THREE.SphereGeometry(0.12, 6, 6);
                     const mat = new THREE.MeshBasicMaterial({ color: this.color });
                     this.mesh = new THREE.Mesh(geo, mat);
                     this.mesh.position.copy(this.position);
@@ -5739,6 +7864,9 @@
                         this.target.takeDamage(this.damage);
                         if (this.isFrost && typeof this.target.applySlow === 'function') {
                             this.target.applySlow(this.slowFactor, this.slowDuration);
+                        }
+                        if (this.isAcid && typeof window.spawnAcidPuddle === 'function') {
+                            window.spawnAcidPuddle(this.target.position, 1.8, this.damage * 0.4, 3.5);
                         }
                         particles.spawnHitBurst(this.target.position, this.color);
                         this.isDead = true;
@@ -8400,7 +10528,15 @@
                 stackfarm: 'Vertical Stackfarm', 
                 drone_factory: 'Drone Factory', 
                 supertower: 'Super Tower',
-                argon_harvester: 'Argon Harvester'
+                argon_harvester: 'Argon Harvester',
+                bio_corroder: 'Bio-Corroder',
+                plasma_obelisk: 'Void Obelisk',
+                chrono_emitter: 'Chrono Emitter',
+                nano_refinery: 'Ore Refinery',
+                atmos_generator: 'Atmos Generator',
+                hab_module: 'Colony Hab',
+                sensor_array: 'Sensor Array',
+                greenhouse: 'Greenhouse'
             };
             showToast(`${nameMap[activeBuildType] || 'Tower'} Constructed`, "green");
             console.log(`[Build] SporeTower successfully placed and initialized.`);
@@ -8418,9 +10554,54 @@
 
             // Update bottom detail context panel
             const cost = TOWER_SPECS[tower.type].base.upgradeCost;
-            const nameMap = { spore: 'Gatling Turret', laser: 'Railgun Cannon', frost: 'Missile Battery' };
-            document.getElementById('selected-title').innerText = `${nameMap[tower.type].toUpperCase()} LVL ${tower.level}`;
-            document.getElementById('selected-stats').innerText = `Dmg: ${tower.specs.damage} | Range: ${tower.specs.range.toFixed(1)}m | Rate: ${tower.specs.fireRate}s`;
+            const nameMap = { 
+                spore: 'Gatling Turret', 
+                laser: 'Railgun Cannon', 
+                frost: 'Missile Battery', 
+                tesla: 'Tesla Pylon', 
+                artillery: 'Plasma Artillery', 
+                thermal: 'Thermal Melter', 
+                harvester: 'Scarab Harvester', 
+                water_pump: 'Water Pump', 
+                generator: 'Power Generator', 
+                stackfarm: 'Vertical Stackfarm', 
+                drone_factory: 'Drone Factory', 
+                supertower: 'Super Tower',
+                argon_harvester: 'Argon Harvester',
+                bio_corroder: 'Bio-Corroder',
+                plasma_obelisk: 'Void Obelisk',
+                chrono_emitter: 'Chrono Emitter',
+                nano_refinery: 'Ore Refinery',
+                atmos_generator: 'Atmos Generator',
+                hab_module: 'Colony Hab',
+                sensor_array: 'Sensor Array',
+                greenhouse: 'Greenhouse'
+            };
+            const name = nameMap[tower.type] || 'Tower';
+            document.getElementById('selected-title').innerText = `${name.toUpperCase()} LVL ${tower.level}`;
+            if (tower.type === 'nano_refinery') {
+                document.getElementById('selected-stats').innerText = `Income: +${tower.level === 2 ? 30 : 15}¢ / 10s`;
+            } else if (tower.type === 'chrono_emitter') {
+                document.getElementById('selected-stats').innerText = `Speed Boost: +50% | Range: ${tower.specs.range.toFixed(1)}m`;
+            } else if (tower.type === 'atmos_generator') {
+                document.getElementById('selected-stats').innerText = `Oxygen: +${tower.level === 2 ? 1.2 : 0.6} Food/s`;
+            } else if (tower.type === 'hab_module') {
+                document.getElementById('selected-stats').innerText = `Housing: +${tower.level === 2 ? 0.3 : 0.15} Food, +${tower.level === 2 ? 0.4 : 0.2} Water, +${tower.level === 2 ? 0.2 : 0.1} Power/s`;
+            } else if (tower.type === 'sensor_array') {
+                document.getElementById('selected-stats').innerText = `Radar: Spots stealth units | Range: ${tower.specs.range.toFixed(1)}m`;
+            } else if (tower.type === 'greenhouse') {
+                document.getElementById('selected-stats').innerText = `Greenhouse: Spawns Polyplants every ${tower.level === 2 ? 12 : 20}s`;
+            } else if (tower.type === 'generator') {
+                document.getElementById('selected-stats').innerText = `Power: +0.6/s`;
+            } else if (tower.type === 'water_pump') {
+                document.getElementById('selected-stats').innerText = `Water Extractor`;
+            } else if (tower.type === 'harvester') {
+                document.getElementById('selected-stats').innerText = `Gathers Polyplants`;
+            } else if (tower.type === 'argon_harvester') {
+                document.getElementById('selected-stats').innerText = `Power: +1.2/s`;
+            } else {
+                document.getElementById('selected-stats').innerText = `Dmg: ${tower.specs.damage} | Range: ${tower.specs.range.toFixed(1)}m | Rate: ${tower.specs.fireRate}s`;
+            }
             
             const sellBtn = document.getElementById('sell-btn');
             if (sellBtn) sellBtn.style.display = 'flex';
@@ -8823,6 +11004,9 @@
                     if (uiContainer) uiContainer.classList.remove('hidden');
                     
                     gameState.inMenu = false;
+                    if (typeof window.switchToGameplayMusic === 'function') {
+                        window.switchToGameplayMusic();
+                    }
                     if (typeof clearMenuBackground === 'function') clearMenuBackground();
                     if (typeof startCameraTransition === 'function') startCameraTransition();
                 }
@@ -8982,11 +11166,7 @@
 
             const sfLock = document.getElementById('stackfarm-lock');
             if (sfLock) {
-                if (gameState.wave >= 5) {
-                    sfLock.classList.add('hidden');
-                } else {
-                    sfLock.classList.remove('hidden');
-                }
+                sfLock.classList.add('hidden');
             }
         }
 
@@ -9019,7 +11199,15 @@
             stackfarm: document.getElementById('build-stackfarm'),
             drone_factory: document.getElementById('build-drone_factory'),
             supertower: document.getElementById('build-supertower'),
-            argon_harvester: document.getElementById('build-argon_harvester')
+            argon_harvester: document.getElementById('build-argon_harvester'),
+            bio_corroder: document.getElementById('build-bio_corroder'),
+            plasma_obelisk: document.getElementById('build-plasma_obelisk'),
+            chrono_emitter: document.getElementById('build-chrono_emitter'),
+            nano_refinery: document.getElementById('build-nano_refinery'),
+            atmos_generator: document.getElementById('build-atmos_generator'),
+            hab_module: document.getElementById('build-hab_module'),
+            sensor_array: document.getElementById('build-sensor_array'),
+            greenhouse: document.getElementById('build-greenhouse')
         };
 
         const dropdown = document.getElementById('construct-dropdown');
@@ -9157,7 +11345,15 @@
                 thermal: { active: 'border-rose-500 bg-rose-950/60', hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
                 drone_factory: { active: 'border-violet-500 bg-violet-950/60', hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
                 supertower: { active: 'border-yellow-500 bg-yellow-950/60', hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
-                argon_harvester: { active: 'border-cyan-500 bg-cyan-950/60', hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
+                argon_harvester: { active: 'border-cyan-500 bg-cyan-950/60', hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' },
+                bio_corroder: { active: 'border-lime-500 bg-lime-950/60', hover: 'hover:border-lime-500/40 hover:bg-lime-950/40' },
+                plasma_obelisk: { active: 'border-purple-500 bg-purple-950/60', hover: 'hover:border-purple-500/40 hover:bg-purple-950/40' },
+                chrono_emitter: { active: 'border-cyan-500 bg-cyan-950/60', hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' },
+                nano_refinery: { active: 'border-amber-500 bg-amber-950/60', hover: 'hover:border-amber-500/40 hover:bg-amber-950/40' },
+                atmos_generator: { active: 'border-green-500 bg-green-950/60', hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
+                hab_module: { active: 'border-slate-400 bg-slate-900/60', hover: 'hover:border-slate-400/40 hover:bg-slate-900/40' },
+                sensor_array: { active: 'border-indigo-500 bg-indigo-950/60', hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
+                greenhouse: { active: 'border-pink-500 bg-pink-950/60', hover: 'hover:border-pink-500/40 hover:bg-pink-950/40' }
             };
 
             // Update UI Card classes
@@ -9200,7 +11396,15 @@
                 thermal: { hover: 'hover:border-rose-500/40 hover:bg-rose-950/40' },
                 drone_factory: { hover: 'hover:border-violet-500/40 hover:bg-violet-950/40' },
                 supertower: { hover: 'hover:border-yellow-500/40 hover:bg-yellow-950/40' },
-                argon_harvester: { hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' }
+                argon_harvester: { hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' },
+                bio_corroder: { hover: 'hover:border-lime-500/40 hover:bg-lime-950/40' },
+                plasma_obelisk: { hover: 'hover:border-purple-500/40 hover:bg-purple-950/40' },
+                chrono_emitter: { hover: 'hover:border-cyan-500/40 hover:bg-cyan-950/40' },
+                nano_refinery: { hover: 'hover:border-amber-500/40 hover:bg-amber-950/40' },
+                atmos_generator: { hover: 'hover:border-green-500/40 hover:bg-green-950/40' },
+                hab_module: { hover: 'hover:border-slate-400/40 hover:bg-slate-900/40' },
+                sensor_array: { hover: 'hover:border-indigo-500/40 hover:bg-indigo-950/40' },
+                greenhouse: { hover: 'hover:border-pink-500/40 hover:bg-pink-950/40' }
             };
             Object.keys(buildCards).forEach(k => {
                 const card = buildCards[k];
@@ -9218,11 +11422,6 @@
         Object.keys(buildCards).forEach(type => {
             buildCards[type].addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (type === 'stackfarm' && gameState.wave < 5) {
-                    showToast("STACKFARM UNLOCKS AT WAVE 5", "red");
-                    audio.playDenied();
-                    return;
-                }
                 selectBuildType(type);
             });
         });
@@ -11145,6 +13344,9 @@
             if (uiContainer) uiContainer.classList.remove('hidden');
             
             gameState.inMenu = false;
+            if (typeof window.switchToGameplayMusic === 'function') {
+                window.switchToGameplayMusic();
+            }
             clearMenuBackground();
             
             // Load selected biome
@@ -11199,8 +13401,7 @@
                 window.toggleMusicMute();
             }
             const btn = document.getElementById('menu-opt-music-toggle');
-            const musicIcon = document.getElementById('music-icon');
-            const isMuted = musicIcon && musicIcon.classList.contains('fa-volume-xmark');
+            const isMuted = typeof window.isMusicMuted === 'function' ? window.isMusicMuted() : false;
             if (btn) {
                 if (isMuted) {
                     btn.innerText = 'DISABLED';
@@ -11735,6 +13936,45 @@
                 }
             }
 
+            // Update active acid puddles
+            for (let i = acidPuddles.length - 1; i >= 0; i--) {
+                const puddle = acidPuddles[i];
+                puddle.lifetime -= dt;
+                
+                const ratio = Math.max(0.0, puddle.lifetime / puddle.maxLifetime);
+                if (puddle.mesh && puddle.mesh.material) {
+                    puddle.mesh.material.opacity = ratio * 0.65;
+                }
+                if (puddle.light) {
+                    puddle.light.intensity = ratio * 0.8;
+                }
+
+                puddle.tickTimer -= dt;
+                if (puddle.tickTimer <= 0) {
+                    puddle.tickTimer = 0.5;
+                    for (let enemy of enemies) {
+                        if (enemy.isDead) continue;
+                        if (puddle.position.distanceTo(enemy.position) < puddle.radius) {
+                            enemy.takeDamage(puddle.damage);
+                            particles.spawnHitBurst(enemy.position, 0x22c55e);
+                        }
+                    }
+                }
+
+                if (puddle.lifetime <= 0) {
+                    if (puddle.mesh) {
+                        scene.remove(puddle.mesh);
+                        if (puddle.mesh.geometry) puddle.mesh.geometry.dispose();
+                        if (puddle.mesh.material) puddle.mesh.material.dispose();
+                    }
+                    if (puddle.light) {
+                        scene.remove(puddle.light);
+                        puddle.light.dispose();
+                    }
+                    acidPuddles.splice(i, 1);
+                }
+            }
+
             // Update particle explosions
             particles.update(dt);
 
@@ -11769,12 +14009,19 @@
 
                 // Automated replenish from structures
                 towers.forEach(t => {
+                    if (t.disabledTimer > 0) return;
                     if (t.type === 'water_pump') {
-                        gameState.water = Math.min(100, gameState.water + 0.5 * dt);
+                        gameState.water = Math.min(100, gameState.water + (t.level === 2 ? 1.0 : 0.5) * dt);
                     } else if (t.type === 'generator') {
-                        gameState.power = Math.min(100, gameState.power + 0.6 * dt);
+                        gameState.power = Math.min(100, gameState.power + (t.level === 2 ? 1.2 : 0.6) * dt);
                     } else if (t.type === 'argon_harvester') {
-                        gameState.power = Math.min(100, gameState.power + 1.2 * dt);
+                        gameState.power = Math.min(100, gameState.power + (t.level === 2 ? 2.4 : 1.2) * dt);
+                    } else if (t.type === 'atmos_generator') {
+                        gameState.food = Math.min(100, gameState.food + (t.level === 2 ? 1.2 : 0.6) * dt);
+                    } else if (t.type === 'hab_module') {
+                        gameState.food = Math.min(100, gameState.food + (t.level === 2 ? 0.3 : 0.15) * dt);
+                        gameState.water = Math.min(100, gameState.water + (t.level === 2 ? 0.4 : 0.2) * dt);
+                        gameState.power = Math.min(100, gameState.power + (t.level === 2 ? 0.2 : 0.1) * dt);
                     }
                 });
 

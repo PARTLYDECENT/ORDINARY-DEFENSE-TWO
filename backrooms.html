@@ -1001,7 +1001,10 @@
         // 1. Biome 0 - Classic Level 0
         const wallTexture0 = generateWallpaperTexture();
         const wallMaterial0 = new THREE.MeshStandardMaterial({ map: wallTexture0, roughness: 0.85, metalness: 0.01 });
-        const carpetTexture = generateCarpetTexture();
+        const textureLoader = new THREE.TextureLoader();
+        const carpetTexture = textureLoader.load('assets/images/tile1.jpeg');
+        carpetTexture.wrapS = THREE.RepeatWrapping;
+        carpetTexture.wrapT = THREE.RepeatWrapping;
         const carpetMaterial = new THREE.MeshStandardMaterial({ map: carpetTexture, roughness: 0.98, metalness: 0.0 });
         const ceilingTexture0 = generateCeilingTexture();
         const ceilingMaterial0 = new THREE.MeshStandardMaterial({ map: ceilingTexture0, roughness: 0.7, metalness: 0.02 });
